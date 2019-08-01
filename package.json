@@ -1,0 +1,54 @@
+{
+  "name": "circles-core",
+  "version": "0.1.0",
+  "description": "Common methods to interact with the Circles ecosystem",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "contributors": [
+    "adzialocha"
+  ],
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/CirclesUBI/circles-core.git"
+  },
+  "scripts": {
+    "build": "npm run clear && tsc --emitDeclarationOnly && rollup -c",
+    "clear": "rimraf ./lib",
+    "lint": "eslint --ext .js,.ts .",
+    "precommit": "npm run lint && npm run test",
+    "test": "jest",
+    "test:watch": "npm run test -- --watch",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "npm run type-check -- --watch"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-typescript": "^7.3.3",
+    "@types/jest": "^24.0.16",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
+    "eslint": "^6.1.0",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "husky": "^3.0.2",
+    "jest": "^24.8.0",
+    "prettier": "^1.18.2",
+    "rimraf": "^2.6.3",
+    "rollup": "^1.18.0",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-cleanup": "^3.1.1",
+    "rollup-plugin-commonjs": "^10.0.1",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-uglify": "^6.0.2",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.5.3"
+  },
+  "dependencies": {
+    "@types/web3": "^1.0.19",
+    "web3": "^1.2.0"
+  }
+}
