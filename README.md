@@ -1,8 +1,8 @@
 # Circles Core
 
 <p>
-  <a href="https://chat.joincircles.net/api/v1/shield.svg?type=online&name=circles%20chat">
-    <img src="https://chat.joincircles.net" alt="Chat Server">
+  <a href="https://chat.joincircles.net">
+    <img src="https://chat.joincircles.net/api/v1/shield.svg?type=online&name=circles%20chat" alt="Chat Server">
   </a>
   <a href="https://opencollective.com/circles">
     <img src="https://opencollective.com/circles/supporters/badge.svg" alt="Backers">
