@@ -16,7 +16,6 @@
     "build": "npm run clear && tsc --emitDeclarationOnly && rollup -c",
     "clear": "rimraf ./lib",
     "lint": "eslint --ext .js,.ts .",
-    "precommit": "npm run lint && npm run test",
     "test": "jest",
     "test:watch": "npm run test -- --watch",
     "type-check": "tsc --noEmit",
