@@ -1,6 +1,6 @@
 {
   "env": {
-    "jest": true,
+    "jest": true
   },
   "rules": {
     "@typescript-eslint/explicit-function-return-type": "off"
