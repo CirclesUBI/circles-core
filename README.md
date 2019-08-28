@@ -27,6 +27,137 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 * Truffle & Ganache
 * Python 2.7
 
+## Usage
+
+```js
+import CirclesCore from 'circles-core';
+import Web3 from 'web3';
+
+const web3 = new Web3();
+
+// Initialize core
+const core = new CirclesCore({
+  web3,
+});
+
+// Create account
+const account = web3.eth.accounts.create();
+
+// Define nice username for us
+const username = 'margareth';
+
+// Generate a nonce to predict Safe address
+const nonce = new Date().getTime();
+
+// Predict Safe address which will be used for all transactions
+const safeAddress = core.safe.predictAddress(account, { nonce });
+
+// Register username and connect it to Safe address
+await core.user.register(account, {
+  nonce
+  safeAddress,
+  username,
+});
+
+// Get our current trust network
+const network = await core.trust.getNetwork(account, { address: safeAddress });
+
+// Resolve public addresses to user profiles
+const users = await core.user.resolve(account, {
+  addresses: network.map(connection => connection.address),
+});
+
+// Example: Display our trust network
+network.forEach(connection => {
+  const user = users.find(item => item.address === connection.address);
+
+  if (connection.isTrustingMe) {
+    console.log(`${user.username} trusts you.`);
+  }
+
+  if (connection.isTrustedByMe) {
+    console.log(`You trust ${user.username}.`);
+  }
+});
+
+// Check if we have enough trust connections
+const trustConnectionLimit = 3;
+
+const isTrusted = network.reduce((acc, connection) => {
+  return connection.isTrustingMe ? acc + 1 : acc;
+}, 0) > trustConnectionLimit;
+
+if (isTrusted) {
+  // Finally deploy Safe when user reached enough trust connections
+  const safeAddress = await core.safe.deploy(account, { nonce });
+  console.log(`Safe deployed at ${safeAddress}!`);
+} else {
+  console.log('Not enough trust connections yet ..');
+}
+
+// Change trust state with users
+await core.trust.removeConnection(account, {
+  from: safeAddress,
+  to: users[0].address,
+});
+
+await core.trust.addConnection(account, {
+  from: safeAddress,
+  to: users[0].address,
+  limit: 20,
+});
+
+// Get list of my activities
+const activities = await core.activity.getActivities(account, {
+  address: safeAddress,
+});
+
+// Example: Display activities
+activities.forEach(activity => {
+  const { timestamp, type, data } = activity;
+
+  if (type === 'transfer') {
+    console.log(`${timestamp} - ${data.from} transferred ${data.value} Circles to ${data.to} through ${data.through} users`);
+  } else if (type === 'addConnection') {
+    console.log(`${timestamp} - ${data.limit} ${data.from} trusted ${data.to}`);
+  } else if (type === 'removeConnection') {
+    console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
+  } else if (type === 'addOwner') {
+    console.log(`${timestamp} - ${data.from} added ${data.owner} to ${data.address}`);
+  } else if (type === 'removeOwner') {
+    console.log(`${timestamp} - ${data.from} removed ${data.owner} from ${data.address}`);
+  }
+});
+
+// Get my current balance of Circles
+const balance = await core.ubi.getBalance(account, {
+  address: safeAddress,
+});
+
+// Transfer Circles to users (directly or transitively)
+await core.ubi.transfer(account, {
+  from: safeAddress,
+  to: users[0].address,
+  value: 350,
+});
+
+// Get current Safe owners
+await core.safe.getOwners(account, {
+  address: safeAddress,
+});
+
+// Manage owners of my Safe
+await core.safe.removeOwner(account, {
+  address: safeAddress,
+  owner: '0x123...',
+});
+
+await core.safe.addOwner(account, {
+  address: safeAddress,
+  owner: '0x123...',
+});
+```
+
 ## Development
 
 `circles-core` is a JavaScript module written in [TypeScript](https://www.typescriptlang.org/), tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
