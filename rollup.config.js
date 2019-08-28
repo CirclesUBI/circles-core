@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import path from 'path';
 
 import babel from 'rollup-plugin-babel';
