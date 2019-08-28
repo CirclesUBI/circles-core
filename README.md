@@ -54,7 +54,7 @@ const safeAddress = core.safe.predictAddress(account, { nonce });
 
 // Register username and connect it to Safe address
 await core.user.register(account, {
-  nonce
+  nonce,
   safeAddress,
   username,
 });
