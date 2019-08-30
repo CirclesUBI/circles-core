@@ -1,6 +1,11 @@
 import getContracts from '~/common/contracts';
 
-const REQUIRED_OPTIONS = ['web3'];
+const REQUIRED_OPTIONS = [
+  'gnosisSafeAddress',
+  'hubAddress',
+  'proxyFactoryAddress',
+  'web3',
+];
 
 function checkOptions(options) {
   if (!options || typeof options !== 'object') {
@@ -19,7 +24,7 @@ class Core {
     this.options = options;
 
     this.web3 = web3;
-    this.contracts = getContracts(web3);
+    this.contracts = getContracts(web3, options);
   }
 }
 

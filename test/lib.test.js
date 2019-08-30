@@ -2,11 +2,16 @@ import Web3 from 'web3';
 
 import CirclesCore from '~';
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 describe('CirclesCore', () => {
   let core;
 
   beforeEach(() => {
     core = new CirclesCore({
+      gnosisSafeAddress: ZERO_ADDRESS,
+      hubAddress: ZERO_ADDRESS,
+      proxyFactoryAddress: ZERO_ADDRESS,
       web3: new Web3(),
     });
   });
