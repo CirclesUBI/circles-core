@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import path from 'path';
 
 import babel from 'rollup-plugin-babel';
@@ -9,9 +8,12 @@ import { uglify } from 'rollup-plugin-uglify';
 
 const DIST_FILE = 'index.js';
 const DIST_FOLDER = 'lib';
-const EXTENSIONS = ['.js', '.ts'];
-const INPUT_FILE = 'index.ts';
+
+const EXTENSIONS = ['.js'];
+
+const INPUT_FILE = 'index.js';
 const INPUT_FOLDER = 'src';
+
 const MODULE_NAME = 'CirclesCore';
 
 function rollupPlugins(isUglified = false) {

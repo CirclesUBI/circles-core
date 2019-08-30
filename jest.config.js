@@ -1,4 +1,8 @@
 module.exports = {
-  moduleFileExtensions: ['js', 'ts', 'json'],
-  preset: 'ts-jest',
+  testEnvironment: 'node',
+
+  // Resolve modules with alias
+  moduleNameMapper: {
+    '^~(.*)$': '<rootDir>/src$1',
+  },
 };

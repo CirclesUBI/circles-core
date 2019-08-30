@@ -29,7 +29,7 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 
 ## Development
 
-`circles-core` is a JavaScript module written in [TypeScript](https://www.typescriptlang.org/), tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
+`circles-core` is a JavaScript module written in JavaScript, tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
 
 ```
 // Install dependencies
@@ -38,10 +38,6 @@ npm install
 // Run test suite
 npm run test
 npm run test:watch
-
-// Check type definitions
-npm run type-check
-npm run type-check:watch
 
 // Check code formatting
 npm run lint

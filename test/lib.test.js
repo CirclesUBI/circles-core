@@ -1,9 +1,9 @@
 import Web3 from 'web3';
 
-import CirclesCore from '../src';
+import CirclesCore from '~';
 
 describe('CirclesCore', () => {
-  let core: CirclesCore;
+  let core;
 
   beforeEach(() => {
     core = new CirclesCore({
