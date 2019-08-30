@@ -11,7 +11,13 @@ describe('CirclesCore', () => {
     });
   });
 
-  it('is instantiable', () => {
+  it('should be instantiable', () => {
     expect(core).toBeInstanceOf(CirclesCore);
+  });
+
+  it('should throw an error when missing options', () => {
+    expect(() => {
+      new CirclesCore({});
+    }).toThrow();
   });
 });
