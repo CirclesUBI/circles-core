@@ -24,9 +24,11 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
     "babel-eslint": "^10.0.3",
+    "babel-plugin-module-resolver": "^3.2.0",
     "eslint": "^6.2.2",
     "eslint-config-prettier": "^6.1.0",
     "eslint-plugin-prettier": "^3.1.0",
+    "ganache-cli": "^6.6.0",
     "husky": "^3.0.4",
     "jest": "^24.9.0",
     "prettier": "^1.18.2",
@@ -35,13 +37,18 @@
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-cleanup": "^3.1.1",
     "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.2",
     "serialize-javascript": "^1.8.0",
+    "truffle": "^5.0.34",
     "web3": "^1.2.1"
   },
   "peerDependencies": {
     "web3": "^1.2.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@gnosis.pm/safe-contracts": "^1.0.0",
+    "circles-contracts": "^1.0.2"
+  }
 }
