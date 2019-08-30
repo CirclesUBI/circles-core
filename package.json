@@ -39,8 +39,8 @@
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-uglify": "^6.0.2",
-    "serialize-javascript": "^1.8.0",
+    "rollup-plugin-uglify": "^6.0.3",
+    "serialize-javascript": "^1.9.0",
     "truffle": "^5.0.34",
     "web3": "^1.2.1"
   },
@@ -49,6 +49,6 @@
   },
   "dependencies": {
     "@gnosis.pm/safe-contracts": "^1.0.0",
-    "circles-contracts": "^1.0.2"
+    "circles-contracts": "^1.0.3"
   }
 }
