@@ -26,6 +26,7 @@ function rollupPlugins(isUglified = false) {
     commonjs(),
     babel({
       extensions: EXTENSIONS,
+      runtimeHelpers: true,
     }),
     cleanup(),
   ];
