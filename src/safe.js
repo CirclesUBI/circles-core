@@ -1,6 +1,3 @@
-import { generateAddress2, keccak256 } from 'ethereumjs-util';
-import { rawEncode } from 'ethereumjs-abi';
-
 import Core from '~/core';
 
 import {
@@ -25,12 +22,26 @@ function encodeSafeABI(gnosisSafeMaster, owner) {
     .encodeABI();
 }
 
+function generateAddress2(web3, address, salt, byteCode) {
+  const data = ['ff', address, salt, web3.utils.keccak256(byteCode)]
+    .map(x => x.replace(/0x/, ''))
+    .join('');
+
+  const result = web3.utils
+    .keccak256(`0x${data}`)
+    .slice(-40)
+    .toLowerCase();
+
+  return `0x${result}`;
+}
+
 export default class Safe extends Core {
   async predictAddress(account, options) {
     this.check(account, options, ['nonce']);
 
     const { nonce } = options;
     const { gnosisSafeMaster, proxyFactory } = this.contracts;
+    const { eth, utils } = this.web3;
 
     const data = encodeSafeABI(gnosisSafeMaster, account.address);
 
@@ -38,26 +49,26 @@ export default class Safe extends Core {
       .proxyCreationCode()
       .call();
 
-    const constructorCode = rawEncode(
-      ['address'],
-      [gnosisSafeMaster.options.address],
-    ).toString('hex');
+    const constructorCode = eth.abi
+      .encodeParameter('address', gnosisSafeMaster.options.address)
+      .replace(/0x/, '');
 
     const initCode = proxyCreationCode + constructorCode;
 
-    const encodedNonce = rawEncode(['uint256'], [nonce]).toString('hex');
+    const encodedNonce = eth.abi
+      .encodeParameter('uint256', nonce)
+      .replace(/0x/, '');
 
-    const salt = keccak256(
-      `0x${keccak256(data).toString('hex')}${encodedNonce}`,
-    );
+    const salt = utils
+      .keccak256(`${utils.keccak256(data)}${encodedNonce}`)
+      .replace(/0x/, '');
 
-    const predictedAddress = generateAddress2(
+    return generateAddress2(
+      this.web3,
       proxyFactory.options.address,
       salt,
       initCode,
     );
-
-    return `0x${predictedAddress.toString('hex')}`;
   }
 
   async deploy(account, options) {
