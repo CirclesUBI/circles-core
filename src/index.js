@@ -20,7 +20,7 @@ function checkOptions(options) {
   });
 }
 
-class Core {
+export class Core {
   constructor({ web3, ...options }) {
     this.options = options;
     this.web3 = web3;
@@ -33,8 +33,7 @@ export default class CirclesCore {
     checkOptions(options);
     this.options = options;
 
-    // Create sub modules and pass core methods to them
-    const core = new Core(options);
-    this.safe = new Safe(core);
+    // Create sub modules
+    this.safe = new Safe(options);
   }
 }
