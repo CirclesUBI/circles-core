@@ -166,6 +166,10 @@ await core.safe.addOwner(account, {
 // Install dependencies
 npm install
 
+// Prepare test environment
+npx ganache-cli -i 5777
+npx truffle migrate
+
 // Run test suite
 npm run test
 npm run test:watch
