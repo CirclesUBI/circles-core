@@ -2,7 +2,13 @@ import { generateAddress2, keccak256 } from 'ethereumjs-util';
 import { rawEncode } from 'ethereumjs-abi';
 
 import Core from '~/core';
-import { SAFE_THRESHOLD, ZERO_ADDRESS } from '~/common/constants';
+
+import {
+  SAFE_THRESHOLD,
+  SENTINEL_ADDRESS,
+  ZERO_ADDRESS,
+} from '~/common/constants';
+
 import { getSafeContract } from '~/common/getContracts';
 
 function encodeSafeABI(gnosisSafeMaster, owner) {
@@ -112,9 +118,17 @@ export default class Safe extends Core {
     // Get Safe at given address
     const gnosisSafe = getSafeContract(this.web3, options.address);
 
-    // Prepare 'removeOwner' method by passing our address and the address to be removed
-    const txData = gnosisSafe.methods
-      .removeOwner(account.address, options.owner, SAFE_THRESHOLD)
+    // We need the list of owners before ...
+    const owners = await this.getOwners(account, { address: options.address });
+
+    // .. to find out which previous owner in the list is pointing at the one we want to remove
+    const ownerIndex = owners.findIndex(owner => owner === options.owner);
+    const prevOwner =
+      ownerIndex > 0 ? owners[ownerIndex - 1] : SENTINEL_ADDRESS;
+
+    // Prepare 'removeOwner' method by passing pointing owner and the owner to be removed
+    const txData = await gnosisSafe.methods
+      .removeOwner(prevOwner, options.owner, SAFE_THRESHOLD)
       .encodeABI();
 
     // Call method and return result
