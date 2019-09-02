@@ -14,7 +14,16 @@ module.exports = async (deployer, network, accounts) => {
   await deployer.deploy(ProxyFactory);
 
   await deployer.deploy(GnosisSafe).then(safe => {
-    safe.setup([accounts[0]], 1, ZERO_ADDRESS, 0, 0, 0, 0);
+    safe.setup(
+      [accounts[0]],
+      1,
+      ZERO_ADDRESS,
+      '0x',
+      ZERO_ADDRESS,
+      0,
+      ZERO_ADDRESS,
+    );
+
     return safe;
   });
 };
