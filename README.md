@@ -37,6 +37,9 @@ const web3 = new Web3();
 
 // Initialize core
 const core = new CirclesCore({
+  gnosisSafeAddress: '0x...',
+  hubAddress: '0x...',
+  proxyFactoryAddress: '0x...',
   web3,
 });
 
