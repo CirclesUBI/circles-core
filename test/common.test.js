@@ -2,8 +2,7 @@ import Web3 from 'web3';
 
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+import { ZERO_ADDRESS } from '~/common/constants';
 
 describe('Common', () => {
   describe('checkOptions', () => {
