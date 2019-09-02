@@ -4,7 +4,7 @@ node_js:
 install:
   - npm install
 script:
-  - npm run npm:ganache > /dev/null &
+  - npm run test:ganache > /dev/null &
   - sleep 5
   - npm run test:migrate
   - npm run test
