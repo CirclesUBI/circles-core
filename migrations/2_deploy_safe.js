@@ -8,7 +8,7 @@ const ProxyFactory = artifacts.require(
   '@gnosis.pm/safe-contracts/ProxyFactory.sol',
 );
 
-const ZERO_ADDRESS = '0x00000000000000000000000000000000';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 module.exports = async (deployer, network, accounts) => {
   await deployer.deploy(ProxyFactory);
