@@ -6,8 +6,11 @@ import CirclesCore from '~';
 
 import web3 from './web3';
 
+const DEFAULT_NETWORK_ID = 5777;
+const GAS = 1000000;
+
 function deployContracts() {
-  const networkId = process.env.NETWORK_ID || 5777;
+  const networkId = process.env.NETWORK_ID || DEFAULT_NETWORK_ID;
 
   const hubAddress = HubContract.networks[networkId].address;
   const gnosisSafeAddress = GnosisSafeContract.networks[networkId].address;
@@ -25,6 +28,7 @@ export default function createCore() {
 
   return new CirclesCore({
     ...addresses,
+    gas: GAS,
     web3,
   });
 }

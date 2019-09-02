@@ -48,15 +48,14 @@ describe('Common', () => {
     });
 
     it('should give us access to contracts', () => {
-      expect(contracts.GnosisSafe.methods).toBeDefined();
-      expect(contracts.Hub.methods).toBeDefined();
-      expect(contracts.ProxyFactory.methods).toBeDefined();
-      expect(contracts.Token.methods).toBeDefined();
+      expect(contracts.gnosisSafeMaster.methods).toBeDefined();
+      expect(contracts.hub.methods).toBeDefined();
+      expect(contracts.proxyFactory.methods).toBeDefined();
     });
 
     it('should be able to interact with contract methods', () => {
-      const { Hub } = contracts;
-      const data = Hub.methods.signup('testToken').encodeABI();
+      const { hub } = contracts;
+      const data = hub.methods.signup('testToken').encodeABI();
 
       expect(data).toContain('0x');
     });

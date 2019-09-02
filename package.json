@@ -16,6 +16,8 @@
     "clear": "rimraf ./lib",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
     "test": "jest",
+    "test:ganache": "ganache-cli -e 100000 --gasPrice 10000000 -i 5777 -d -m 'lake harbor special adult kit wheel leisure fix salmon become eager type'",
+    "test:migrate": "truffle migrate",
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {

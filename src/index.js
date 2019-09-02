@@ -6,6 +6,7 @@ export default class CirclesCore {
   constructor(coreOptions) {
     // Check options
     const { web3, ...options } = checkOptions(coreOptions, [
+      'gas',
       'gnosisSafeAddress',
       'hubAddress',
       'proxyFactoryAddress',

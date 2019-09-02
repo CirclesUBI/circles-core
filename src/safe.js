@@ -2,34 +2,39 @@ import { generateAddress2, keccak256 } from 'ethereumjs-util';
 import { rawEncode } from 'ethereumjs-abi';
 
 import Core from '~/core';
-import { ZERO_ADDRESS } from '~/common/constants';
+import { SAFE_THRESHOLD, ZERO_ADDRESS } from '~/common/constants';
+import { getSafeContract } from '~/common/getContracts';
+
+function encodeSafeABI(gnosisSafeMaster, owner) {
+  return gnosisSafeMaster.methods
+    .setup(
+      [owner],
+      SAFE_THRESHOLD,
+      ZERO_ADDRESS,
+      '0x',
+      ZERO_ADDRESS,
+      0,
+      ZERO_ADDRESS,
+    )
+    .encodeABI();
+}
 
 export default class Safe extends Core {
   async predictAddress(account, options) {
     this.check(account, options, ['nonce']);
 
     const { nonce } = options;
-    const { GnosisSafe, ProxyFactory } = this.contracts;
+    const { gnosisSafeMaster, proxyFactory } = this.contracts;
 
-    const data = GnosisSafe.methods
-      .setup(
-        [account.address],
-        1,
-        ZERO_ADDRESS,
-        '0x',
-        ZERO_ADDRESS,
-        0,
-        ZERO_ADDRESS,
-      )
-      .encodeABI();
+    const data = encodeSafeABI(gnosisSafeMaster, account.address);
 
-    const proxyCreationCode = await ProxyFactory.methods
+    const proxyCreationCode = await proxyFactory.methods
       .proxyCreationCode()
       .call();
 
     const constructorCode = rawEncode(
       ['address'],
-      [GnosisSafe.options.address],
+      [gnosisSafeMaster.options.address],
     ).toString('hex');
 
     const initCode = proxyCreationCode + constructorCode;
@@ -41,11 +46,85 @@ export default class Safe extends Core {
     );
 
     const predictedAddress = generateAddress2(
-      ProxyFactory.options.address,
+      proxyFactory.options.address,
       salt,
       initCode,
     );
 
     return `0x${predictedAddress.toString('hex')}`;
+  }
+
+  async deploy(account, options) {
+    this.check(account, options, ['nonce']);
+
+    const { gnosisSafeMaster, proxyFactory } = this.contracts;
+    const data = encodeSafeABI(gnosisSafeMaster, account.address);
+
+    // Call 'createProxyWithNonce' method via Gnosis Safe Proxy
+    return proxyFactory.methods
+      .createProxyWithNonce(
+        gnosisSafeMaster.options.address,
+        data,
+        options.nonce,
+      )
+      .send({
+        // @TODO: Check funder address (pass as option?)
+        from: account.address,
+        gas: this.options.gas,
+      });
+  }
+
+  async getOwners(account, options) {
+    this.check(account, options, ['address']);
+
+    // Get Safe at given address
+    const gnosisSafe = getSafeContract(this.web3, options.address);
+
+    // Call 'getOwners' method and return list of owners
+    return await gnosisSafe.methods.getOwners().call();
+  }
+
+  async addOwner(account, options) {
+    this.check(account, options, ['address', 'owner']);
+
+    // Get Safe at given address
+    const gnosisSafe = getSafeContract(this.web3, options.address);
+
+    // Prepare 'addOwnerWithThreshold' method
+    const txData = gnosisSafe.methods
+      .addOwnerWithThreshold(options.owner, SAFE_THRESHOLD)
+      .encodeABI();
+
+    // Call method and return result
+    return await this.executeSafeTx({
+      gnosisSafe,
+      from: account.address,
+      to: options.address,
+      // @TODO: Check funder address (pass as option?)
+      executor: account.address,
+      txData,
+    });
+  }
+
+  async removeOwner(account, options) {
+    this.check(account, options, ['address', 'owner']);
+
+    // Get Safe at given address
+    const gnosisSafe = getSafeContract(this.web3, options.address);
+
+    // Prepare 'removeOwner' method by passing our address and the address to be removed
+    const txData = gnosisSafe.methods
+      .removeOwner(account.address, options.owner, SAFE_THRESHOLD)
+      .encodeABI();
+
+    // Call method and return result
+    return await this.executeSafeTx({
+      gnosisSafe,
+      from: account.address,
+      to: options.address,
+      // @TODO: Check funder address (pass as option?)
+      executor: account.address,
+      txData,
+    });
   }
 }

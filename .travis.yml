@@ -2,11 +2,10 @@ language: node_js
 node_js:
   - '10'
 install:
-  - npm install -g npx ganache-cli
   - npm install
 script:
-  - ganache-cli -i 5777 > /dev/null &
+  - npm run npm:ganache > /dev/null &
   - sleep 5
-  - npx truffle migrate
+  - npm run test:migrate
   - npm run test
   - npm run build
