@@ -4,18 +4,19 @@ import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/contracts/Prox
 import TokenContract from 'circles-contracts/build/contracts/Token.json';
 
 export default function getContracts(web3, options) {
-  const GnosisSafe = new web3.eth.Contract(GnosisSafeContract.abi, {
-    address: options.gnosisSafeAddress,
-  });
+  const { gnosisSafeAddress, proxyFactoryAddress, hubAddress } = options;
 
-  const Hub = new web3.eth.Contract(HubContract.abi, {
-    address: options.hubAddress,
-  });
+  const GnosisSafe = new web3.eth.Contract(
+    GnosisSafeContract.abi,
+    gnosisSafeAddress,
+  );
 
-  const ProxyFactory = new web3.eth.Contract(ProxyFactoryContract.abi, {
-    address: options.proxyFactoryAddress,
-  });
+  const ProxyFactory = new web3.eth.Contract(
+    ProxyFactoryContract.abi,
+    proxyFactoryAddress,
+  );
 
+  const Hub = new web3.eth.Contract(HubContract.abi, hubAddress);
   const Token = new web3.eth.Contract(TokenContract.abi);
 
   return {

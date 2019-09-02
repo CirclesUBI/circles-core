@@ -1,11 +1,41 @@
 import Web3 from 'web3';
 
-import getContracts from '~/common/contracts';
+import checkOptions from '~/common/checkOptions';
+import getContracts from '~/common/getContracts';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-describe('Common module', () => {
-  describe('contracts', () => {
+describe('Common', () => {
+  describe('checkOptions', () => {
+    it('should only return required options', () => {
+      const result = checkOptions(
+        {
+          optionA: 200,
+          optionB: 100,
+          optionC: 'not needed',
+        },
+        ['optionA', 'optionB'],
+      );
+
+      expect(result).toStrictEqual({
+        optionA: 200,
+        optionB: 100,
+      });
+    });
+
+    it('should throw an error when an option is missing', () => {
+      expect(() => {
+        checkOptions(
+          {
+            optionB: 100,
+          },
+          ['optionA'],
+        );
+      }).toThrow();
+    });
+  });
+
+  describe('getContracts', () => {
     let contracts;
 
     beforeEach(() => {

@@ -12,10 +12,10 @@ beforeAll(() => {
 
 describe('Safe', () => {
   describe('predictAddress', () => {
-    it('should return a valid address', () => {
+    it('should return a valid address', async () => {
       const nonce = 5;
 
-      const predicted = core.safe.predictAddress(account, {
+      const predicted = await core.safe.predictAddress(account, {
         nonce,
       });
 

@@ -53,6 +53,8 @@
   "dependencies": {
     "@babel/runtime": "^7.5.5",
     "@gnosis.pm/safe-contracts": "^1.0.0",
-    "circles-contracts": "^1.0.3"
+    "circles-contracts": "^1.0.3",
+    "ethereumjs-abi": "^0.6.8",
+    "ethereumjs-util": "^6.1.0"
   }
 }

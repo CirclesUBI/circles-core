@@ -1,39 +1,31 @@
 import Safe from '~/safe';
-import getContracts from '~/common/contracts';
-
-const REQUIRED_OPTIONS = [
-  'gnosisSafeAddress',
-  'hubAddress',
-  'proxyFactoryAddress',
-  'web3',
-];
-
-function checkOptions(options) {
-  if (!options || typeof options !== 'object') {
-    throw new Error('Options missing');
-  }
-
-  REQUIRED_OPTIONS.forEach(key => {
-    if (!(key in options) || !options[key]) {
-      throw new Error(`"${key}" is missing in options`);
-    }
-  });
-}
-
-export class Core {
-  constructor({ web3, ...options }) {
-    this.options = options;
-    this.web3 = web3;
-    this.contracts = getContracts(web3, options);
-  }
-}
+import checkOptions from '~/common/checkOptions';
+import getContracts from '~/common/getContracts';
 
 export default class CirclesCore {
-  constructor(options) {
-    checkOptions(options);
-    this.options = options;
+  constructor(coreOptions) {
+    // Check options
+    const { web3, ...options } = checkOptions(coreOptions, [
+      'gnosisSafeAddress',
+      'hubAddress',
+      'proxyFactoryAddress',
+      'web3',
+    ]);
 
-    // Create sub modules
-    this.safe = new Safe(options);
+    // Create contracts once
+    const contracts = getContracts(web3, options);
+
+    this.contracts = contracts;
+    this.options = options;
+    this.web3 = web3;
+
+    // Create sub modules and pass options to them
+    const moduleOptions = {
+      contracts,
+      web3,
+      ...options,
+    };
+
+    this.safe = new Safe(moduleOptions);
   }
 }
