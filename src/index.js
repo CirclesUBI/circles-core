@@ -1,3 +1,4 @@
+import Safe from '~/safe';
 import getContracts from '~/common/contracts';
 
 const REQUIRED_OPTIONS = [
@@ -22,7 +23,6 @@ function checkOptions(options) {
 class Core {
   constructor({ web3, ...options }) {
     this.options = options;
-
     this.web3 = web3;
     this.contracts = getContracts(web3, options);
   }
@@ -31,10 +31,10 @@ class Core {
 export default class CirclesCore {
   constructor(options) {
     checkOptions(options);
-
-    // eslint-disable-next-line no-unused-vars
-    const core = new Core(options);
-
     this.options = options;
+
+    // Create sub modules and pass core methods to them
+    const core = new Core(options);
+    this.safe = new Safe(core);
   }
 }
