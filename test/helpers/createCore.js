@@ -1,16 +1,10 @@
-import Web3 from 'web3';
-
 import GnosisSafeContract from '../../build/contracts/GnosisSafe.json';
 import HubContract from '../../build/contracts/Hub.json';
 import ProxyFactoryContract from '../../build/contracts/ProxyFactory.json';
 
 import CirclesCore from '~';
 
-const provider = Web3.providers.HttpProvider(
-  process.env.RPC_URL || 'http://localhost:8485',
-);
-
-const web3 = new Web3(provider);
+import web3 from './web3';
 
 function deployContracts() {
   const networkId = process.env.NETWORK_ID || 5777;
