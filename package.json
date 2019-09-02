@@ -24,7 +24,6 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
     "@babel/plugin-transform-runtime": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
-    "@babel/runtime": "^7.5.5",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
     "babel-plugin-add-module-exports": "^1.0.2",
@@ -52,6 +51,7 @@
     "web3": "^1.2.1"
   },
   "dependencies": {
+    "@babel/runtime": "^7.5.5",
     "@gnosis.pm/safe-contracts": "^1.0.0",
     "circles-contracts": "^1.0.3"
   }
