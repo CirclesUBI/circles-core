@@ -18,14 +18,17 @@ export function getTokenContract(web3, address) {
 export default function getContracts(web3, options) {
   const { gnosisSafeAddress, proxyFactoryAddress, hubAddress } = options;
 
+  // Gnosis master Safe copy
   const gnosisSafeMaster = getSafeContract(web3, gnosisSafeAddress);
 
+  // Gnosis ProxyFactory
   const proxyFactory = getContract(
     web3,
     ProxyFactoryContract.abi,
     proxyFactoryAddress,
   );
 
+  // Circles Hub
   const hub = getContract(web3, HubContract.abi, hubAddress);
 
   return {

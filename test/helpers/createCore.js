@@ -7,9 +7,9 @@ import CirclesCore from '~';
 import web3 from './web3';
 
 const DEFAULT_NETWORK_ID = 5777;
-const GAS = 1000000;
+const DEFAULT_GAS_LIMIT = 1000000;
 
-function deployContracts() {
+function getContractAddresses() {
   const networkId = process.env.NETWORK_ID || DEFAULT_NETWORK_ID;
 
   const hubAddress = HubContract.networks[networkId].address;
@@ -24,11 +24,10 @@ function deployContracts() {
 }
 
 export default function createCore() {
-  const addresses = deployContracts();
+  const addresses = getContractAddresses();
 
-  return new CirclesCore({
+  return new CirclesCore(web3, {
     ...addresses,
-    gas: GAS,
-    web3,
+    gas: DEFAULT_GAS_LIMIT,
   });
 }

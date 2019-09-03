@@ -6,14 +6,21 @@ import { ZERO_ADDRESS } from '~/common/constants';
 
 describe('Common', () => {
   describe('checkOptions', () => {
-    it('should only return required options', () => {
+    it('should only return given fields', () => {
       const result = checkOptions(
         {
           optionA: 200,
           optionB: 100,
           optionC: 'not needed',
         },
-        ['optionA', 'optionB'],
+        {
+          optionA: {
+            type: 'number',
+          },
+          optionB: {
+            type: 'number',
+          },
+        },
       );
 
       expect(result).toStrictEqual({
@@ -28,9 +35,68 @@ describe('Common', () => {
           {
             optionB: 100,
           },
-          ['optionA'],
+          {
+            optionA: null,
+          },
         );
       }).toThrow();
+    });
+
+    it('should throw an error when an option was passed with a wrong type', () => {
+      expect(() => {
+        checkOptions(
+          {
+            optionB: 100,
+          },
+          {
+            optionB: {
+              type: 'string',
+            },
+          },
+        );
+      }).toThrow();
+    });
+
+    it('should fall back to default values when none were given', () => {
+      const result = checkOptions(
+        {
+          optionA: 200,
+        },
+        {
+          optionA: {
+            type: 'number',
+            default: 400,
+          },
+          optionB: {
+            type: 'number',
+            default: 300,
+          },
+        },
+      );
+
+      expect(result).toStrictEqual({
+        optionA: 200,
+        optionB: 300,
+      });
+    });
+
+    it('should accept custom functions as validators', () => {
+      const web3 = new Web3();
+
+      const result = checkOptions(
+        {
+          optionA: ZERO_ADDRESS,
+        },
+        {
+          optionA: {
+            type: web3.utils.isHexStrict,
+          },
+        },
+      );
+
+      expect(result).toStrictEqual({
+        optionA: ZERO_ADDRESS,
+      });
     });
   });
 

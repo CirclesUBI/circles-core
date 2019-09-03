@@ -1,32 +1,44 @@
-import Safe from '~/safe';
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
+import createSafeModule from '~/safe';
+import createUtilsModule from '~/utils';
+
+const DEFAULT_GAS_LIMIT = 10000;
+
 export default class CirclesCore {
-  constructor(coreOptions) {
-    // Check options
-    const { web3, ...options } = checkOptions(coreOptions, [
-      'gas',
-      'gnosisSafeAddress',
-      'hubAddress',
-      'proxyFactoryAddress',
-      'web3',
-    ]);
+  constructor(web3, options) {
+    // Check web3 instance
+    if (!web3) {
+      throw new Error('Web3 instance missing');
+    }
 
-    // Create contracts once
-    const contracts = getContracts(web3, options);
-
-    this.contracts = contracts;
-    this.options = options;
     this.web3 = web3;
 
-    // Create sub modules and pass options to them
-    const moduleOptions = {
-      contracts,
-      web3,
-      ...options,
-    };
+    // Check options
+    this.options = checkOptions(options, {
+      gas: {
+        type: 'number',
+        default: DEFAULT_GAS_LIMIT,
+      },
+      gnosisSafeAddress: {
+        type: web3.utils.isHexStrict,
+      },
+      hubAddress: {
+        type: web3.utils.isHexStrict,
+      },
+      proxyFactoryAddress: {
+        type: web3.utils.isHexStrict,
+      },
+    });
 
-    this.safe = new Safe(moduleOptions);
+    // Create contracts once
+    this.contracts = getContracts(web3, this.options);
+
+    // Create common utils for submodules
+    this.utils = createUtilsModule(web3, this.contracts, this.options);
+
+    // Create submodules and pass utils and options to them
+    this.safe = createSafeModule(web3, this.contracts, this.utils);
   }
 }
