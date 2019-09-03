@@ -1,4 +1,4 @@
-import createAccount from './helpers/createAccount';
+import getAccount from './helpers/getAccount';
 import createCore from './helpers/createCore';
 import web3 from './helpers/web3';
 
@@ -9,8 +9,8 @@ let account;
 let otherAccount;
 
 beforeAll(() => {
-  account = createAccount();
-  otherAccount = createAccount(1);
+  account = getAccount();
+  otherAccount = getAccount(1);
   core = createCore();
 });
 
