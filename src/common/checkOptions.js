@@ -12,6 +12,15 @@ const validators = {
   },
 };
 
+/**
+ * Check for required option fields, validate them and use fallback
+ * value when default is given.
+ *
+ * @param {Object} options - given user options
+ * @param {Object} fields - defined option types and default values
+ *
+ * @return {Object} - cleaned options
+ */
 export default function checkOptions(options, fields) {
   if (!options || typeof options !== 'object') {
     throw new Error('Options missing');

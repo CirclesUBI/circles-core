@@ -8,6 +8,14 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeContract } from '~/common/getContracts';
 
+/**
+ * Encode ABI for Gnosis Safe setup method.
+ *
+ * @param {Object} gnosisSafeMaster - Safe master copy contract
+ * @param {string} owner - first owner address
+ *
+ * @return {string} - encoded ABI
+ */
 function encodeSafeABI(gnosisSafeMaster, owner) {
   return gnosisSafeMaster.methods
     .setup(
@@ -22,6 +30,16 @@ function encodeSafeABI(gnosisSafeMaster, owner) {
     .encodeABI();
 }
 
+/**
+ * Predicts the address of a to-be-deployed contract via CREATE2.
+ *
+ * @param {Web3} web3 - web3 instance
+ * @param {string} address
+ * @param {string} salt
+ * @param {string} byteCode
+ *
+ * @return {string} - predicted address
+ */
 function generateAddress2(web3, address, salt, byteCode) {
   const data = ['ff', address, salt, web3.utils.keccak256(byteCode)]
     .map(x => x.replace(/0x/, ''))
@@ -35,6 +53,14 @@ function generateAddress2(web3, address, salt, byteCode) {
   return `0x${result}`;
 }
 
+/**
+ * Helper method to receive a list of all Gnosis Safe owners.
+ *
+ * @param {Web3} web3 - web3 instance
+ * @param {string} address
+ *
+ * @return {string[]} - array of owner addresses
+ */
 async function getOwners(web3, address) {
   // Get Safe at given address
   const gnosisSafe = getSafeContract(web3, address);
@@ -43,6 +69,9 @@ async function getOwners(web3, address) {
   return await gnosisSafe.methods.getOwners().call();
 }
 
+/**
+ * Safe submodule to deploy and interact with the Gnosis Safe.
+ */
 export default function createSafeModule(web3, contracts, utils) {
   const { gnosisSafeMaster, proxyFactory } = contracts;
 
@@ -50,6 +79,15 @@ export default function createSafeModule(web3, contracts, utils) {
   const proxyAddress = proxyFactory.options.address;
 
   return {
+    /**
+     * Predict a Gnosis Safe address before it got deployed.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.nonce - nonce to predict address
+     *
+     * @return {string} - Predicted Gnosis Safe address
+     */
     predictAddress: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -81,6 +119,14 @@ export default function createSafeModule(web3, contracts, utils) {
 
       return generateAddress2(web3, proxyAddress, salt, initCode);
     },
+
+    /**
+     * Deploy a new Gnosis Safe on the predicted address.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.nonce - nonce which was used to predict the address.
+     */
     deploy: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -101,6 +147,16 @@ export default function createSafeModule(web3, contracts, utils) {
         txData,
       });
     },
+
+    /**
+     * Returns a list of all owners of the given Gnosis Safe.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.address - address of the Gnosis Safe
+     *
+     * @return {string[]} - array of owner addresses
+     */
     getOwners: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -112,6 +168,15 @@ export default function createSafeModule(web3, contracts, utils) {
 
       return getOwners(web3, options.address);
     },
+
+    /**
+     * Add an address as an owner of a given Gnosis Safe.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.address - address of the Gnosis Safe
+     * @param {number} userOptions.owner - owner address to be added
+     */
     addOwner: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -142,6 +207,15 @@ export default function createSafeModule(web3, contracts, utils) {
         txData,
       });
     },
+
+    /**
+     * Remove owner of a given Gnosis Safe.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.address - address of the Gnosis Safe
+     * @param {number} userOptions.owner - owner address to be removed
+     */
     removeOwner: async (account, userOptions) => {
       checkAccount(web3, account);
 
