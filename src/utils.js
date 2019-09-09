@@ -58,7 +58,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       try {
         return fetch(url, request).then(response => {
           if (response.status !== 200) {
-            throw new Error(`Relayer responded with error ${response.status}`);
+            throw new Error(`Relayer responded with error ${response.status} ${response}`);
           }
 
           const contentType = response.headers.get('content-type');
@@ -120,7 +120,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     },
     executeSafeTx: async userOptions => {
       const options = checkOptions(userOptions, {
-        gnosisSafe: {
+        safe: {
           type: 'object',
         },
         from: {
@@ -157,7 +157,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const gasToken = ZERO_ADDRESS;
       const refundReceiver = options.executor;
 
-      return await options.gnosisSafe.methods
+      return await options.safe.methods
         .execTransaction(
           to,
           valueInWei,

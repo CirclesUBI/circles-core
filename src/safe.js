@@ -11,13 +11,13 @@ import { getSafeContract } from '~/common/getContracts';
 /**
  * Encode ABI for Gnosis Safe setup method.
  *
- * @param {Object} gnosisSafeMaster - Safe master copy contract
+ * @param {Object} safeMaster - Safe master copy contract
  * @param {string} owner - first owner address
  *
  * @return {string} - encoded ABI
  */
-function encodeSafeABI(gnosisSafeMaster, owner) {
-  return gnosisSafeMaster.methods
+function encodeSafeABI(safeMaster, owner) {
+  return safeMaster.methods
     .setup(
       [owner],
       SAFE_THRESHOLD,
@@ -63,19 +63,19 @@ function generateAddress2(web3, address, salt, byteCode) {
  */
 async function getOwners(web3, address) {
   // Get Safe at given address
-  const gnosisSafe = getSafeContract(web3, address);
+  const safe = getSafeContract(web3, address);
 
   // Call 'getOwners' method and return list of owners
-  return await gnosisSafe.methods.getOwners().call();
+  return await safe.methods.getOwners().call();
 }
 
 /**
  * Safe submodule to deploy and interact with the Gnosis Safe.
  */
 export default function createSafeModule(web3, contracts, utils) {
-  const { gnosisSafeMaster, proxyFactory } = contracts;
+  const { safeMaster, proxyFactory } = contracts;
 
-  const safeMasterAddress = gnosisSafeMaster.options.address;
+  const safeMasterAddress = safeMaster.options.address;
   const proxyAddress = proxyFactory.options.address;
 
   return {
@@ -120,7 +120,7 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      const data = encodeSafeABI(gnosisSafeMaster, account.address);
+      const data = encodeSafeABI(safeMaster, account.address);
 
       const proxyCreationCode = await proxyFactory.methods
         .proxyCreationCode()
@@ -159,7 +159,7 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      const data = encodeSafeABI(gnosisSafeMaster, account.address);
+      const data = encodeSafeABI(safeMaster, account.address);
 
       const txData = proxyFactory.methods
         .createProxyWithNonce(safeMasterAddress, data, options.nonce)
@@ -213,16 +213,16 @@ export default function createSafeModule(web3, contracts, utils) {
       });
 
       // Get Safe at given address
-      const gnosisSafe = getSafeContract(web3, options.address);
+      const safe = getSafeContract(web3, options.address);
 
       // Prepare 'addOwnerWithThreshold' method
-      const txData = gnosisSafe.methods
+      const txData = safe.methods
         .addOwnerWithThreshold(options.owner, SAFE_THRESHOLD)
         .encodeABI();
 
       // Call method and return result
       return await utils.executeSafeTx({
-        gnosisSafe,
+        safe,
         from: account.address,
         to: options.address,
         // @TODO: Check funder address (pass as option?)
@@ -252,7 +252,7 @@ export default function createSafeModule(web3, contracts, utils) {
       });
 
       // Get Safe at given address
-      const gnosisSafe = getSafeContract(web3, options.address);
+      const safe = getSafeContract(web3, options.address);
 
       // We need the list of owners before ...
       const owners = await getOwners(web3, options.address);
@@ -263,13 +263,13 @@ export default function createSafeModule(web3, contracts, utils) {
         ownerIndex > 0 ? owners[ownerIndex - 1] : SENTINEL_ADDRESS;
 
       // Prepare 'removeOwner' method by passing pointing owner and the owner to be removed
-      const txData = await gnosisSafe.methods
+      const txData = await safe.methods
         .removeOwner(prevOwner, options.owner, SAFE_THRESHOLD)
         .encodeABI();
 
       // Call method and return result
       return await utils.executeSafeTx({
-        gnosisSafe,
+        safe,
         from: account.address,
         to: options.address,
         // @TODO: Check funder address (pass as option?)

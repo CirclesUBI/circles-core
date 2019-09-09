@@ -107,14 +107,14 @@ describe('Common', () => {
       const web3 = new Web3();
 
       contracts = getContracts(web3, {
-        gnosisSafeAddress: ZERO_ADDRESS,
         hubAddress: ZERO_ADDRESS,
         proxyFactoryAddress: ZERO_ADDRESS,
+        safeMasterAddress: ZERO_ADDRESS,
       });
     });
 
     it('should give us access to contracts', () => {
-      expect(contracts.gnosisSafeMaster.methods).toBeDefined();
+      expect(contracts.safeMaster.methods).toBeDefined();
       expect(contracts.hub.methods).toBeDefined();
       expect(contracts.proxyFactory.methods).toBeDefined();
     });

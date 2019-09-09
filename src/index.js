@@ -16,9 +16,10 @@ export default class CirclesCore {
    * @param {Web3} web3 - instance of Web3
    * @param {Object} options - global core options
    * @param {number} options.gas - gas limit
-   * @param {string} options.gnosisSafeAddress - address of deployed Gnosis Safe master copy contract
-   * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
+   * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
+   * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
+   * @param {string} options.relayServiceEndpoint - URL of the Relayer Server
    */
   constructor(web3, options) {
     // Check web3 instance
@@ -36,13 +37,13 @@ export default class CirclesCore {
         type: 'number',
         default: DEFAULT_GAS_LIMIT,
       },
-      gnosisSafeAddress: {
-        type: web3.utils.isHexStrict,
-      },
       hubAddress: {
         type: web3.utils.isHexStrict,
       },
       proxyFactoryAddress: {
+        type: web3.utils.isHexStrict,
+      },
+      safeMasterAddress: {
         type: web3.utils.isHexStrict,
       },
       relayServiceEndpoint: {

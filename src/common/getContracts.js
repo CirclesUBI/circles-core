@@ -49,10 +49,10 @@ export function getTokenContract(web3, address) {
  * @return {Object} - contract instances
  */
 export default function getContracts(web3, options) {
-  const { gnosisSafeAddress, proxyFactoryAddress, hubAddress } = options;
+  const { safeMasterAddress, proxyFactoryAddress, hubAddress } = options;
 
   // Gnosis master Safe copy
-  const gnosisSafeMaster = getSafeContract(web3, gnosisSafeAddress);
+  const safeMaster = getSafeContract(web3, safeMasterAddress);
 
   // Gnosis ProxyFactory
   const proxyFactory = getContract(
@@ -65,8 +65,8 @@ export default function getContracts(web3, options) {
   const hub = getContract(web3, HubContract.abi, hubAddress);
 
   return {
-    gnosisSafeMaster,
     hub,
     proxyFactory,
+    safeMaster,
   };
 }
