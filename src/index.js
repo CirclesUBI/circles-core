@@ -45,6 +45,9 @@ export default class CirclesCore {
       proxyFactoryAddress: {
         type: web3.utils.isHexStrict,
       },
+      relayServiceEndpoint: {
+        type: 'string',
+      },
     });
 
     // Create contracts once

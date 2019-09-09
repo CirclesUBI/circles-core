@@ -97,6 +97,29 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
+      const response = await utils.requestRelayer({
+        path: ['safes'],
+        version: 2,
+        method: 'POST',
+        data: {
+          saltNonce: options.nonce,
+          owners: [account.address],
+          threshold: SAFE_THRESHOLD,
+        },
+      });
+
+      return response.safe;
+    },
+
+    predictAddress2: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        nonce: {
+          type: 'number',
+        },
+      });
+
       const data = encodeSafeABI(gnosisSafeMaster, account.address);
 
       const proxyCreationCode = await proxyFactory.methods

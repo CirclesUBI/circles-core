@@ -10,6 +10,9 @@ const validators = {
   object: value => {
     return typeof value === 'object';
   },
+  array: value => {
+    return Array.isArray(value);
+  },
 };
 
 /**

@@ -1,5 +1,8 @@
+import fetch from 'isomorphic-fetch';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
+import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 
 async function sendSignedTx(web3, account, rawTx) {
@@ -15,6 +18,62 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
   const { gas } = globalOptions;
 
   return {
+    requestRelayer: async userOptions => {
+      const options = checkOptions(userOptions, {
+        path: {
+          type: 'array',
+        },
+        version: {
+          type: 'number',
+          default: 1,
+        },
+        method: {
+          type: 'string',
+          default: 'GET',
+        },
+        data: {
+          type: 'object',
+        },
+      });
+
+      const { path, method, data, version } = options;
+
+      const request = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      let paramsStr = '';
+      if (method === 'GET') {
+        paramsStr = parameterize(data);
+      } else {
+        request.body = JSON.stringify(data);
+      }
+
+      const endpoint = globalOptions.relayServiceEndpoint;
+      const url = `${endpoint}/api/v${version}/${path.join('/')}/${paramsStr}`;
+
+      try {
+        return fetch(url, request).then(response => {
+          if (response.status !== 200) {
+            throw new Error(`Relayer responded with error ${response.status}`);
+          }
+
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json().then(json => {
+              return json;
+            });
+          } else {
+            return response;
+          }
+        });
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
     sendSignedTx: async (account, userOptions) => {
       checkAccount(web3, account);
 
