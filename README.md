@@ -37,6 +37,9 @@ const web3 = new Web3();
 
 // Initialize core
 const core = new CirclesCore({
+  gnosisSafeAddress: '0x...',
+  hubAddress: '0x...',
+  proxyFactoryAddress: '0x...',
   web3,
 });
 
@@ -165,6 +168,10 @@ await core.safe.addOwner(account, {
 ```
 // Install dependencies
 npm install
+
+// Prepare test environment
+npx ganache-cli -i 5777
+npx truffle migrate
 
 // Run test suite
 npm run test

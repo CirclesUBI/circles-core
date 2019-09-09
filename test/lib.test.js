@@ -1,17 +1,21 @@
-import Web3 from 'web3';
-
 import CirclesCore from '~';
 
-describe('CirclesCore', () => {
-  let core;
+import createCore from './helpers/createCore';
 
-  beforeEach(() => {
-    core = new CirclesCore({
-      web3: new Web3(),
-    });
+let core;
+
+beforeAll(() => {
+  core = createCore();
+});
+
+describe('CirclesCore', () => {
+  it('should be instantiable', () => {
+    expect(core).toBeInstanceOf(CirclesCore);
   });
 
-  it('is instantiable', () => {
-    expect(core).toBeInstanceOf(CirclesCore);
+  it('should throw an error when missing options', () => {
+    expect(() => {
+      new CirclesCore({});
+    }).toThrow();
   });
 });

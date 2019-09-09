@@ -3,13 +3,14 @@ import path from 'path';
 import babel from 'rollup-plugin-babel';
 import cleanup from 'rollup-plugin-cleanup';
 import commonjs from 'rollup-plugin-commonjs';
+import json from 'rollup-plugin-json';
 import resolve from 'rollup-plugin-node-resolve';
 import { uglify } from 'rollup-plugin-uglify';
 
 const DIST_FILE = 'index.js';
 const DIST_FOLDER = 'lib';
 
-const EXTENSIONS = ['.js'];
+const EXTENSIONS = ['.js', '.json'];
 
 const INPUT_FILE = 'index.js';
 const INPUT_FOLDER = 'src';
@@ -21,9 +22,11 @@ function rollupPlugins(isUglified = false) {
     resolve({
       extensions: EXTENSIONS,
     }),
+    json(),
     commonjs(),
     babel({
       extensions: EXTENSIONS,
+      runtimeHelpers: true,
     }),
     cleanup(),
   ];
