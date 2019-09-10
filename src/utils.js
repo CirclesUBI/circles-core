@@ -57,11 +57,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       try {
         return fetch(url, request).then(response => {
-          if (response.status !== 200) {
+          if (response.status >= 400) {
             throw new Error(`Relayer responded with error ${response.status}`);
           }
 
           const contentType = response.headers.get('content-type');
+
           if (contentType && contentType.includes('application/json')) {
             return response.json().then(json => {
               return json;
