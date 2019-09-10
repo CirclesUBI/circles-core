@@ -58,7 +58,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       try {
         return fetch(url, request).then(response => {
           if (response.status !== 200) {
-            throw new Error(`Relayer responded with error ${response.status} ${response}`);
+            throw new Error(`Relayer responded with error ${response.status}`);
           }
 
           const contentType = response.headers.get('content-type');
