@@ -10,7 +10,10 @@ services:
 node_js:
   - '10'
 
-script:
+python:
+  - '2.7.15'
+
+before_install:
   # get docker repository and configure it
   - git clone https://github.com/CirclesUBI/circles-docker.git
   - cd circles-docker
@@ -24,9 +27,9 @@ script:
   # core configuration
   - cp .env.example .env
 
-  # install dependencies
+install:
   - npm install
 
-  # run tests!
+script:
   - npm run test
   - npm run build
