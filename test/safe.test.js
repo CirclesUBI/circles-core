@@ -1,87 +1,95 @@
-import getAccount from './helpers/getAccount';
 import createCore from './helpers/createCore';
+import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
-let NONCE = 123456789;
-
-let core;
 let account;
+let core;
 let otherAccount;
+let safeAddress;
 
-beforeAll(() => {
+beforeAll(async () => {
   account = getAccount();
   otherAccount = getAccount(1);
   core = createCore();
 });
 
 describe('Safe', () => {
-  let predictedSafeAddress;
+  beforeAll(async () => {
+    const safeCreationNonce = new Date().getTime();
 
-  beforeEach(async () => {
-    predictedSafeAddress = await core.safe.predictAddress(account, {
-      nonce: NONCE,
+    safeAddress = await core.safe.prepareDeploy(account, {
+      nonce: safeCreationNonce,
     });
   });
 
-  describe('predictAddress', () => {
-    it('should return valid address', () => {
-      expect(web3.utils.isHexStrict(predictedSafeAddress)).toBe(true);
+  describe('when a new Safe gets created', () => {
+    it('should have predicted its future Safe address', () => {
+      expect(web3.utils.isHexStrict(safeAddress)).toBe(true);
     });
-  });
 
-  describe('deploy', () => {
-    it('should deploy safe at predicted address', async () => {
-      await core.safe.deploy(account, {
-        nonce: NONCE,
+    it('should be manually triggered to get deployed', async () => {
+      // @TODO: Get enough trust connections before,
+      // tho this is not implemented yet in the relayer.
+      const result = await core.safe.forceDeploy(account, {
+        address: safeAddress,
       });
 
-      const proxyRuntimeCode = await core.contracts.proxyFactory.methods
-        .proxyRuntimeCode()
-        .call();
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const predictedCode = await web3.eth.getCode(predictedSafeAddress);
+      expect(result).toBe(true);
+    });
 
-      expect(predictedCode).toBe(proxyRuntimeCode);
+    it('should receive funds from its owner', async () => {
+      // @TODO: Later we will pay our gas fees to the relayer
+      // in Circles Token.
+      const nonce = await web3.eth.getTransactionCount(account.address);
+
+      await web3.eth.sendTransaction({
+        from: account.address,
+        to: safeAddress,
+        value: web3.utils.toWei('1', 'ether'),
+        nonce,
+      });
+
+      const balance = await web3.eth.getBalance(safeAddress);
+
+      expect(balance > 0).toBe(true);
     });
   });
 
-  describe('getOwners', () => {
-    it('should return a list of owners', async () => {
+  describe('When I want to manage the owners of a Safe', () => {
+    it('should return a list of the current owners', async () => {
       const owners = await core.safe.getOwners(account, {
-        address: predictedSafeAddress,
+        address: safeAddress,
       });
 
       expect(owners[0]).toBe(account.address);
       expect(owners.length).toBe(1);
     });
-  });
 
-  describe('addOwner', () => {
     it('should add another owner to the Safe', async () => {
       await core.safe.addOwner(account, {
-        address: predictedSafeAddress,
+        address: safeAddress,
         owner: otherAccount.address,
       });
 
       const owners = await core.safe.getOwners(account, {
-        address: predictedSafeAddress,
+        address: safeAddress,
       });
 
       expect(owners[1]).toBe(account.address);
       expect(owners[0]).toBe(otherAccount.address);
       expect(owners.length).toBe(2);
     });
-  });
 
-  describe('removeOwner', () => {
-    it('should remove owner from the Safe', async () => {
+    it('should remove an owner from the Safe', async () => {
       await core.safe.removeOwner(account, {
-        address: predictedSafeAddress,
+        address: safeAddress,
         owner: otherAccount.address,
       });
 
       const owners = await core.safe.getOwners(account, {
-        address: predictedSafeAddress,
+        address: safeAddress,
       });
 
       expect(owners[0]).toBe(account.address);

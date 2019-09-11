@@ -1,57 +1,8 @@
-import {
-  SAFE_THRESHOLD,
-  SENTINEL_ADDRESS,
-  ZERO_ADDRESS,
-} from '~/common/constants';
+import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeContract } from '~/common/getContracts';
-
-/**
- * Encode ABI for Gnosis Safe setup method.
- *
- * @param {Object} safeMaster - Safe master copy contract
- * @param {string} owner - first owner address
- *
- * @return {string} - encoded ABI
- */
-function encodeSafeABI(safeMaster, owner) {
-  return safeMaster.methods
-    .setup(
-      [owner],
-      SAFE_THRESHOLD,
-      ZERO_ADDRESS,
-      '0x',
-      ZERO_ADDRESS,
-      0,
-      ZERO_ADDRESS,
-    )
-    .encodeABI();
-}
-
-/**
- * Predicts the address of a to-be-deployed contract via CREATE2.
- *
- * @param {Web3} web3 - web3 instance
- * @param {string} address
- * @param {string} salt
- * @param {string} byteCode
- *
- * @return {string} - predicted address
- */
-function generateAddress2(web3, address, salt, byteCode) {
-  const data = ['ff', address, salt, web3.utils.keccak256(byteCode)]
-    .map(x => x.replace(/0x/, ''))
-    .join('');
-
-  const result = web3.utils
-    .keccak256(`0x${data}`)
-    .slice(-40)
-    .toLowerCase();
-
-  return `0x${result}`;
-}
 
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
@@ -73,14 +24,10 @@ async function getOwners(web3, address) {
  * Safe submodule to deploy and interact with the Gnosis Safe.
  */
 export default function createSafeModule(web3, contracts, utils) {
-  const { safeMaster, proxyFactory } = contracts;
-
-  const safeMasterAddress = safeMaster.options.address;
-  const proxyAddress = proxyFactory.options.address;
-
   return {
     /**
-     * Predict a Gnosis Safe address before it got deployed.
+     * Register a to-be-created Safe in the Relayer and receive
+     * a predicted Safe address.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -88,7 +35,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @return {string} - Predicted Gnosis Safe address
      */
-    predictAddress: async (account, userOptions) => {
+    prepareDeploy: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
@@ -111,66 +58,23 @@ export default function createSafeModule(web3, contracts, utils) {
       return response.safe;
     },
 
-    predictAddress2: async (account, userOptions) => {
+    forceDeploy: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        nonce: {
-          type: 'number',
+        address: {
+          type: web3.utils.isHexStrict,
         },
       });
 
-      const data = encodeSafeABI(safeMaster, account.address);
-
-      const proxyCreationCode = await proxyFactory.methods
-        .proxyCreationCode()
-        .call();
-
-      const constructorCode = web3.eth.abi
-        .encodeParameter('address', safeMasterAddress)
-        .replace(/0x/, '');
-
-      const initCode = proxyCreationCode + constructorCode;
-
-      const encodedNonce = web3.eth.abi
-        .encodeParameter('uint256', options.nonce)
-        .replace(/0x/, '');
-
-      const salt = web3.utils
-        .keccak256(`${web3.utils.keccak256(data)}${encodedNonce}`)
-        .replace(/0x/, '');
-
-      return generateAddress2(web3, proxyAddress, salt, initCode);
-    },
-
-    /**
-     * Deploy a new Gnosis Safe on the predicted address.
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.nonce - nonce which was used to predict the address.
-     */
-    deploy: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        nonce: {
-          type: 'number',
-        },
+      await utils.requestRelayer({
+        path: ['safes', options.address, 'funded'],
+        version: 2,
+        method: 'PUT',
       });
 
-      const data = encodeSafeABI(safeMaster, account.address);
-
-      const txData = proxyFactory.methods
-        .createProxyWithNonce(safeMasterAddress, data, options.nonce)
-        .encodeABI();
-
-      return utils.sendSignedRelayerTx(account, {
-        to: proxyAddress,
-        txData,
-      });
+      return true;
     },
-
     /**
      * Returns a list of all owners of the given Gnosis Safe.
      *
@@ -221,12 +125,9 @@ export default function createSafeModule(web3, contracts, utils) {
         .encodeABI();
 
       // Call method and return result
-      return await utils.executeSafeTx({
-        safe,
-        from: account.address,
+      return await utils.executeSafeTx(account, {
+        safeAddress: options.address,
         to: options.address,
-        // @TODO: Check funder address (pass as option?)
-        executor: account.address,
         txData,
       });
     },
@@ -268,12 +169,9 @@ export default function createSafeModule(web3, contracts, utils) {
         .encodeABI();
 
       // Call method and return result
-      return await utils.executeSafeTx({
-        safe,
-        from: account.address,
+      return await utils.executeSafeTx(account, {
+        safeAddress: options.address,
         to: options.address,
-        // @TODO: Check funder address (pass as option?)
-        executor: account.address,
         txData,
       });
     },
