@@ -12,6 +12,9 @@ node_js:
 
 before_install:
   # install python version 2.7.15
+  - cd $(pyenv root)
+  - git pull
+  - cd -
   - pyenv install 2.7.15
   - pyenv global 2.7.15
 
