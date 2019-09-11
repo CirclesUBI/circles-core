@@ -1,11 +1,32 @@
 language: node_js
+
+addons:
+  hosts:
+    - relay.circles.local
+
+services:
+  - docker
+
 node_js:
   - '10'
-install:
-  - npm install
+
 script:
-  - npm run test:ganache > /dev/null &
-  - sleep 5
-  - npm run test:migrate
+  # get docker repository and configure it
+  - git clone https://github.com/CirclesUBI/circles-docker.git
+  - cd circles-docker
+  - cp .env.example .env
+
+  # containers setup via docker-compose
+  - make build
+  - make up
+  - cd ..
+
+  # core configuration
+  - cp .env.example .env
+
+  # install dependencies
+  - npm install
+
+  # run tests!
   - npm run test
   - npm run build
