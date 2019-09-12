@@ -11,7 +11,7 @@ node_js:
   - '11'
 
 env:
-  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker CIRCLES_CORE=$HOME/CirclesUBI/circles-core
+  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
 
 cache:
   directories:
@@ -42,7 +42,7 @@ before_install:
   - make migrate
 
   # copy core configs
-  - cd $CIRCLES_CORE
+  - cd $TRAVIS_BUILD_DIR
   - cp .env.example .env
 
 install:
