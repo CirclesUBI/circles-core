@@ -103,10 +103,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const options = checkOptions(userOptions, {
         safeAddress: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
         to: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
         txData: {
           type: web3.utils.isHexStrict,

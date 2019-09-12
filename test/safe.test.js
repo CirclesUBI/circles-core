@@ -24,7 +24,7 @@ describe('Safe', () => {
 
   describe('when a new Safe gets created', () => {
     it('should have predicted its future Safe address', () => {
-      expect(web3.utils.isHexStrict(safeAddress)).toBe(true);
+      expect(web3.utils.isAddress(safeAddress)).toBe(true);
     });
 
     it('should be manually triggered to get deployed', async () => {

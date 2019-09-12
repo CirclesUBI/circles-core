@@ -11,7 +11,7 @@ import checkOptions from '~/common/checkOptions';
  */
 export default function checkAccount(web3, account) {
   return checkOptions(account, {
-    address: web3.utils.isHexStrict,
+    address: web3.utils.isAddress,
     privateKey: web3.utils.isHexStrict,
   });
 }

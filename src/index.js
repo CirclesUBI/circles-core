@@ -31,13 +31,13 @@ export default class CirclesCore {
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
-        type: web3.utils.isHexStrict,
+        type: web3.utils.isAddress,
       },
       proxyFactoryAddress: {
-        type: web3.utils.isHexStrict,
+        type: web3.utils.isAddress,
       },
       safeMasterAddress: {
-        type: web3.utils.isHexStrict,
+        type: web3.utils.isAddress,
       },
       relayServiceEndpoint: {
         type: 'string',

@@ -63,7 +63,7 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
       });
 
@@ -89,7 +89,7 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
       });
 
@@ -109,10 +109,10 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
         owner: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
       });
 
@@ -145,10 +145,10 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
         owner: {
-          type: web3.utils.isHexStrict,
+          type: web3.utils.isAddress,
         },
       });
 
