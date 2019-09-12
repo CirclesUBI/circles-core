@@ -2,7 +2,7 @@
   "name": "circles-core",
   "version": "0.1.0",
   "description": "Common methods to interact with the Circles ecosystem",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "contributors": [
     "adzialocha"
   ],

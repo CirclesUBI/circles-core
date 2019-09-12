@@ -1,5 +1,14 @@
+.babelrc
+.editorconfig
+.env
+.env.example
+.eslintignore
+.eslintrc
+.huskyrc
+.prettierrc
+.python-version
+.travis.yml
 jest.config.js
 rollup.config.js
 src
 test
-tsconfig.json
