@@ -1,9 +1,10 @@
 import fetch from 'isomorphic-fetch';
 
+import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
 
@@ -91,13 +92,43 @@ async function estimateTransactionCosts(
   });
 }
 
+/**
+ * Utils submodule for common transaction and relayer methods.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} contracts - common contract instances
+ * @param {Object} globalOptions - global core options
+ *
+ * @return {Object} - utils module instance
+ */
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const { relayServiceEndpoint } = globalOptions;
 
   return {
+    /**
+     * Send an API request to the Gnosis Relayer.
+     *
+     * @param {string} relayServiceEndpoint - relayer endpoint URL
+     * @param {Object} userOptions - global core options
+     * @param {string[]} userOptions.path - API path as array
+     * @param {number} userOptions.version - API version 1 or 2
+     * @param {string} userOptions.method - API request method (GET, POST)
+     * @param {Object} userOptions.data - data payload
+     */
     requestRelayer: async userOptions => {
       return requestRelayer(relayServiceEndpoint, userOptions);
     },
+
+    /**
+     * Send a transaction to the relayer which will be executed by it.
+     * The gas costs will be estimated by the relayer before.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {string} userOptions.safeAddress - address of Safe
+     * @param {string} userOptions.to - forwarded address (from is the relayer)
+     * @param {object} userOptions.txData - encoded transaction data
+     * @param {number} userOptions.value - value in Wei
+     */
     executeSafeTx: async (account, userOptions) => {
       checkAccount(web3, account);
 

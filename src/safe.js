@@ -22,6 +22,12 @@ async function getOwners(web3, address) {
 
 /**
  * Safe submodule to deploy and interact with the Gnosis Safe.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} contracts - common contract instances
+ * @param {Object} utils - utils module instance
+ *
+ * @return {Object} - safe module instance
  */
 export default function createSafeModule(web3, contracts, utils) {
   return {
@@ -58,6 +64,17 @@ export default function createSafeModule(web3, contracts, utils) {
       return response.safe;
     },
 
+    /**
+     * Requests the relayer to not wait for the Safe deployment task.
+     * This might still fail when the Safe is not funded or does not
+     * have enough trust connections yet.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.address - to-be-deployed Safe address
+     *
+     * @return {boolean} - returns true when successful
+     */
     forceDeploy: async (account, userOptions) => {
       checkAccount(web3, account);
 

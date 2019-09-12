@@ -1,5 +1,8 @@
 import { requestRPC } from '~/common/rpc';
 
+/**
+ * Format transaction hash data for signing.
+ */
 export function formatTypedData(
   to,
   value,
@@ -48,6 +51,9 @@ export function formatTypedData(
   };
 }
 
+/**
+ * Sign transaction for the relayer.
+ */
 export async function signTypedData(web3, address, typedData) {
   return await requestRPC(web3, 'eth_signTypedData', [address, typedData]);
 }
