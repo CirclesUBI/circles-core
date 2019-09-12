@@ -32,9 +32,10 @@ before_install:
   - cd circles-docker
   - cp .env.example .env
 
-  # container setup via docker-compose
+  # container setup via docker-compose and migrate contracts
   - make build
   - make up
+  - make migrate
   - cd ..
 
   # copy core configs
