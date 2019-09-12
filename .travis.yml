@@ -38,6 +38,7 @@ before_install:
   - cp .env.example .env
 
 install:
+  - npm install -g truffle
   - npm install
 
 script:
