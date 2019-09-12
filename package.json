@@ -2,7 +2,7 @@
   "name": "circles-core",
   "version": "0.1.0",
   "description": "Common methods to interact with the Circles ecosystem",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "contributors": [
     "adzialocha"
   ],
@@ -45,6 +45,7 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.3",
     "serialize-javascript": "^1.9.0",
+    "truffle": "^5.0.35",
     "web3": "^1.2.1"
   },
   "peerDependencies": {
@@ -54,7 +55,6 @@
     "@babel/runtime": "^7.5.5",
     "@gnosis.pm/safe-contracts": "^1.0.0",
     "circles-contracts": "^1.0.3",
-    "isomorphic-fetch": "^2.2.1",
-    "truffle": "^5.0.35"
+    "isomorphic-fetch": "^2.2.1"
   }
 }
