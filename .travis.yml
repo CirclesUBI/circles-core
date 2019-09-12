@@ -10,12 +10,16 @@ services:
 node_js:
   - '11'
 
+cache:
+  directories:
+    - $(pyenv root)/versions/2.7.15
+
 before_install:
   # get latest pyenv version
   - cd $(pyenv root)
   - git fetch --all --tags --prune
   - git checkout tags/v1.2.13
-  - cd -
+  - cd $HOME
 
   # install python version 2.7.15
   - pyenv install 2.7.15
@@ -33,7 +37,7 @@ before_install:
   - make build
   - make up
   - make migrate
-  - cd ..
+  - cd $HOME
 
   # copy core configs
   - cp .env.example .env
