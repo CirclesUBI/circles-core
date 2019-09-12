@@ -4,79 +4,8 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
-
-function formatTypedData(
-  to,
-  value,
-  data,
-  operation,
-  safeTxGas,
-  dataGas,
-  gasPrice,
-  gasToken,
-  refundReceiver,
-  nonce,
-  verifyingContract,
-) {
-  return {
-    types: {
-      EIP712Domain: [{ type: 'address', name: 'verifyingContract' }],
-      SafeTx: [
-        { type: 'address', name: 'to' },
-        { type: 'uint256', name: 'value' },
-        { type: 'bytes', name: 'data' },
-        { type: 'uint8', name: 'operation' },
-        { type: 'uint256', name: 'safeTxGas' },
-        { type: 'uint256', name: 'baseGas' },
-        { type: 'uint256', name: 'gasPrice' },
-        { type: 'address', name: 'gasToken' },
-        { type: 'address', name: 'refundReceiver' },
-        { type: 'uint256', name: 'nonce' },
-      ],
-    },
-    domain: {
-      verifyingContract,
-    },
-    primaryType: 'SafeTx',
-    message: {
-      to,
-      value,
-      data,
-      operation,
-      safeTxGas,
-      baseGas: dataGas,
-      gasPrice,
-      gasToken,
-      refundReceiver,
-      nonce,
-    },
-  };
-}
-
-async function signTypedData(web3, address, typedData) {
-  return await requestRPC(web3, 'eth_signTypedData', [address, typedData]);
-}
-
-async function requestRPC(web3, method, params = []) {
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.send(
-      {
-        jsonrpc: '2.0',
-        id: new Date().getTime(),
-        method,
-        params,
-      },
-      (error, { result }) => {
-        if (error) {
-          return reject(error);
-        }
-
-        return resolve(result);
-      },
-    );
-  });
-}
 
 async function requestRelayer(endpoint, userOptions) {
   const options = checkOptions(userOptions, {
@@ -136,6 +65,32 @@ async function requestRelayer(endpoint, userOptions) {
   }
 }
 
+async function estimateTransactionCosts(
+  endpoint,
+  {
+    safeAddress,
+    to,
+    txData,
+    value = 0,
+    gasToken = ZERO_ADDRESS,
+    operation = CALL_OP,
+  },
+) {
+  return await requestRelayer(endpoint, {
+    path: ['safes', safeAddress, 'transactions', 'estimate'],
+    method: 'POST',
+    version: 2,
+    data: {
+      safe: safeAddress,
+      data: txData,
+      to,
+      value,
+      operation,
+      gasToken,
+    },
+  });
+}
+
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const { relayServiceEndpoint } = globalOptions;
 
@@ -165,11 +120,20 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const { to, txData, value, safeAddress } = options;
       const operation = CALL_OP;
-      const safeTxGas = 100000; // @TODO: Value tbc
-      const dataGas = 100000; // @TODO: Value tbc
-      const gasPrice = 300000000000; // @TODO: Value tbc
       const gasToken = ZERO_ADDRESS;
       const refundReceiver = ZERO_ADDRESS;
+
+      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+        relayServiceEndpoint,
+        {
+          gasToken,
+          operation,
+          safeAddress,
+          to,
+          txData,
+          value,
+        },
+      );
 
       const nonce = await getSafeContract(web3, safeAddress)
         .methods.nonce()

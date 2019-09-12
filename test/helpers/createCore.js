@@ -4,7 +4,6 @@ import web3 from './web3';
 
 export default function createCore() {
   return new CirclesCore(web3, {
-    gas: parseInt(process.env.GAS_LIMIT, 10),
     safeMasterAddress: process.env.SAFE_ADDRESS,
     hubAddress: process.env.HUB_ADDRESS,
     proxyFactoryAddress: process.env.PROXY_FACTORY_ADDRESS,

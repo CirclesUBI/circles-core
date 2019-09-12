@@ -4,8 +4,6 @@ import getContracts from '~/common/getContracts';
 import createSafeModule from '~/safe';
 import createUtilsModule from '~/utils';
 
-const DEFAULT_GAS_LIMIT = 10000;
-
 /**
  * Base class of CirclesCore.
  */
@@ -15,7 +13,6 @@ export default class CirclesCore {
    *
    * @param {Web3} web3 - instance of Web3
    * @param {Object} options - global core options
-   * @param {number} options.gas - gas limit
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
@@ -33,10 +30,6 @@ export default class CirclesCore {
     // Check options
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
-      gas: {
-        type: 'number',
-        default: DEFAULT_GAS_LIMIT,
-      },
       hubAddress: {
         type: web3.utils.isHexStrict,
       },
