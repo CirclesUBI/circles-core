@@ -24,6 +24,9 @@ before_install:
   # disable travis postgres
   - sudo /etc/init.d/postgresql stop
 
+  # install truffle
+  - npm install -g truffle
+
   # get circles-docker repository and copy configs
   - git clone https://github.com/CirclesUBI/circles-docker.git
   - cd circles-docker
@@ -38,7 +41,6 @@ before_install:
   - cp .env.example .env
 
 install:
-  - npm install -g truffle
   - npm install
 
 script:
