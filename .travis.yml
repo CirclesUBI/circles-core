@@ -15,7 +15,7 @@ env:
 
 cache:
   directories:
-    - $(pyenv root)/versions/$PYTHON_VERSION
+    - $(pyenv root)
 
 before_install:
   # disable travis postgres
@@ -23,12 +23,12 @@ before_install:
 
   # get latest pyenv version
   - cd $(pyenv root)
-  - git fetch --all --tags --prune
+  - git fetch --all --tags
   - git checkout tags/$PYENV_TAG
   - cd $HOME
 
   # install python
-  - pyenv install $PYTHON_VERSION
+  - pyenv install $PYTHON_VERSION -s
   - pyenv global $PYTHON_VERSION
 
   # get circles-docker repository and copy configs
