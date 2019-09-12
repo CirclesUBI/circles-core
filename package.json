@@ -54,6 +54,7 @@
     "@babel/runtime": "^7.5.5",
     "@gnosis.pm/safe-contracts": "^1.0.0",
     "circles-contracts": "^1.0.3",
-    "isomorphic-fetch": "^2.2.1"
+    "isomorphic-fetch": "^2.2.1",
+    "truffle": "^5.0.35"
   }
 }
