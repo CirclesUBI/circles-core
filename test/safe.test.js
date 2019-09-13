@@ -42,13 +42,11 @@ describe('Safe', () => {
     it('should receive funds from its owner', async () => {
       // @TODO: Later we will pay our gas fees to the relayer
       // in Circles Token.
-      const nonce = await web3.eth.getTransactionCount(account.address);
 
       await web3.eth.sendTransaction({
         from: account.address,
         to: safeAddress,
         value: web3.utils.toWei('1', 'ether'),
-        nonce,
       });
 
       const balance = await web3.eth.getBalance(safeAddress);
