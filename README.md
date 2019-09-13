@@ -36,11 +36,11 @@ import Web3 from 'web3';
 const web3 = new Web3();
 
 // Initialize core
-const core = new CirclesCore({
-  gnosisSafeAddress: '0x...',
-  hubAddress: '0x...',
-  proxyFactoryAddress: '0x...',
-  web3,
+const core = new CirclesCore(web3, {
+  hubAddress: '0x..',
+  proxyFactoryAddress: '0x..',
+  safeMasterAddress: '0x..',
+  relayServiceEndpoint: 'https://..',
 });
 
 // Create account
@@ -52,8 +52,8 @@ const username = 'margareth';
 // Generate a nonce to predict Safe address
 const nonce = new Date().getTime();
 
-// Predict Safe address which will be used for all transactions
-const safeAddress = core.safe.predictAddress(account, { nonce });
+// Prepare Safe deployment and receive a predicted safeAddress
+const safeAddress = await core.safe.prepareDeploy(account, { nonce });
 
 // Register username and connect it to Safe address
 await core.user.register(account, {
@@ -90,11 +90,7 @@ const isTrusted = network.reduce((acc, connection) => {
   return connection.isTrustingMe ? acc + 1 : acc;
 }, 0) > trustConnectionLimit;
 
-if (isTrusted) {
-  // Finally deploy Safe when user reached enough trust connections
-  const safeAddress = await core.safe.deploy(account, { nonce });
-  console.log(`Safe deployed at ${safeAddress}!`);
-} else {
+if (!isTrusted) {
   console.log('Not enough trust connections yet ..');
 }
 
@@ -169,9 +165,8 @@ await core.safe.addOwner(account, {
 // Install dependencies
 npm install
 
-// Prepare test environment
-npx ganache-cli -i 5777
-npx truffle migrate
+// Copy config file and edit it
+cp .env.example .env
 
 // Run test suite
 npm run test

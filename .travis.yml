@@ -1,12 +1,53 @@
 language: node_js
+
+addons:
+  hosts:
+    - relay.circles.local
+
+services:
+  - docker
+
 node_js:
-  - '10'
+  - '11'
+
+env:
+  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
+
+cache:
+  directories:
+    - $(pyenv root)
+
+before_install:
+  # disable travis postgres
+  - sudo /etc/init.d/postgresql stop
+
+  # get latest pyenv version
+  - cd $(pyenv root)
+  - git fetch --all --tags
+  - git checkout tags/$PYENV_TAG
+  - cd $HOME
+
+  # install python
+  - pyenv install $PYTHON_VERSION -s
+  - pyenv global $PYTHON_VERSION
+
+  # get circles-docker repository and copy configs
+  - git clone https://github.com/CirclesUBI/circles-docker.git $CIRCLES_DOCKER
+  - cd $CIRCLES_DOCKER
+  - cp .env.example .env
+
+  # container setup via docker-compose and migrate contracts
+  - make build
+  - make up
+  - make migrate
+
+  # copy core configs
+  - cd $TRAVIS_BUILD_DIR
+  - cp .env.example .env
+
 install:
-  - npm install -g npx ganache-cli
   - npm install
+
 script:
-  - ganache-cli -i 5777 > /dev/null &
-  - sleep 5
-  - npx truffle migrate
   - npm run test
   - npm run build

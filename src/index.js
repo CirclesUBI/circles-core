@@ -1,40 +1,59 @@
-import getContracts from '~/common/contracts';
+import checkOptions from '~/common/checkOptions';
+import getContracts from '~/common/getContracts';
 
-const REQUIRED_OPTIONS = [
-  'gnosisSafeAddress',
-  'hubAddress',
-  'proxyFactoryAddress',
-  'web3',
-];
+import createSafeModule from '~/safe';
+import createUtilsModule from '~/utils';
 
-function checkOptions(options) {
-  if (!options || typeof options !== 'object') {
-    throw new Error('Options missing');
-  }
-
-  REQUIRED_OPTIONS.forEach(key => {
-    if (!(key in options) || !options[key]) {
-      throw new Error(`"${key}" is missing in options`);
-    }
-  });
-}
-
-class Core {
-  constructor({ web3, ...options }) {
-    this.options = options;
-
-    this.web3 = web3;
-    this.contracts = getContracts(web3, options);
-  }
-}
-
+/**
+ * Base class of CirclesCore.
+ */
 export default class CirclesCore {
-  constructor(options) {
-    checkOptions(options);
+  /**
+   * Create new CirclesCore instance to interact with Circles.
+   *
+   * @param {Web3} web3 - instance of Web3
+   * @param {Object} options - global core options
+   * @param {string} options.hubAddress - address of deployed Circles Hub contract
+   * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
+   * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
+   * @param {string} options.relayServiceEndpoint - URL of the Relayer Server
+   */
+  constructor(web3, options) {
+    // Check web3 instance
+    if (!web3) {
+      throw new Error('Web3 instance missing');
+    }
 
-    // eslint-disable-next-line no-unused-vars
-    const core = new Core(options);
+    /** @type {Web3} - instance of Web3 */
+    this.web3 = web3;
 
-    this.options = options;
+    // Check options
+    /** @type {Object} - global core options */
+    this.options = checkOptions(options, {
+      hubAddress: {
+        type: web3.utils.isAddress,
+      },
+      proxyFactoryAddress: {
+        type: web3.utils.isAddress,
+      },
+      safeMasterAddress: {
+        type: web3.utils.isAddress,
+      },
+      relayServiceEndpoint: {
+        type: 'string',
+      },
+    });
+
+    // Create contracts once
+    /** @type {Object} - smart contract instances */
+    this.contracts = getContracts(web3, this.options);
+
+    // Create common utils for submodules
+    /** @type {Object} - utils module */
+    this.utils = createUtilsModule(web3, this.contracts, this.options);
+
+    // Create submodules and pass utils and options to them
+    /** @type {Object} - safe module */
+    this.safe = createSafeModule(web3, this.contracts, this.utils);
   }
 }

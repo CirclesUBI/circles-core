@@ -19,10 +19,10 @@ const MODULE_NAME = 'CirclesCore';
 
 function rollupPlugins(isUglified = false) {
   const plugins = [
+    json(),
     resolve({
       extensions: EXTENSIONS,
     }),
-    json(),
     commonjs(),
     babel({
       extensions: EXTENSIONS,
@@ -39,7 +39,7 @@ function buildOptions(customOptions = {}) {
 
   const defaultOptions = {
     input: path.join(INPUT_FOLDER, INPUT_FILE),
-    external: [],
+    external: ['isomorphic-fetch'],
     plugins: isUglified ? rollupPlugins(true) : rollupPlugins(),
     output: {
       file: file
@@ -48,6 +48,9 @@ function buildOptions(customOptions = {}) {
       name: MODULE_NAME,
       format: 'umd',
       sourcemap: isUglified || false,
+      globals: {
+        'isomorphic-fetch': 'fetch',
+      },
     },
   };
 
