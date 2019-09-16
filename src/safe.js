@@ -7,7 +7,7 @@ import { getSafeContract } from '~/common/getContracts';
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
  *
- * @param {Web3} web3 - web3 instance
+ * @param {Web3} web3 - Web3 instance
  * @param {string} address
  *
  * @return {string[]} - array of owner addresses
@@ -80,7 +80,7 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
       });
 
@@ -106,7 +106,7 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
       });
 
@@ -126,10 +126,10 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
         owner: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
       });
 
@@ -162,10 +162,10 @@ export default function createSafeModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         address: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
         owner: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
       });
 
