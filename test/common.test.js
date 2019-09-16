@@ -2,9 +2,21 @@ import Web3 from 'web3';
 
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
+import parameterize from '~/common/parameterize';
 import { ZERO_ADDRESS } from '~/common/constants';
 
 describe('Common', () => {
+  describe('parameterize', () => {
+    it('should parse arrays correctly', () => {
+      expect(
+        parameterize({
+          address: [],
+          username: ['test', 'test2'],
+        }),
+      ).toEqual('?username[]=test&username[]=test2');
+    });
+  });
+
   describe('checkOptions', () => {
     it('should only return given fields', () => {
       const result = checkOptions(
