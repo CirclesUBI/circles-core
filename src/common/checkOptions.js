@@ -31,9 +31,7 @@ export default function checkOptions(options, fields) {
 
   return Object.keys(fields).reduce((acc, key) => {
     const type =
-      fields[key] && 'type' in fields[key] && fields[key].type in validators
-        ? fields[key].type
-        : DEFAULT_TYPE;
+      fields[key] && 'type' in fields[key] ? fields[key].type : DEFAULT_TYPE;
 
     const validatorFn = typeof type === 'function' ? type : validators[type];
 
