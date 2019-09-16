@@ -2,6 +2,7 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createSafeModule from '~/safe';
+import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
 /**
@@ -16,7 +17,8 @@ export default class CirclesCore {
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
-   * @param {string} options.relayServiceEndpoint - URL of the Relayer Server
+   * @param {string} options.apiEndpoint - URL of the username resolver service
+   * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    */
   constructor(web3, options) {
     // Check web3 instance
@@ -31,13 +33,16 @@ export default class CirclesCore {
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
-        type: web3.utils.isAddress,
+        type: web3.utils.checkAddressChecksum,
       },
       proxyFactoryAddress: {
-        type: web3.utils.isAddress,
+        type: web3.utils.checkAddressChecksum,
       },
       safeMasterAddress: {
-        type: web3.utils.isAddress,
+        type: web3.utils.checkAddressChecksum,
+      },
+      apiEndpoint: {
+        type: 'string',
       },
       relayServiceEndpoint: {
         type: 'string',
@@ -55,5 +60,6 @@ export default class CirclesCore {
     // Create submodules and pass utils and options to them
     /** @type {Object} - safe module */
     this.safe = createSafeModule(web3, this.contracts, this.utils);
+    this.user = createUserModule(web3, this.utils);
   }
 }
