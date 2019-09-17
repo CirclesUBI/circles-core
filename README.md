@@ -40,7 +40,7 @@ const core = new CirclesCore(web3, {
   hubAddress: '0x..',
   proxyFactoryAddress: '0x..',
   safeMasterAddress: '0x..',
-  apiEndpoint: 'https://..',
+  usernameServiceEndpoint: 'https://..',
   relayServiceEndpoint: 'https://..',
 });
 

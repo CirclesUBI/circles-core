@@ -126,7 +126,7 @@ async function estimateTransactionCosts(
  * @return {Object} - utils module instance
  */
 export default function createUtilsModule(web3, contracts, globalOptions) {
-  const { relayServiceEndpoint, apiEndpoint } = globalOptions;
+  const { relayServiceEndpoint, usernameServiceEndpoint } = globalOptions;
 
   return {
     /**
@@ -255,7 +255,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       });
 
-      return request(apiEndpoint, {
+      return request(usernameServiceEndpoint, {
         data: options.data,
         method: options.method,
         path: ['api'].concat(options.path),
