@@ -7,7 +7,7 @@ export default function createCore() {
     safeMasterAddress: process.env.SAFE_ADDRESS,
     hubAddress: process.env.HUB_ADDRESS,
     proxyFactoryAddress: process.env.PROXY_FACTORY_ADDRESS,
-    apiEndpoint: process.env.API_ENDPOINT,
+    apiEndpoint: process.env.USERNAME_SERVICE_ENDPOINT,
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
   });
 }
