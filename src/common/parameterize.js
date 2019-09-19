@@ -10,17 +10,25 @@ export default function parameterize(obj) {
   return (
     '?' +
     Object.keys(obj)
-      .map(key => {
+      .reduce((acc, key) => {
         if (Array.isArray(obj[key])) {
-          return obj[key]
+          if (obj[key].length === 0) {
+            return acc;
+          }
+
+          const merged = obj[key]
             .map(item => {
               return `${encode(key)}[]=${encode(item)}`;
             })
             .join('&');
+
+          acc.push(merged);
+          return acc;
         }
 
-        return `${encode(key)}=${encode(obj[key])}`;
-      })
+        acc.push(`${encode(key)}=${encode(obj[key])}`);
+        return acc;
+      }, [])
       .join('&')
   );
 }

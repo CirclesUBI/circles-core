@@ -3,6 +3,7 @@ language: node_js
 addons:
   hosts:
     - relay.circles.local
+    - api.circles.local
 
 services:
   - docker
@@ -11,11 +12,21 @@ node_js:
   - '11'
 
 env:
-  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
+  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker PYTHON_BUILD_CACHE_PATH=$HOME/.cache/pyenv
 
 cache:
   directories:
     - $(pyenv root)
+    - $HOME/.cache
+    - $HOME/.npm
+    - $HOME/docker
+    - $PYTHON_BUILD_CACHE_PATH
+
+before_cache:
+  # Save tagged docker images
+  - >
+    mkdir -p $HOME/docker && docker images -a --filter='reference=*circles*' --filter='dangling=false' --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    | xargs -n 2 -t sh -c 'test -e $HOME/docker/$1.tar.gz || docker save $0 | gzip -2 > $HOME/docker/$1.tar.gz'
 
 before_install:
   # disable travis postgres
@@ -28,8 +39,12 @@ before_install:
   - cd $HOME
 
   # install python
+  - mkdir -p $PYTHON_BUILD_CACHE_PATH
   - pyenv install $PYTHON_VERSION -s
   - pyenv global $PYTHON_VERSION
+
+  # load cached docker images
+  - if [[ -d $HOME/docker ]]; then ls $HOME/docker/*.tar.gz | xargs -I {file} sh -c "zcat {file} | docker load"; fi
 
   # get circles-docker repository and copy configs
   - git clone https://github.com/CirclesUBI/circles-docker.git $CIRCLES_DOCKER

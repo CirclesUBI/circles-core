@@ -8,6 +8,60 @@ import parameterize from '~/common/parameterize';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
 
+async function request(endpoint, userOptions) {
+  const options = checkOptions(userOptions, {
+    path: {
+      type: 'array',
+    },
+    method: {
+      type: 'string',
+      default: 'GET',
+    },
+    data: {
+      type: 'object',
+      default: {},
+    },
+  });
+
+  const { path, method, data } = options;
+
+  const request = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+
+  let paramsStr = '';
+  if (method === 'GET') {
+    paramsStr = parameterize(data);
+  } else {
+    request.body = JSON.stringify(data);
+  }
+
+  const url = `${endpoint}/${path.join('/')}/${paramsStr}`;
+
+  try {
+    return fetch(url, request).then(response => {
+      if (response.status >= 400) {
+        throw new Error(`Request failed with error ${response.status}`);
+      }
+
+      const contentType = response.headers.get('Content-Type');
+
+      if (contentType && contentType.includes('application/json')) {
+        return response.json().then(json => {
+          return json;
+        });
+      } else {
+        return response.body;
+      }
+    });
+  } catch (err) {
+    throw new Error(err);
+  }
+}
+
 async function requestRelayer(endpoint, userOptions) {
   const options = checkOptions(userOptions, {
     path: {
@@ -29,41 +83,11 @@ async function requestRelayer(endpoint, userOptions) {
 
   const { path, method, data, version } = options;
 
-  const request = {
+  return request(endpoint, {
+    path: ['api', `v${version}`].concat(path),
     method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  let paramsStr = '';
-  if (method === 'GET') {
-    paramsStr = parameterize(data);
-  } else {
-    request.body = JSON.stringify(data);
-  }
-
-  const url = `${endpoint}/api/v${version}/${path.join('/')}/${paramsStr}`;
-
-  try {
-    return fetch(url, request).then(response => {
-      if (response.status >= 400) {
-        throw new Error(`Relayer responded with error ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-
-      if (contentType && contentType.includes('application/json')) {
-        return response.json().then(json => {
-          return json;
-        });
-      } else {
-        return response;
-      }
-    });
-  } catch (err) {
-    throw new Error(err);
-  }
+    data,
+  });
 }
 
 async function estimateTransactionCosts(
@@ -102,7 +126,7 @@ async function estimateTransactionCosts(
  * @return {Object} - utils module instance
  */
 export default function createUtilsModule(web3, contracts, globalOptions) {
-  const { relayServiceEndpoint } = globalOptions;
+  const { relayServiceEndpoint, usernameServiceEndpoint } = globalOptions;
 
   return {
     /**
@@ -134,10 +158,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const options = checkOptions(userOptions, {
         safeAddress: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
         to: {
-          type: web3.utils.isAddress,
+          type: web3.utils.checkAddressChecksum,
         },
         txData: {
           type: web3.utils.isHexStrict,
@@ -214,6 +238,27 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           nonce,
           gasToken,
         },
+      });
+    },
+    requestAPI: async userOptions => {
+      const options = checkOptions(userOptions, {
+        path: {
+          type: 'array',
+        },
+        method: {
+          type: 'string',
+          default: 'GET',
+        },
+        data: {
+          type: 'object',
+          default: {},
+        },
+      });
+
+      return request(usernameServiceEndpoint, {
+        data: options.data,
+        method: options.method,
+        path: ['api'].concat(options.path),
       });
     },
   };
