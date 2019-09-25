@@ -30,7 +30,7 @@ describe('Safe', () => {
     it('should be manually triggered to get deployed', async () => {
       // @TODO: Get enough trust connections before,
       // tho this is not implemented yet in the relayer.
-      const result = await core.safe.forceDeploy(account, {
+      const result = await core.safe.deploy(account, {
         address: safeAddress,
       });
 
