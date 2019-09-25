@@ -90,6 +90,12 @@ const isTrusted = network.reduce((acc, connection) => {
 
 if (!isTrusted) {
   console.log('Not enough trust connections yet ..');
+} else {
+  // Deploy Safe
+  await core.safe.deploy(account, { address: safeAddress });
+
+  // Deploy Circles Token
+  await core.ubi.signup(account, { safeAddress });
 }
 
 // Change trust state with users
