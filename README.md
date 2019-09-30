@@ -90,6 +90,12 @@ const isTrusted = network.reduce((acc, connection) => {
 
 if (!isTrusted) {
   console.log('Not enough trust connections yet ..');
+} else {
+  // Deploy Safe
+  await core.safe.deploy(account, { address: safeAddress });
+
+  // Deploy Circles Token
+  await core.ubi.signup(account, { safeAddress });
 }
 
 // Change trust state with users
@@ -126,9 +132,13 @@ activities.forEach(activity => {
   }
 });
 
-// Get my current balance of Circles
+// Get current balance of all owned Circles Tokens
+const tokenAddress = core.ubi.getTokenAddress(account, {
+  safeAddress,
+});
+
 const balance = await core.ubi.getBalance(account, {
-  address: safeAddress,
+  safeAddress,
 });
 
 // Transfer Circles to users (directly or transitively)

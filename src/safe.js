@@ -75,7 +75,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @return {boolean} - returns true when successful
      */
-    forceDeploy: async (account, userOptions) => {
+    deploy: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {

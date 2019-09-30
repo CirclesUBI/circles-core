@@ -2,6 +2,7 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createSafeModule from '~/safe';
+import createUbiModule from '~/ubi';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
@@ -60,6 +61,7 @@ export default class CirclesCore {
     // Create submodules and pass utils and options to them
     /** @type {Object} - safe module */
     this.safe = createSafeModule(web3, this.contracts, this.utils);
+    this.ubi = createUbiModule(web3, this.contracts, this.utils);
     this.user = createUserModule(web3, this.utils);
   }
 }

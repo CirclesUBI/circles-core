@@ -19,7 +19,7 @@ function checkArrayEntries(arr, validatorFn) {
  * @param {Web3} web3 - Web3 instance
  * @param {Object} utils - utils module instance
  *
- * @return {Object} - safe module instance
+ * @return {Object} - user module instance
  */
 export default function createUserModule(web3, utils) {
   return {
