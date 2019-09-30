@@ -10,7 +10,7 @@ const TOKEN_NAME = 'CCS';
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
  *
- * @return {Object} - trust module instance
+ * @return {Object} - ubi module instance
  */
 export default function createUbiModule(web3, contracts, utils) {
   const { hub } = contracts;
