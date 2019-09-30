@@ -1,4 +1,5 @@
 import createCore from './helpers/createCore';
+import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
@@ -16,25 +17,7 @@ beforeAll(async () => {
 
 describe('UBI', () => {
   beforeAll(async () => {
-    const safeCreationNonce = new Date().getTime();
-
-    safeAddress = await core.safe.prepareDeploy(account, {
-      nonce: safeCreationNonce,
-    });
-
-    // @TODO: Later we will pay our gas fees to the relayer in Circles Token.
-    await web3.eth.sendTransaction({
-      from: account.address,
-      to: safeAddress,
-      value: web3.utils.toWei('1', 'ether'),
-    });
-
-    await core.safe.deploy(account, {
-      address: safeAddress,
-    });
-
-    // .. wait for Relayer to really deploy Safe
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    safeAddress = await deploySafe(core, account);
   });
 
   describe('when a new user joins Circles', () => {
