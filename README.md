@@ -132,9 +132,13 @@ activities.forEach(activity => {
   }
 });
 
-// Get my current balance of Circles
+// Get current balance of all owned Circles Tokens
+const tokenAddress = core.ubi.getTokenAddress(account, {
+  safeAddress,
+});
+
 const balance = await core.ubi.getBalance(account, {
-  address: safeAddress,
+  safeAddress,
 });
 
 // Transfer Circles to users (directly or transitively)
