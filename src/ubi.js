@@ -85,7 +85,7 @@ export default function createUbiModule(web3, contracts, utils) {
 
       // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
-        safeAddress: {
+        address: {
           type: web3.utils.checkAddressChecksum,
         },
         tokenAddress: {
@@ -106,7 +106,7 @@ export default function createUbiModule(web3, contracts, utils) {
 
       const token = getTokenContract(web3, options.tokenAddress);
 
-      return await token.methods.balanceOf(options.safeAddress).call();
+      return await token.methods.balanceOf(options.address).call();
     },
 
     /**
@@ -135,16 +135,23 @@ export default function createUbiModule(web3, contracts, utils) {
       });
 
       // @TODO: Call Transaction Graph Service before for transitive transfers
-      const addresses = [options.to];
 
-      const txData = await hub.methods
-        .transferThrough(addresses, options.value)
+      // @TODO: Remove as soon as we use the 'transferThrough' Hub method:
+      const tokenAddress = await hub.methods.userToToken(options.from).call();
+      const token = getTokenContract(web3, tokenAddress);
+
+      // @TODO: Use 'transferThrough' on Hub instead:
+      // const addresses = [options.to];
+      // const txData = await hub.methods
+      //   .transferThrough(addresses, options.value)
+      //   .encodeABI();
+      const txData = await token.methods
+        .transfer(options.to, options.value.toString())
         .encodeABI();
 
-      // Call method and return result
       return await utils.executeSafeTx(account, {
         safeAddress: options.from,
-        to: options.to,
+        to: tokenAddress,
         txData,
       });
     },
