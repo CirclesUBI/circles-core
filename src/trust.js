@@ -16,6 +16,15 @@ export default function createTrustModule(web3, contracts, utils) {
   const { hub } = contracts;
 
   return {
+    /**
+     * Get the current state of a users trust network.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - Safe address of user
+     *
+     * @return {Object} Trust network state
+     */
     getNetwork: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -30,6 +39,15 @@ export default function createTrustModule(web3, contracts, utils) {
       throw new Error('Not implemented');
     },
 
+    /**
+     * Trust user with a token.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.from - trust giver
+     * @param {string} userOptions.to - trust receiver
+     * @param {number} userOptions.limit - trust limit for transitive transactions
+     */
     addConnection: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -58,6 +76,14 @@ export default function createTrustModule(web3, contracts, utils) {
       });
     },
 
+    /**
+     * Revoke a trust connection with a user.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.from - trust giver
+     * @param {string} userOptions.to - trust receiver
+     */
     removeConnection: async (account, userOptions) => {
       checkAccount(web3, account);
 

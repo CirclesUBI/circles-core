@@ -83,7 +83,6 @@ export default function createUbiModule(web3, contracts, utils) {
     getBalance: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
         address: {
           type: web3.utils.checkAddressChecksum,
@@ -121,7 +120,6 @@ export default function createUbiModule(web3, contracts, utils) {
     transfer: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
         from: {
           type: web3.utils.checkAddressChecksum,

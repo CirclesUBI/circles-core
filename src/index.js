@@ -1,6 +1,7 @@
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
+import createActivityModule from '~/activity';
 import createSafeModule from '~/safe';
 import createTrustModule from '~/trust';
 import createUbiModule from '~/ubi';
@@ -61,6 +62,7 @@ export default class CirclesCore {
 
     // Create submodules and pass utils and options to them
     /** @type {Object} - safe module */
+    this.activity = createActivityModule(web3, this.contracts, this.utils);
     this.safe = createSafeModule(web3, this.contracts, this.utils);
     this.trust = createTrustModule(web3, this.contracts, this.utils);
     this.ubi = createUbiModule(web3, this.contracts, this.utils);
