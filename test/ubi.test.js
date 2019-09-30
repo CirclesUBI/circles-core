@@ -1,4 +1,5 @@
 import createCore from './helpers/createCore';
+import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
@@ -6,42 +7,28 @@ import web3 from './helpers/web3';
 const INITIAL_PAYOUT = 100;
 
 let account;
+let otherAccount;
 let core;
 let safeAddress;
+let otherSafeAddress;
 
 beforeAll(async () => {
   account = getAccount();
+  otherAccount = getAccount(5);
   core = createCore();
 });
 
 describe('UBI', () => {
   beforeAll(async () => {
-    const safeCreationNonce = new Date().getTime();
+    safeAddress = await deploySafe(core, account);
+    otherSafeAddress = await deploySafe(core, otherAccount);
 
-    safeAddress = await core.safe.prepareDeploy(account, {
-      nonce: safeCreationNonce,
+    await core.ubi.signup(account, {
+      safeAddress,
     });
 
-    // @TODO: Later we will pay our gas fees to the relayer in Circles Token.
-    await web3.eth.sendTransaction({
-      from: account.address,
-      to: safeAddress,
-      value: web3.utils.toWei('1', 'ether'),
-    });
-
-    await core.safe.deploy(account, {
-      address: safeAddress,
-    });
-
-    // .. wait for Relayer to really deploy Safe
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  });
-
-  describe('when a new user joins Circles', () => {
-    it('should deploy an own Token', async () => {
-      await core.ubi.signup(account, {
-        safeAddress,
-      });
+    await core.ubi.signup(otherAccount, {
+      safeAddress: otherSafeAddress,
     });
   });
 
@@ -60,11 +47,34 @@ describe('UBI', () => {
 
     it('should get the initial payout balance', async () => {
       const balance = await core.ubi.getBalance(account, {
-        safeAddress,
+        address: safeAddress,
         tokenAddress,
       });
 
       expect(parseInt(balance, 10)).toBe(INITIAL_PAYOUT);
+    });
+
+    it('should send Circles to someone', async () => {
+      const value = 20;
+
+      await core.ubi.transfer(account, {
+        from: safeAddress,
+        to: otherSafeAddress,
+        value,
+      });
+
+      const accountBalance = await core.ubi.getBalance(account, {
+        address: safeAddress,
+        tokenAddress,
+      });
+
+      const otherAccountBalance = await core.ubi.getBalance(account, {
+        address: otherSafeAddress,
+        tokenAddress,
+      });
+
+      expect(parseInt(otherAccountBalance, 10)).toBe(value);
+      expect(parseInt(accountBalance, 10)).toBe(INITIAL_PAYOUT - value);
     });
   });
 });

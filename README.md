@@ -138,7 +138,7 @@ const tokenAddress = core.ubi.getTokenAddress(account, {
 });
 
 const balance = await core.ubi.getBalance(account, {
-  safeAddress,
+  address: safeAddress,
 });
 
 // Transfer Circles to users (directly or transitively)
