@@ -1,7 +1,7 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
-const TOKEN_NAME = 'CCS';
+const DEFAULT_TOKEN_NAME = 'CCS';
 
 /**
  * UBI submodule to get current Token balance and send Circles to other users.
@@ -25,7 +25,7 @@ export default function createUbiModule(web3, contracts, utils) {
         },
         tokenName: {
           type: 'string',
-          default: TOKEN_NAME,
+          default: DEFAULT_TOKEN_NAME,
         },
       });
 
