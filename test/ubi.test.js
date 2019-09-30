@@ -31,7 +31,7 @@ describe('UBI', () => {
     });
 
     // .. wait for Relayer to really deploy Safe
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 500));
   });
 
   describe('when a new user joins Circles', () => {
