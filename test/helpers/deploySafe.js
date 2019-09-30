@@ -1,4 +1,4 @@
-import web3 from './helpers/web3';
+import web3 from './web3';
 
 export default async function deploySafe(core, account) {
   const safeCreationNonce = new Date().getTime();
