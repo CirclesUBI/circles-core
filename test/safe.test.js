@@ -35,7 +35,7 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       expect(result).toBe(true);
     });
