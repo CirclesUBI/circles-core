@@ -92,6 +92,31 @@ export default function createSafeModule(web3, contracts, utils) {
 
       return true;
     },
+
+    /**
+     * Finds the Safe address of an owner.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.address - address of the Safe owner
+     *
+     * @return {string} - Safe address
+     */
+    getSafeAddress: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      // eslint-disable-next-line no-unused-vars
+      const options = checkOptions(userOptions, {
+        address: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      // @TODO: Implement this when Caching Service is ready.
+
+      throw new Error('Not implemented');
+    },
+
     /**
      * Returns a list of all owners of the given Gnosis Safe.
      *
