@@ -23,9 +23,13 @@ export default function createUbiModule(web3, contracts, utils) {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
+        tokenName: {
+          type: 'string',
+          default: TOKEN_NAME,
+        },
       });
 
-      const txData = await hub.methods.signup(TOKEN_NAME).encodeABI();
+      const txData = await hub.methods.signup(options.tokenName).encodeABI();
 
       // Call method and return result
       return await utils.executeSafeTx(account, {
