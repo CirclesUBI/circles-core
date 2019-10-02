@@ -127,6 +127,7 @@ async function estimateTransactionCosts(
  */
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const { relayServiceEndpoint, usernameServiceEndpoint } = globalOptions;
+  const { hub } = contracts;
 
   return {
     /**
@@ -141,6 +142,95 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      */
     requestRelayer: async userOptions => {
       return requestRelayer(relayServiceEndpoint, userOptions);
+    },
+
+    /**
+     * Send Transaction to Relayer and pay with Circles Token.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {string} userOptions.safeAddress - address of Safe
+     * @param {object} userOptions.txData - encoded transaction data
+     */
+    executeTokenSafeTx: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        txData: {
+          type: web3.utils.isHexStrict,
+        },
+      });
+
+      const { txData, safeAddress } = options;
+
+      const operation = CALL_OP;
+      const refundReceiver = ZERO_ADDRESS;
+      const value = 0;
+
+      // Get Circles Token of this Safe / User
+      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+
+      if (tokenAddress === ZERO_ADDRESS) {
+        throw new Error(
+          'Invalid Token address. Did you forget to deploy the Token?',
+        );
+      }
+
+      // Use Circles Token to pay for transaction fees
+      const gasToken = tokenAddress;
+      const to = safeAddress;
+
+      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+        relayServiceEndpoint,
+        {
+          gasToken,
+          operation,
+          safeAddress,
+          to,
+          txData,
+          value,
+        },
+      );
+
+      const nonce = await getSafeContract(web3, safeAddress)
+        .methods.nonce()
+        .call();
+
+      const typedData = formatTypedData(
+        to,
+        value,
+        txData,
+        operation,
+        safeTxGas,
+        dataGas,
+        gasPrice,
+        gasToken,
+        refundReceiver,
+        nonce,
+        safeAddress,
+      );
+
+      const signature = signTypedData(web3, account.privateKey, typedData);
+
+      return requestRelayer(relayServiceEndpoint, {
+        path: ['safes', safeAddress, 'transactions'],
+        method: 'POST',
+        version: 1,
+        data: {
+          to,
+          value,
+          data: txData,
+          operation,
+          signatures: [signature],
+          safeTxGas,
+          dataGas,
+          gasPrice,
+          nonce,
+          gasToken,
+        },
+      });
     },
 
     /**
@@ -163,6 +253,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         to: {
           type: web3.utils.checkAddressChecksum,
         },
+        gasToken: {
+          type: web3.utils.checkAddressChecksum,
+          default: ZERO_ADDRESS,
+        },
         txData: {
           type: web3.utils.isHexStrict,
           default: '0x',
@@ -173,12 +267,11 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       });
 
-      const { to, txData, value, safeAddress } = options;
+      const { to, gasToken, txData, value, safeAddress } = options;
       const operation = CALL_OP;
-      const gasToken = ZERO_ADDRESS;
       const refundReceiver = ZERO_ADDRESS;
 
-      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+      const { dataGas, safeTxGas } = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
           gasToken,
@@ -189,6 +282,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
+
+      const gasPrice = web3.utils.toWei('20', 'gwei');
 
       const nonce = await getSafeContract(web3, safeAddress)
         .methods.nonce()
