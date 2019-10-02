@@ -147,9 +147,8 @@ export default function createUbiModule(web3, contracts, utils) {
         .transfer(options.to, options.value.toString())
         .encodeABI();
 
-      return await utils.executeSafeTx(account, {
+      return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
-        to: tokenAddress,
         txData,
       });
     },
