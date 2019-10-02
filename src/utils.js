@@ -180,7 +180,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       // Use Circles Token to pay for transaction fees
       const gasToken = tokenAddress;
-      const to = safeAddress;
+      const to = tokenAddress;
 
       const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
         relayServiceEndpoint,
