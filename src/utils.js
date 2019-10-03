@@ -208,19 +208,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         safeAddress,
       );
 
-      const signatureBytes = await signTypedData(
-        web3,
-        account.address,
-        typedData,
-      );
-
-      const sig = signatureBytes.slice(2);
-
-      const signature = {
-        r: web3.utils.toBN(`0x${sig.slice(0, 64)}`).toString(10),
-        s: web3.utils.toBN(`0x${sig.slice(64, 128)}`).toString(10),
-        v: web3.utils.toDecimal(sig.slice(128, 130)),
-      };
+      const signature = signTypedData(web3, account.privateKey, typedData);
 
       return requestRelayer(relayServiceEndpoint, {
         path: ['safes', safeAddress, 'transactions'],
