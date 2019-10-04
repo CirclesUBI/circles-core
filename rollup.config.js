@@ -1,6 +1,7 @@
 import path from 'path';
 
 import babel from 'rollup-plugin-babel';
+import builtins from 'rollup-plugin-node-builtins';
 import cleanup from 'rollup-plugin-cleanup';
 import commonjs from 'rollup-plugin-commonjs';
 import json from 'rollup-plugin-json';
@@ -20,8 +21,10 @@ const MODULE_NAME = 'CirclesCore';
 function rollupPlugins(isUglified = false) {
   const plugins = [
     json(),
+    builtins(),
     resolve({
       extensions: EXTENSIONS,
+      preferBuiltins: true,
     }),
     commonjs(),
     babel({
