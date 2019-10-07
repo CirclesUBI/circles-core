@@ -283,7 +283,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const gasPrice = web3.utils.toWei('20', 'gwei');
+      const gasPrice = web3.utils.toWei('2', 'gwei');
 
       const nonce = await getSafeContract(web3, safeAddress)
         .methods.nonce()
