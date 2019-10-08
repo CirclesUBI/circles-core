@@ -71,6 +71,7 @@ export default function createTrustModule(web3, contracts, utils) {
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
+        to: hub.options.address,
         txData,
       });
     },
@@ -99,6 +100,7 @@ export default function createTrustModule(web3, contracts, utils) {
 
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
+        to: hub.options.address,
         txData,
       });
     },

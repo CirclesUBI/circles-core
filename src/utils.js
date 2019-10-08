@@ -158,12 +158,15 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
+        to: {
+          type: web3.utils.checkAddressChecksum,
+        },
         txData: {
           type: web3.utils.isHexStrict,
         },
       });
 
-      const { txData, safeAddress } = options;
+      const { txData, safeAddress, to } = options;
 
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
@@ -180,7 +183,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       // Use Circles Token to pay for transaction fees
       const gasToken = tokenAddress;
-      const to = tokenAddress;
+      //const to = tokenAddress;
 
       const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
         relayServiceEndpoint,

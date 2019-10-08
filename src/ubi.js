@@ -149,6 +149,7 @@ export default function createUbiModule(web3, contracts, utils) {
 
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
+        to: tokenAddress,
         txData,
       });
     },

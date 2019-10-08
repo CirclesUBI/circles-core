@@ -9,9 +9,7 @@ let safeAddress;
 
 beforeAll(async () => {
   account = getAccount();
-  console.log(account)
   otherAccount = getAccount(1);
-  console.log(otherAccount)
   core = createCore();
 });
 
@@ -35,9 +33,8 @@ describe('Safe', () => {
       const result = await core.safe.deploy(account, {
         address: safeAddress,
       });
-
       // .. wait for Relayer to really deploy Safe
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       // Deploy Token as well to pay our fees later
       await core.ubi.signup(account, {
@@ -49,6 +46,19 @@ describe('Safe', () => {
   });
 
   describe('When I want to manage the owners of a Safe', () => {
+    beforeAll(async () => {
+      const result = await core.safe.deploy(account, {
+        address: safeAddress,
+      });
+      // .. wait for Relayer to really deploy Safe
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Deploy Token as well to pay our fees later
+      await core.ubi.signup(account, {
+        safeAddress,
+      });
+    });
+
     it('should return a list of the current owners', async () => {
       const owners = await core.safe.getOwners(account, {
         address: safeAddress,

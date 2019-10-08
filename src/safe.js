@@ -169,6 +169,7 @@ export default function createSafeModule(web3, contracts, utils) {
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.address,
+        to: options.address,
         txData,
       });
     },
@@ -212,6 +213,7 @@ export default function createSafeModule(web3, contracts, utils) {
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.address,
+        to: options.address,
         txData,
       });
     },
