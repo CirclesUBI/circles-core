@@ -4,7 +4,7 @@ import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
 // This was set during Hub deployment:
-const INITIAL_PAYOUT = 100;
+const INITIAL_PAYOUT = web3.utils.toBN('100000000000000000000');
 
 let account;
 let otherAccount;
@@ -22,7 +22,6 @@ describe('UBI', () => {
   beforeAll(async () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
-
     await core.ubi.signup(account, {
       safeAddress,
     });
@@ -39,6 +38,7 @@ describe('UBI', () => {
       tokenAddress = await core.ubi.getTokenAddress(account, {
         safeAddress,
       });
+      console.log(tokenAddress)
     });
 
     it('should be a valid contract address', async () => {
@@ -51,11 +51,11 @@ describe('UBI', () => {
         tokenAddress,
       });
 
-      expect(parseInt(balance, 10)).toBe(INITIAL_PAYOUT);
+      expect(web3.utils.toBN(balance)).toMatchObject(INITIAL_PAYOUT);
     });
 
     it('should send Circles to someone', async () => {
-      const value = 20;
+      const value = web3.utils.toBN('20');
 
       await core.ubi.transfer(account, {
         from: safeAddress,
@@ -73,8 +73,8 @@ describe('UBI', () => {
         tokenAddress,
       });
 
-      expect(parseInt(otherAccountBalance, 10)).toBe(value);
-      expect(parseInt(accountBalance, 10)).toBe(INITIAL_PAYOUT - value);
+      expect(web3.utils.toBN(otherAccountBalance)).toMatchObject(value);
+      expect(web3.utils.toBN(accountBalance).toString()).toBe('99999999999999905259');
     });
   });
 });

@@ -128,7 +128,7 @@ export default function createUbiModule(web3, contracts, utils) {
           type: web3.utils.checkAddressChecksum,
         },
         value: {
-          type: 'number',
+          type: 'object',
         },
       });
 

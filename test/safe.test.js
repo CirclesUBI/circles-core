@@ -9,7 +9,9 @@ let safeAddress;
 
 beforeAll(async () => {
   account = getAccount();
+  console.log(account)
   otherAccount = getAccount(1);
+  console.log(otherAccount)
   core = createCore();
 });
 
