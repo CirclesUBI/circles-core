@@ -38,7 +38,6 @@ describe('UBI', () => {
       tokenAddress = await core.ubi.getTokenAddress(account, {
         safeAddress,
       });
-      console.log(tokenAddress)
     });
 
     it('should be a valid contract address', async () => {
