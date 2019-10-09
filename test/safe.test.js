@@ -1,5 +1,6 @@
 import createCore from './helpers/createCore';
 import getAccount from './helpers/getAccount';
+import loop from './helpers/loop';
 import web3 from './helpers/web3';
 
 let account;
@@ -35,7 +36,10 @@ describe('Safe', () => {
       });
       // .. wait for Relayer to really deploy Safe
 
-      await new Promise((resolve) => setTimeout(resolve, 5000))
+      await loop(
+        () => web3.eth.getCode(safeAddress),
+        (code) => { if (code !== '0x') return true; return false }
+      )
 
       // Deploy Token as well to pay our fees later
       await core.ubi.signup(account, {

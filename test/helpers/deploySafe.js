@@ -1,3 +1,6 @@
+import loop from './loop';
+import web3 from './web3';
+
 export default async function deploySafe(core, account) {
   const safeAddress = await core.safe.prepareDeploy(account, {
     nonce: new Date().getTime(),
@@ -8,7 +11,10 @@ export default async function deploySafe(core, account) {
   });
 
   // .. wait for Relayer to really deploy Safe
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await loop(
+    () => web3.eth.getCode(safeAddress),
+    (code) => { console.log(code); if (code !== '0x') return true; return false }
+  )
 
   return safeAddress;
 }

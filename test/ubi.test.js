@@ -20,6 +20,7 @@ beforeAll(async () => {
 
 describe('UBI', () => {
   beforeAll(async () => {
+    jest.setTimeout(30000);
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
     await core.ubi.signup(account, {
