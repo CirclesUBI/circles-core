@@ -4,8 +4,66 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 import parameterize from '~/common/parameterize';
 import { ZERO_ADDRESS } from '~/common/constants';
+import { signTypedData } from '~/common/typedData';
+
+const web3 = new Web3();
 
 describe('Common', () => {
+  describe('signTypedData', () => {
+    it('should hash typed data according to EIP 712', () => {
+      const typedData = {
+        types: {
+          EIP712Domain: [
+            { name: 'name', type: 'string' },
+            { name: 'version', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' },
+          ],
+          Person: [
+            { name: 'name', type: 'string' },
+            { name: 'wallet', type: 'address' },
+          ],
+          Mail: [
+            { name: 'from', type: 'Person' },
+            { name: 'to', type: 'Person' },
+            { name: 'contents', type: 'string' },
+          ],
+        },
+        primaryType: 'Mail',
+        domain: {
+          name: 'Ether Mail',
+          version: '1',
+          chainId: 1,
+          verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+        },
+        message: {
+          from: {
+            name: 'Cow',
+            wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+          },
+          to: {
+            name: 'Bob',
+            wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+          },
+          contents: 'Hello, Bob!',
+        },
+      };
+
+      const privateKey = web3.utils.keccak256('cow');
+      const { v, r, s } = signTypedData(web3, privateKey, typedData);
+
+      expect(v).toBe(28);
+
+      expect(r).toBe(
+        '30456498978348419035113697096786286190221642508076327013477434142925027351709',
+      );
+
+      expect(s).toBe(
+        '3239688114989807171223523113163838721254638492728567579547907301252041086306',
+      );
+    });
+  });
+
   describe('parameterize', () => {
     it('should parse arrays correctly', () => {
       expect(
@@ -93,8 +151,6 @@ describe('Common', () => {
     });
 
     it('should accept custom functions as validators', () => {
-      const web3 = new Web3();
-
       const result = checkOptions(
         {
           optionA: ZERO_ADDRESS,
@@ -116,8 +172,6 @@ describe('Common', () => {
     let contracts;
 
     beforeEach(() => {
-      const web3 = new Web3();
-
       contracts = getContracts(web3, {
         hubAddress: ZERO_ADDRESS,
         proxyFactoryAddress: ZERO_ADDRESS,
