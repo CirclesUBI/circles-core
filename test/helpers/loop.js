@@ -1,12 +1,23 @@
-export default async function loop(request, condition) {
-  return new Promise(resolve => {
-    const interval = setInterval(async () => {
-      const response = await request();
+const LOOP_INTERVAL = 1000;
 
-      if (condition(response)) {
+function defaultCondition(code) {
+  return code !== '0x';
+}
+
+export default async function loop(request, condition = defaultCondition) {
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await request();
+
+        if (condition(response)) {
+          clearInterval(interval);
+          resolve(response);
+        }
+      } catch (error) {
         clearInterval(interval);
-        resolve(response);
+        reject(error);
       }
-    }, 1000);
+    }, LOOP_INTERVAL);
   });
 }

@@ -11,7 +11,7 @@ export default async function deploySafe(core, account) {
   });
 
   // .. wait for Relayer to really deploy Safe
-  await loop(() => web3.eth.getCode(safeAddress), code => code !== '0x');
+  await loop(() => web3.eth.getCode(safeAddress));
 
   return safeAddress;
 }

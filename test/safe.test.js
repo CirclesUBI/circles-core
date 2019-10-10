@@ -36,7 +36,7 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await loop(() => web3.eth.getCode(safeAddress), code => code !== '0x');
+      await loop(() => web3.eth.getCode(safeAddress));
 
       // Deploy Token as well to pay our fees later
       await core.ubi.signup(account, {
