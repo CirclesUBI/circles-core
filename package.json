@@ -16,8 +16,8 @@
     "clear": "rimraf ./lib",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
     "test": "jest",
-    "test:watch": "npm run test -- --watch",
-    "test:debugger": "node --inspect-brk node_modules/.bin/jest --runInBand"
+    "test:debugger": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
