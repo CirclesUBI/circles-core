@@ -7,7 +7,7 @@ export default async function deploySafe(core, account) {
   });
 
   await core.safe.deploy(account, {
-    address: safeAddress,
+    safeAddress,
   });
 
   // .. wait for Relayer to really deploy Safe

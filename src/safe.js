@@ -8,13 +8,13 @@ import { getSafeContract } from '~/common/getContracts';
  * Helper method to receive a list of all Gnosis Safe owners.
  *
  * @param {Web3} web3 - Web3 instance
- * @param {string} address
+ * @param {string} safeAddress
  *
  * @return {string[]} - array of owner addresses
  */
-async function getOwners(web3, address) {
+async function getOwners(web3, safeAddress) {
   // Get Safe at given address
-  const safe = getSafeContract(web3, address);
+  const safe = getSafeContract(web3, safeAddress);
 
   // Call 'getOwners' method and return list of owners
   return await safe.methods.getOwners().call();
@@ -71,7 +71,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.address - to-be-deployed Safe address
+     * @param {number} userOptions.safeAddress - to-be-deployed Safe address
      *
      * @return {boolean} - returns true when successful
      */
@@ -79,13 +79,13 @@ export default function createSafeModule(web3, contracts, utils) {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        address: {
+        safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
       await utils.requestRelayer({
-        path: ['safes', options.address, 'funded'],
+        path: ['safes', options.safeAddress, 'funded'],
         version: 2,
         method: 'PUT',
       });
@@ -98,7 +98,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.address - address of the Safe owner
+     * @param {number} userOptions.ownerAddress - address of the Safe owner
      *
      * @return {string} - Safe address
      */
@@ -107,13 +107,12 @@ export default function createSafeModule(web3, contracts, utils) {
 
       // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
-        address: {
+        ownerAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
       // @TODO: Implement this when Caching Service is ready.
-
       throw new Error('Not implemented');
     },
 
@@ -122,7 +121,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.address - address of the Gnosis Safe
+     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
      *
      * @return {string[]} - array of owner addresses
      */
@@ -130,12 +129,12 @@ export default function createSafeModule(web3, contracts, utils) {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        address: {
+        safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      return getOwners(web3, options.address);
+      return await getOwners(web3, options.safeAddress);
     },
 
     /**
@@ -143,33 +142,33 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.address - address of the Gnosis Safe
-     * @param {number} userOptions.owner - owner address to be added
+     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
+     * @param {number} userOptions.ownerAddress - owner address to be added
      */
     addOwner: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        address: {
+        safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
-        owner: {
+        ownerAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
       // Get Safe at given address
-      const safe = getSafeContract(web3, options.address);
+      const safe = getSafeContract(web3, options.safeAddress);
 
       // Prepare 'addOwnerWithThreshold' method
       const txData = safe.methods
-        .addOwnerWithThreshold(options.owner, SAFE_THRESHOLD)
+        .addOwnerWithThreshold(options.ownerAddress, SAFE_THRESHOLD)
         .encodeABI();
 
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.address,
-        to: options.address,
+        safeAddress: options.safeAddress,
+        to: options.safeAddress,
         txData,
       });
     },
@@ -179,41 +178,44 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.address - address of the Gnosis Safe
-     * @param {number} userOptions.owner - owner address to be removed
+     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
+     * @param {number} userOptions.ownerAddress - owner address to be removed
      */
     removeOwner: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        address: {
+        safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
-        owner: {
+        ownerAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
       // Get Safe at given address
-      const safe = getSafeContract(web3, options.address);
+      const safe = getSafeContract(web3, options.safeAddress);
 
       // We need the list of owners before ...
-      const owners = await getOwners(web3, options.address);
+      const owners = await getOwners(web3, options.safeAddress);
 
       // .. to find out which previous owner in the list is pointing at the one we want to remove
-      const ownerIndex = owners.findIndex(owner => owner === options.owner);
+      const ownerIndex = owners.findIndex(
+        owner => owner === options.ownerAddress,
+      );
+
       const prevOwner =
         ownerIndex > 0 ? owners[ownerIndex - 1] : SENTINEL_ADDRESS;
 
       // Prepare 'removeOwner' method by passing pointing owner and the owner to be removed
       const txData = await safe.methods
-        .removeOwner(prevOwner, options.owner, SAFE_THRESHOLD)
+        .removeOwner(prevOwner, options.ownerAddress, SAFE_THRESHOLD)
         .encodeABI();
 
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.address,
-        to: options.address,
+        safeAddress: options.safeAddress,
+        to: options.safeAddress,
         txData,
       });
     },

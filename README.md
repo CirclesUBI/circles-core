@@ -21,7 +21,6 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 
 * NodeJS
 * web3.js
-* Truffle & Ganache
 * Python 2.7
 
 ## Usage
@@ -61,16 +60,16 @@ await core.user.register(account, {
 });
 
 // Get our current trust network
-const network = await core.trust.getNetwork(account, { address: safeAddress });
+const network = await core.trust.getNetwork(account, { safeAddress });
 
 // Resolve public addresses to user profiles
 const users = await core.user.resolve(account, {
-  addresses: network.map(connection => connection.address),
+  addresses: network.map(connection => connection.safeAddress),
 });
 
 // Example: Display our trust network
 network.forEach(connection => {
-  const user = users.find(item => item.address === connection.address);
+  const user = users.find(item => item.safeAddress === connection.safeAddress);
 
   if (connection.isTrustingMe) {
     console.log(`${user.username} trusts you.`);
@@ -92,7 +91,7 @@ if (!isTrusted) {
   console.log('Not enough trust connections yet ..');
 } else {
   // Deploy Safe
-  await core.safe.deploy(account, { address: safeAddress });
+  await core.safe.deploy(account, { safeAddress });
 
   // Deploy Circles Token
   await core.ubi.signup(account, { safeAddress });
@@ -112,7 +111,7 @@ await core.trust.addConnection(account, {
 
 // Get list of my activities
 const activities = await core.activity.getActivities(account, {
-  address: safeAddress,
+  safeAddress,
 });
 
 // Example: Display activities
@@ -126,9 +125,9 @@ activities.forEach(activity => {
   } else if (type === 'removeConnection') {
     console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
   } else if (type === 'addOwner') {
-    console.log(`${timestamp} - ${data.from} added ${data.owner} to ${data.address}`);
+    console.log(`${timestamp} - ${data.from} added ${data.ownerAddress} to ${data.safeAddress}`);
   } else if (type === 'removeOwner') {
-    console.log(`${timestamp} - ${data.from} removed ${data.owner} from ${data.address}`);
+    console.log(`${timestamp} - ${data.from} removed ${data.ownerAddress} from ${data.safeAddress}`);
   }
 });
 
@@ -138,7 +137,7 @@ const tokenAddress = core.ubi.getTokenAddress(account, {
 });
 
 const balance = await core.ubi.getBalance(account, {
-  address: safeAddress,
+  safeAddress,
 });
 
 // Transfer Circles to users (directly or transitively)
@@ -150,18 +149,18 @@ await core.ubi.transfer(account, {
 
 // Get current Safe owners
 await core.safe.getOwners(account, {
-  address: safeAddress,
+  safeAddress,
 });
 
 // Manage owners of my Safe
 await core.safe.removeOwner(account, {
-  address: safeAddress,
-  owner: '0x123...',
+  safeAddress,
+  ownerAddress: '0x123...',
 });
 
 await core.safe.addOwner(account, {
-  address: safeAddress,
-  owner: '0x123...',
+  safeAddress,
+  ownerAddress: '0x123...',
 });
 ```
 

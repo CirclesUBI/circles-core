@@ -32,7 +32,7 @@ describe('Safe', () => {
       // @TODO: Get enough trust connections before,
       // tho this is not implemented yet in the relayer.
       const result = await core.safe.deploy(account, {
-        address: safeAddress,
+        safeAddress,
       });
 
       // .. wait for Relayer to really deploy Safe
@@ -50,7 +50,7 @@ describe('Safe', () => {
   describe('When I want to manage the owners of a Safe', () => {
     it('should return a list of the current owners', async () => {
       const owners = await core.safe.getOwners(account, {
-        address: safeAddress,
+        safeAddress,
       });
 
       expect(owners[0]).toBe(account.address);
@@ -59,27 +59,27 @@ describe('Safe', () => {
 
     it('should add another owner to the Safe', async () => {
       await core.safe.addOwner(account, {
-        address: safeAddress,
-        owner: otherAccount.address,
+        safeAddress,
+        ownerAddress: otherAccount.address,
       });
 
       const owners = await core.safe.getOwners(account, {
-        address: safeAddress,
+        safeAddress,
       });
 
-      expect(owners[1]).toBe(account.address);
       expect(owners[0]).toBe(otherAccount.address);
+      expect(owners[1]).toBe(account.address);
       expect(owners.length).toBe(2);
     });
 
     it('should remove an owner from the Safe', async () => {
       await core.safe.removeOwner(account, {
-        address: safeAddress,
-        owner: otherAccount.address,
+        safeAddress,
+        ownerAddress: otherAccount.address,
       });
 
       const owners = await core.safe.getOwners(account, {
-        address: safeAddress,
+        safeAddress,
       });
 
       expect(owners[0]).toBe(account.address);

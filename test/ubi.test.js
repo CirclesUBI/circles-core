@@ -47,7 +47,7 @@ describe('UBI', () => {
 
     it('should get the initial payout balance', async () => {
       const balance = await core.ubi.getBalance(account, {
-        address: safeAddress,
+        safeAddress,
         tokenAddress,
       });
 
@@ -64,12 +64,12 @@ describe('UBI', () => {
       });
 
       const accountBalance = await core.ubi.getBalance(account, {
-        address: safeAddress,
+        safeAddress,
         tokenAddress,
       });
 
       const otherAccountBalance = await core.ubi.getBalance(account, {
-        address: otherSafeAddress,
+        safeAddress: otherSafeAddress,
         tokenAddress,
       });
 

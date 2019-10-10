@@ -84,7 +84,7 @@ export default function createUbiModule(web3, contracts, utils) {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        address: {
+        safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
         tokenAddress: {
@@ -105,7 +105,7 @@ export default function createUbiModule(web3, contracts, utils) {
 
       const token = getTokenContract(web3, options.tokenAddress);
 
-      return await token.methods.balanceOf(options.address).call();
+      return await token.methods.balanceOf(options.safeAddress).call();
     },
 
     /**

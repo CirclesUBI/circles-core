@@ -68,8 +68,8 @@ export default function createUserModule(web3, utils) {
           nonce: nonce > 0 ? nonce : null,
           signature,
           data: {
-            safeAddress: options.safeAddress,
-            username: options.username,
+            safeAddress,
+            username,
           },
         },
       });
