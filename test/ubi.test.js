@@ -21,6 +21,7 @@ beforeAll(async () => {
 describe('UBI', () => {
   beforeAll(async () => {
     jest.setTimeout(30000);
+
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
     await core.ubi.signup(account, {
@@ -74,7 +75,9 @@ describe('UBI', () => {
       });
 
       expect(web3.utils.toBN(otherAccountBalance)).toMatchObject(value);
-      expect(web3.utils.toBN(accountBalance).toString()).toBe('99999999999999905259');
+      expect(web3.utils.toBN(accountBalance).toString()).toBe(
+        '99999999999999905259',
+      );
     });
   });
 });

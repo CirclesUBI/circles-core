@@ -42,7 +42,8 @@ async function request(endpoint, userOptions) {
   const url = `${endpoint}/${path.join('/')}/${paramsStr}`;
 
   try {
-    return fetch(url, request).then(response => {      if (response.status >= 400) {
+    return fetch(url, request).then(response => {
+      if (response.status >= 400) {
         throw new Error(`Request failed with error ${response.status}`);
       }
 
@@ -56,7 +57,8 @@ async function request(endpoint, userOptions) {
         return response.body;
       }
     });
-  } catch (err) {    throw new Error(err);
+  } catch (err) {
+    throw new Error(err);
   }
 }
 

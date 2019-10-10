@@ -17,6 +17,7 @@ beforeAll(async () => {
 describe('Trust', () => {
   beforeAll(async () => {
     jest.setTimeout(30000);
+
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 

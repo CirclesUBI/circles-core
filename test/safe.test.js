@@ -34,12 +34,9 @@ describe('Safe', () => {
       const result = await core.safe.deploy(account, {
         address: safeAddress,
       });
-      // .. wait for Relayer to really deploy Safe
 
-      await loop(
-        () => web3.eth.getCode(safeAddress),
-        (code) => { if (code !== '0x') return true; return false }
-      )
+      // .. wait for Relayer to really deploy Safe
+      await loop(() => web3.eth.getCode(safeAddress), code => code !== '0x');
 
       // Deploy Token as well to pay our fees later
       await core.ubi.signup(account, {
