@@ -1,5 +1,6 @@
 import createCore from './helpers/createCore';
 import getAccount from './helpers/getAccount';
+import loop from './helpers/loop';
 import web3 from './helpers/web3';
 
 let account;
@@ -35,24 +36,14 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await loop(() => web3.eth.getCode(safeAddress));
 
-      expect(result).toBe(true);
-    });
-
-    it('should receive funds from its owner', async () => {
-      // @TODO: Later we will pay our gas fees to the relayer
-      // in Circles Token.
-
-      await web3.eth.sendTransaction({
-        from: account.address,
-        to: safeAddress,
-        value: web3.utils.toWei('1', 'ether'),
+      // Deploy Token as well to pay our fees later
+      await core.ubi.signup(account, {
+        safeAddress,
       });
 
-      const balance = await web3.eth.getBalance(safeAddress);
-
-      expect(balance > 0).toBe(true);
+      expect(result).toBe(true);
     });
   });
 

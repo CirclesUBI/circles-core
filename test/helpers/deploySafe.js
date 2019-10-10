@@ -1,17 +1,9 @@
+import loop from './loop';
 import web3 from './web3';
 
 export default async function deploySafe(core, account) {
-  const safeCreationNonce = new Date().getTime();
-
   const safeAddress = await core.safe.prepareDeploy(account, {
-    nonce: safeCreationNonce,
-  });
-
-  // @TODO: Later we will pay our gas fees to the relayer in Circles Token.
-  await web3.eth.sendTransaction({
-    from: account.address,
-    to: safeAddress,
-    value: web3.utils.toWei('1', 'ether'),
+    nonce: new Date().getTime(),
   });
 
   await core.safe.deploy(account, {
@@ -19,7 +11,7 @@ export default async function deploySafe(core, account) {
   });
 
   // .. wait for Relayer to really deploy Safe
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await loop(() => web3.eth.getCode(safeAddress));
 
   return safeAddress;
 }

@@ -115,7 +115,7 @@ export default function createUbiModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {string} userOptions.from - sender address
      * @param {string} userOptions.to - receiver address
-     * @param {number} userOptions.value - value
+     * @param {BN} userOptions.value - value
      */
     transfer: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -128,7 +128,7 @@ export default function createUbiModule(web3, contracts, utils) {
           type: web3.utils.checkAddressChecksum,
         },
         value: {
-          type: 'number',
+          type: web3.utils.isBN,
         },
       });
 
@@ -147,7 +147,7 @@ export default function createUbiModule(web3, contracts, utils) {
         .transfer(options.to, options.value.toString())
         .encodeABI();
 
-      return await utils.executeSafeTx(account, {
+      return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
         to: tokenAddress,
         txData,

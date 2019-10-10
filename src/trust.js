@@ -69,7 +69,7 @@ export default function createTrustModule(web3, contracts, utils) {
         .encodeABI();
 
       // Call method and return result
-      return await utils.executeSafeTx(account, {
+      return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
         to: hub.options.address,
         txData,
@@ -98,7 +98,7 @@ export default function createTrustModule(web3, contracts, utils) {
 
       const txData = await hub.methods.trust(options.to, 0).encodeABI();
 
-      return await utils.executeSafeTx(account, {
+      return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
         to: hub.options.address,
         txData,

@@ -15,7 +15,8 @@
     "build": "npm run clear && rollup -c",
     "clear": "rimraf ./lib",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
-    "test": "jest",
+    "test": "jest --runInBand",
+    "test:debugger": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {
