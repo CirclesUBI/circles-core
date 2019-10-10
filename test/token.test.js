@@ -18,16 +18,16 @@ beforeAll(async () => {
   core = createCore();
 });
 
-describe('UBI', () => {
+describe('Token', () => {
   beforeAll(async () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 
-    await core.ubi.signup(account, {
+    await core.token.signup(account, {
       safeAddress,
     });
 
-    await core.ubi.signup(otherAccount, {
+    await core.token.signup(otherAccount, {
       safeAddress: otherSafeAddress,
     });
   });
@@ -36,7 +36,7 @@ describe('UBI', () => {
     let tokenAddress;
 
     beforeAll(async () => {
-      tokenAddress = await core.ubi.getTokenAddress(account, {
+      tokenAddress = await core.token.getAddress(account, {
         safeAddress,
       });
     });
@@ -46,7 +46,7 @@ describe('UBI', () => {
     });
 
     it('should get the initial payout balance', async () => {
-      const balance = await core.ubi.getBalance(account, {
+      const balance = await core.token.getBalance(account, {
         safeAddress,
         tokenAddress,
       });
@@ -57,18 +57,18 @@ describe('UBI', () => {
     it('should send Circles to someone', async () => {
       const value = web3.utils.toBN('20');
 
-      await core.ubi.transfer(account, {
+      await core.token.transfer(account, {
         from: safeAddress,
         to: otherSafeAddress,
         value,
       });
 
-      const accountBalance = await core.ubi.getBalance(account, {
+      const accountBalance = await core.token.getBalance(account, {
         safeAddress,
         tokenAddress,
       });
 
-      const otherAccountBalance = await core.ubi.getBalance(account, {
+      const otherAccountBalance = await core.token.getBalance(account, {
         safeAddress: otherSafeAddress,
         tokenAddress,
       });

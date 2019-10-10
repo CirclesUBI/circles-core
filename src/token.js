@@ -11,9 +11,9 @@ const DEFAULT_TOKEN_NAME = 'Circles';
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
  *
- * @return {Object} - ubi module instance
+ * @return {Object} - token module instance
  */
-export default function createUbiModule(web3, contracts, utils) {
+export default function createTokenModule(web3, contracts, utils) {
   const { hub } = contracts;
 
   return {
@@ -57,7 +57,7 @@ export default function createUbiModule(web3, contracts, utils) {
      *
      * @return {string} - Token address
      */
-    getTokenAddress: async (account, userOptions) => {
+    getAddress: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {

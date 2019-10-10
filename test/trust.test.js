@@ -19,11 +19,11 @@ describe('Trust', () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 
-    await core.ubi.signup(account, {
+    await core.token.signup(account, {
       safeAddress,
     });
 
-    await core.ubi.signup(otherAccount, {
+    await core.token.signup(otherAccount, {
       safeAddress: otherSafeAddress,
     });
   });

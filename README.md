@@ -94,7 +94,7 @@ if (!isTrusted) {
   await core.safe.deploy(account, { safeAddress });
 
   // Deploy Circles Token
-  await core.ubi.signup(account, { safeAddress });
+  await core.token.signup(account, { safeAddress });
 }
 
 // Change trust state with users
@@ -132,16 +132,16 @@ activities.forEach(activity => {
 });
 
 // Get current balance of all owned Circles Tokens
-const tokenAddress = core.ubi.getTokenAddress(account, {
+const tokenAddress = core.token.getAddress(account, {
   safeAddress,
 });
 
-const balance = await core.ubi.getBalance(account, {
+const balance = await core.token.getBalance(account, {
   safeAddress,
 });
 
 // Transfer Circles to users (directly or transitively)
-await core.ubi.transfer(account, {
+await core.token.transfer(account, {
   from: safeAddress,
   to: users[0].address,
   value: 350,

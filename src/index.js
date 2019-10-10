@@ -3,8 +3,8 @@ import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
 import createSafeModule from '~/safe';
+import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
-import createUbiModule from '~/ubi';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
@@ -64,8 +64,8 @@ export default class CirclesCore {
     /** @type {Object} - safe module */
     this.activity = createActivityModule(web3, this.contracts, this.utils);
     this.safe = createSafeModule(web3, this.contracts, this.utils);
+    this.token = createTokenModule(web3, this.contracts, this.utils);
     this.trust = createTrustModule(web3, this.contracts, this.utils);
-    this.ubi = createUbiModule(web3, this.contracts, this.utils);
     this.user = createUserModule(web3, this.utils);
   }
 }
