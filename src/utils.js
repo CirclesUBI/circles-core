@@ -90,6 +90,29 @@ async function requestRelayer(endpoint, userOptions) {
   });
 }
 
+async function requestGraph(endpoint, subgraphName, userOptions) {
+  const options = checkOptions(userOptions, {
+    query: {
+      type: 'string',
+    },
+    variables: {
+      type: 'object',
+      default: {},
+    },
+  });
+
+  const { query, variables } = options;
+
+  return request(endpoint, {
+    path: ['subgraphs', 'name', subgraphName],
+    method: 'POST',
+    data: {
+      query,
+      variables,
+    },
+  });
+}
+
 async function estimateTransactionCosts(
   endpoint,
   {
@@ -126,15 +149,20 @@ async function estimateTransactionCosts(
  * @return {Object} - utils module instance
  */
 export default function createUtilsModule(web3, contracts, globalOptions) {
-  const { relayServiceEndpoint, usernameServiceEndpoint } = globalOptions;
+  const {
+    graphNodeEndpoint,
+    relayServiceEndpoint,
+    subgraphName,
+    usernameServiceEndpoint,
+  } = globalOptions;
+
   const { hub } = contracts;
 
   return {
     /**
      * Send an API request to the Gnosis Relayer.
      *
-     * @param {string} relayServiceEndpoint - relayer endpoint URL
-     * @param {Object} userOptions - global core options
+     * @param {Object} userOptions - request options
      * @param {string[]} userOptions.path - API path as array
      * @param {number} userOptions.version - API version 1 or 2
      * @param {string} userOptions.method - API request method (GET, POST)
@@ -145,9 +173,21 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     },
 
     /**
+     * Query the Graph Node with GraphQL.
+     *
+     * @param {Object} userOptions - query options
+     * @param {string} userOptions.query - GraphQL query
+     * @param {Object} userOptions.variables - GraphQL variables
+     */
+    requestGraph: async userOptions => {
+      return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
+    },
+
+    /**
      * Send Transaction to Relayer and pay with Circles Token.
      *
      * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {object} userOptions.txData - encoded transaction data
      *
@@ -244,6 +284,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * The gas costs will be estimated by the relayer before.
      *
      * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {string} userOptions.to - forwarded address (from is the relayer)
      * @param {object} userOptions.txData - encoded transaction data
