@@ -24,6 +24,8 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - owner of the Token
      * @param {string} userOptions.tokenName - Optional token name
+     *
+     * @return {string} - transaction hash
      */
     signup: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -116,6 +118,8 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.from - sender address
      * @param {string} userOptions.to - receiver address
      * @param {BN} userOptions.value - value
+     *
+     * @return {string} - transaction hash
      */
     transfer: async (account, userOptions) => {
       checkAccount(web3, account);

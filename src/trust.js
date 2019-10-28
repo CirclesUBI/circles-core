@@ -47,6 +47,8 @@ export default function createTrustModule(web3, contracts, utils) {
      * @param {string} userOptions.from - trust giver
      * @param {string} userOptions.to - trust receiver
      * @param {number} userOptions.limit - trust limit for transitive transactions
+     *
+     * @return {string} - transaction hash
      */
     addConnection: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -83,6 +85,8 @@ export default function createTrustModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {string} userOptions.from - trust giver
      * @param {string} userOptions.to - trust receiver
+     *
+     * @return {string} - transaction hash
      */
     removeConnection: async (account, userOptions) => {
       checkAccount(web3, account);

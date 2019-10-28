@@ -23,9 +23,11 @@ describe('Token', () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 
-    await core.token.signup(account, {
+    const response = await core.token.signup(account, {
       safeAddress,
     });
+
+    expect(web3.utils.isHexStrict(response)).toBe(true);
 
     await core.token.signup(otherAccount, {
       safeAddress: otherSafeAddress,
@@ -57,11 +59,13 @@ describe('Token', () => {
     it('should send Circles to someone', async () => {
       const value = web3.utils.toBN('20');
 
-      await core.token.transfer(account, {
+      const response = await core.token.transfer(account, {
         from: safeAddress,
         to: otherSafeAddress,
         value,
       });
+
+      expect(web3.utils.isHexStrict(response)).toBe(true);
 
       const accountBalance = await core.token.getBalance(account, {
         safeAddress,

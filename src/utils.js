@@ -150,6 +150,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {Object} account - web3 account instance
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {object} userOptions.txData - encoded transaction data
+     *
+     * @return {string} - transaction hash
      */
     executeTokenSafeTx: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -216,7 +218,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
-      return requestRelayer(relayServiceEndpoint, {
+      const response = await requestRelayer(relayServiceEndpoint, {
         path: ['safes', safeAddress, 'transactions'],
         method: 'POST',
         version: 1,
@@ -233,6 +235,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           gasToken,
         },
       });
+
+      return response.txHash;
     },
 
     /**
@@ -244,6 +248,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {string} userOptions.to - forwarded address (from is the relayer)
      * @param {object} userOptions.txData - encoded transaction data
      * @param {number} userOptions.value - value in Wei
+     *
+     * @return {string} - transaction hash
      */
     executeSafeTx: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -307,7 +313,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
-      return requestRelayer(relayServiceEndpoint, {
+      const response = await requestRelayer(relayServiceEndpoint, {
         path: ['safes', safeAddress, 'transactions'],
         method: 'POST',
         version: 1,
@@ -324,6 +330,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           gasToken,
         },
       });
+
+      return response.txHash;
     },
     requestAPI: async userOptions => {
       const options = checkOptions(userOptions, {

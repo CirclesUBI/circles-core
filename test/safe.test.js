@@ -58,10 +58,12 @@ describe('Safe', () => {
     });
 
     it('should add another owner to the Safe', async () => {
-      await core.safe.addOwner(account, {
+      const response = await core.safe.addOwner(account, {
         safeAddress,
         ownerAddress: otherAccount.address,
       });
+
+      expect(web3.utils.isHexStrict(response)).toBe(true);
 
       const owners = await core.safe.getOwners(account, {
         safeAddress,
@@ -73,10 +75,12 @@ describe('Safe', () => {
     });
 
     it('should remove an owner from the Safe', async () => {
-      await core.safe.removeOwner(account, {
+      const response = await core.safe.removeOwner(account, {
         safeAddress,
         ownerAddress: otherAccount.address,
       });
+
+      expect(web3.utils.isHexStrict(response)).toBe(true);
 
       const owners = await core.safe.getOwners(account, {
         safeAddress,

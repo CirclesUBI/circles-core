@@ -144,6 +144,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - address of the Gnosis Safe
      * @param {number} userOptions.ownerAddress - owner address to be added
+     *
+     * @return {string} - transaction hash
      */
     addOwner: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -180,6 +182,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - address of the Gnosis Safe
      * @param {number} userOptions.ownerAddress - owner address to be removed
+     *
+     * @return {string} - transaction hash
      */
     removeOwner: async (account, userOptions) => {
       checkAccount(web3, account);
