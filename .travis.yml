@@ -36,7 +36,8 @@ before_install:
   # container setup via docker-compose and migrate contracts
   - make build
   - make up
-  - make migrate
+  - make contracts
+  - make subgraph
 
   # copy core configs
   - cd $TRAVIS_BUILD_DIR
