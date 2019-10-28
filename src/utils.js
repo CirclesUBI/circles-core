@@ -103,7 +103,7 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
 
   const { query, variables } = options;
 
-  return request(endpoint, {
+  const response = await request(endpoint, {
     path: ['subgraphs', 'name', subgraphName],
     method: 'POST',
     data: {
@@ -111,6 +111,8 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
       variables,
     },
   });
+
+  return response.data;
 }
 
 async function estimateTransactionCosts(
