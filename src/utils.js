@@ -21,6 +21,10 @@ async function request(endpoint, userOptions) {
       type: 'object',
       default: {},
     },
+    isTrailingSlash: {
+      type: 'boolean',
+      default: true,
+    },
   });
 
   const { path, method, data } = options;
@@ -39,7 +43,9 @@ async function request(endpoint, userOptions) {
     request.body = JSON.stringify(data);
   }
 
-  const url = `${endpoint}/${path.join('/')}/${paramsStr}`;
+  const slash = options.isTrailingSlash ? '/' : '';
+
+  const url = `${endpoint}/${path.join('/')}${slash}${paramsStr}`;
 
   try {
     return fetch(url, request).then(response => {
@@ -101,7 +107,10 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
     },
   });
 
-  const { query, variables } = options;
+  const query = options.query.replace(/\s\s+/g, ' ');
+
+  const variables =
+    Object.keys(options.variables).length === 0 ? undefined : options.variables;
 
   const response = await request(endpoint, {
     path: ['subgraphs', 'name', subgraphName],
@@ -110,6 +119,7 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
       query,
       variables,
     },
+    isTrailingSlash: false,
   });
 
   return response.data;
