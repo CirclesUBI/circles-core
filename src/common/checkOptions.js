@@ -1,6 +1,9 @@
 const DEFAULT_TYPE = 'string';
 
 const validators = {
+  boolean: value => {
+    return typeof value === 'boolean';
+  },
   number: value => {
     return typeof value === 'number';
   },
@@ -42,7 +45,7 @@ export default function checkOptions(options, fields) {
       throw new Error(`Field "${key}" has invalid default type`);
     }
 
-    if (!(key in options) || !options[key]) {
+    if (!(key in options) || typeof options[key] === 'undefined') {
       if (defaultValue === null) {
         throw new Error(`"${key}" is missing in options`);
       }

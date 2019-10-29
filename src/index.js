@@ -20,6 +20,7 @@ export default class CirclesCore {
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
+   * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.usernameServiceEndpoint - URL of the username resolver service
    * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    */
@@ -44,10 +45,16 @@ export default class CirclesCore {
       safeMasterAddress: {
         type: web3.utils.checkAddressChecksum,
       },
+      graphNodeEndpoint: {
+        type: 'string',
+      },
       usernameServiceEndpoint: {
         type: 'string',
       },
       relayServiceEndpoint: {
+        type: 'string',
+      },
+      subgraphName: {
         type: 'string',
       },
     });

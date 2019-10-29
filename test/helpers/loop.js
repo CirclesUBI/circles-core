@@ -1,10 +1,10 @@
 const LOOP_INTERVAL = 1000;
 
-function defaultCondition(code) {
+export function isContractDeployed(code) {
   return code !== '0x';
 }
 
-export default async function loop(request, condition = defaultCondition) {
+export default async function loop(request, condition = isContractDeployed) {
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
       try {
