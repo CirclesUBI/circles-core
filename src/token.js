@@ -5,6 +5,7 @@ import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
+const DEFAULT_TRUST_NETWORK_HOPS = 4;
 
 /**
  * Find at least one (or more) paths through a trust graph
@@ -287,26 +288,89 @@ export default function createTokenModule(web3, contracts, utils) {
         value: {
           type: web3.utils.isBN,
         },
+        networkHops: {
+          type: 'number',
+          default: DEFAULT_TRUST_NETWORK_HOPS,
+        },
       });
 
-      // @TODO: Call Transaction Graph Service before for transitive transfers
+      // Load trust network
+      const loadTrustNetwork = async (
+        safeAddress,
+        hopIndex = 1,
+        network = [],
+      ) => {
+        if (hopIndex > options.networkHops) {
+          return network;
+        }
 
-      // @TODO: Remove as soon as we use the 'transferThrough' Hub method:
-      const tokenAddress = await hub.methods.userToToken(options.from).call();
-      const token = getTokenContract(web3, tokenAddress);
+        const response = await utils.requestGraph({
+          query: `{
+            safe(id: ${safeAddress}) {
+              trusts { limit from { id } to { id } }
+              isTrustedBy { limit from { id } to { id } }
+            }
+          }`,
 
-      // @TODO: Use 'transferThrough' on Hub instead:
-      // const addresses = [options.to];
-      // const txData = await hub.methods
-      //   .transferThrough(addresses, options.value)
-      //   .encodeABI();
-      const txData = await token.methods
-        .transfer(options.to, options.value.toString())
+          // @TODO
+          // balances {
+          //   amount
+          //   token
+          //   ownedBySafe {
+          //     id
+          //     trusts { limit from { id } to { id } }
+          //     isTrustedBy { limit from { id } to { id } }
+          //   }
+          // }
+        });
+
+        if (response.safe === null) {
+          throw new Error(`Safe not found at address ${options.safeAddress}`);
+        }
+
+        // @TODO
+        // const innerNetwork = loadTrustNetwork(address, hopIndex + 1, network);
+        // network.concat(innerNetwork);
+
+        return network;
+      };
+
+      const network = await loadTrustNetwork(options.from);
+
+      // Calculate transactions for transitive payment
+      const path = findTransitiveTransactionPath(web3, {
+        ...options,
+        network,
+      }).reduce(
+        (acc, transaction) => {
+          // Convert to Smart Contract method format
+          acc.tokens.push(transaction.token);
+          acc.sources.push(transaction.from);
+          acc.destinations.push(transaction.to);
+          acc.values.push(transaction.value);
+
+          return acc;
+        },
+        {
+          tokens: [],
+          sources: [],
+          destinations: [],
+          values: [],
+        },
+      );
+
+      const txData = await hub.methods
+        .transferThrough(
+          path.tokens,
+          path.sources,
+          path.destinations,
+          path.values,
+        )
         .encodeABI();
 
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
-        to: tokenAddress,
+        to: hub.options.address,
         txData,
       });
     },
