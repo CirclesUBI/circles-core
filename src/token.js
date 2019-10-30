@@ -18,7 +18,7 @@ const DEFAULT_TOKEN_NAME = 'Circles';
  * @param {Object} userOptions - search arguments
  * @param {string} userOptions.from - sender Safe address
  * @param {string} userOptions.to - receiver Safe address
- * @param {BN} userOptions.amount - value of Circles tokens
+ * @param {BN} userOptions.value - value of Circles tokens
  * @param {Object[]} userOptions.network - trust network connections
  *
  * @return {Object[]} - transaction steps
@@ -31,7 +31,7 @@ export function findTransitiveTransactionPath(web3, userOptions) {
     to: {
       type: web3.utils.checkAddressChecksum,
     },
-    amount: {
+    value: {
       type: web3.utils.isBN,
     },
     network: {
@@ -87,7 +87,7 @@ export function findTransitiveTransactionPath(web3, userOptions) {
     indexReceiver,
   );
 
-  if (options.amount.gt(new web3.utils.BN(maximumFlow.value))) {
+  if (options.value.gt(new web3.utils.BN(maximumFlow.value))) {
     throw new Error('Could not find possible transaction path');
   }
 
@@ -137,12 +137,12 @@ export function findTransitiveTransactionPath(web3, userOptions) {
       path.concat(innerPath);
 
       if (!adjNode.isVisited && flowNode > 0) {
-        const amount = new web3.utils.BN(flowNode);
+        const value = new web3.utils.BN(flowNode);
 
         path.push({
           from: nodes[adjNode.v],
           to: nodes[adjNode.w],
-          amount,
+          value,
         });
       }
 
@@ -154,7 +154,7 @@ export function findTransitiveTransactionPath(web3, userOptions) {
     return path;
   };
 
-  return traversePath(indexReceiver, options.amount.toNumber());
+  return traversePath(indexReceiver, options.value.toNumber());
 }
 
 /**

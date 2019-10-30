@@ -126,42 +126,42 @@ describe('findTransitiveTransactionPath', () => {
   });
 
   it('should fail when max-flow is too small', () => {
-    const amount = new web3.utils.BN(100);
+    const value = new web3.utils.BN(100);
 
     expect(() => {
       findTransitiveTransactionPath(web3, {
         from: nodes[INDEX_SENDER],
         to: nodes[INDEX_RECEIVER],
-        amount,
+        value,
         network,
       });
     }).toThrow();
   });
 
-  it('should successfully transfer an amount transitively', () => {
+  it('should successfully transfer an value transitively', () => {
     for (let i = 0; i < 10; i += 1) {
-      const amount = 1 + Math.round(Math.random() * 27);
+      const value = 1 + Math.round(Math.random() * 27);
 
       const path = findTransitiveTransactionPath(web3, {
         from: nodes[INDEX_SENDER],
         to: nodes[INDEX_RECEIVER],
-        amount: new web3.utils.BN(amount),
+        value: new web3.utils.BN(value),
         network,
       });
 
       // Simulate transaction
       const balances = new Array(NUM_NODES).fill(0);
-      balances[INDEX_SENDER] = amount;
+      balances[INDEX_SENDER] = value;
 
       path.forEach(transaction => {
         const indexFrom = nodes.indexOf(transaction.from);
         const indexTo = nodes.indexOf(transaction.to);
 
-        balances[indexFrom] -= transaction.amount.toNumber();
-        balances[indexTo] += transaction.amount.toNumber();
+        balances[indexFrom] -= transaction.value.toNumber();
+        balances[indexTo] += transaction.value.toNumber();
       });
 
-      expect(balances[INDEX_RECEIVER]).toBe(amount);
+      expect(balances[INDEX_RECEIVER]).toBe(value);
     }
   });
 });
