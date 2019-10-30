@@ -56,7 +56,8 @@
   "dependencies": {
     "@babel/runtime": "^7.6.3",
     "@gnosis.pm/safe-contracts": "^1.0.0",
-    "circles-contracts": "^1.0.5",
-    "isomorphic-fetch": "^2.2.1"
+    "circles-contracts": "^1.0.7",
+    "isomorphic-fetch": "^2.2.1",
+    "js-graph-algorithms": "^1.0.18"
   }
 }
