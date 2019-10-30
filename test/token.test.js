@@ -3,6 +3,8 @@ import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
+import { findTransitiveTransactionPath } from '~/token';
+
 // This was set during Hub deployment:
 const INITIAL_PAYOUT = web3.utils.toBN(web3.utils.toWei('100', 'ether'));
 
@@ -88,5 +90,78 @@ describe('Token', () => {
 
       expect(isCorrectBalance).toBe(true);
     });
+  });
+});
+
+describe('findTransitiveTransactionPath', () => {
+  const NUM_NODES = 8;
+  const INDEX_SENDER = 0;
+  const INDEX_RECEIVER = 7;
+
+  let nodes;
+  let network;
+
+  beforeEach(() => {
+    nodes = new Array(NUM_NODES).fill('').map(() => {
+      return web3.utils.toChecksumAddress(web3.utils.randomHex(20));
+    });
+
+    network = [
+      { from: nodes[0], to: nodes[1], limit: 10 },
+      { from: nodes[0], to: nodes[2], limit: 5 },
+      { from: nodes[0], to: nodes[3], limit: 15 },
+      { from: nodes[1], to: nodes[4], limit: 9 },
+      { from: nodes[1], to: nodes[5], limit: 15 },
+      { from: nodes[1], to: nodes[2], limit: 4 },
+      { from: nodes[2], to: nodes[5], limit: 8 },
+      { from: nodes[2], to: nodes[3], limit: 4 },
+      { from: nodes[3], to: nodes[6], limit: 16 },
+      { from: nodes[4], to: nodes[5], limit: 15 },
+      { from: nodes[4], to: nodes[7], limit: 10 },
+      { from: nodes[5], to: nodes[7], limit: 10 },
+      { from: nodes[5], to: nodes[6], limit: 15 },
+      { from: nodes[6], to: nodes[2], limit: 6 },
+      { from: nodes[6], to: nodes[7], limit: 10 },
+    ];
+  });
+
+  it('should fail when max-flow is too small', () => {
+    const amount = new web3.utils.BN(100);
+
+    expect(() => {
+      findTransitiveTransactionPath(web3, {
+        from: nodes[INDEX_SENDER],
+        to: nodes[INDEX_RECEIVER],
+        amount,
+        network,
+      });
+    }).toThrow();
+  });
+
+  it('should successfully transfer an amount transitively', () => {
+    for (let i = 0; i < 10; i += 1) {
+      const amount = 1 + Math.round(Math.random() * 27);
+
+      const path = findTransitiveTransactionPath(web3, {
+        from: nodes[INDEX_SENDER],
+        to: nodes[INDEX_RECEIVER],
+        amount: new web3.utils.BN(amount),
+        network,
+      });
+
+      // Simulate transaction
+      const balances = new Array(NUM_NODES).fill(0);
+      balances[INDEX_SENDER] = amount;
+
+      path.forEach(transaction => {
+        const indexFrom = nodes.indexOf(transaction.from);
+        const indexTo = nodes.indexOf(transaction.to);
+
+        balances[indexFrom] -= transaction.amount.toNumber();
+        balances[indexTo] += transaction.amount.toNumber();
+      });
+
+      expect(balances[INDEX_RECEIVER]).toBe(amount);
+    }
   });
 });
