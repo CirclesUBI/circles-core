@@ -3,88 +3,133 @@ import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
 import web3 from './helpers/web3';
 
-import { findTransitiveTransactionPath } from '~/token';
+import createUtilsModule from '~/utils';
+import { findTransitiveTransactionPath, getTrustNetwork } from '~/token';
 
-// This was set during Hub deployment:
-const INITIAL_PAYOUT = web3.utils.toBN(web3.utils.toWei('100', 'ether'));
-
-let account;
-let otherAccount;
 let core;
-let safeAddress;
-let otherSafeAddress;
+let utils;
+
+const accounts = [];
+const safeAddresses = [];
+const tokenAddresses = [];
 
 beforeAll(async () => {
-  account = getAccount();
-  otherAccount = getAccount(5);
+  new Array(5).fill({}).forEach((item, index) => {
+    accounts.push(getAccount(index));
+  });
+
   core = createCore();
+  utils = createUtilsModule(web3, core.contracts, core.options);
 });
 
+async function deploy(account) {
+  const safeAddress = await deploySafe(core, account);
+
+  await core.token.signup(account, {
+    safeAddress,
+  });
+
+  const tokenAddress = await core.token.getAddress(account, {
+    safeAddress,
+  });
+
+  safeAddresses.push(safeAddress);
+  tokenAddresses.push(tokenAddress);
+}
+
+async function trust([indexFrom, indexTo, limit]) {
+  await core.trust.addConnection(accounts[indexFrom], {
+    from: safeAddresses[indexFrom],
+    to: safeAddresses[indexTo],
+    limit,
+  });
+}
+
 describe('Token', () => {
-  let tokenAddress;
-
   beforeAll(async () => {
-    safeAddress = await deploySafe(core, account);
-    otherSafeAddress = await deploySafe(core, otherAccount);
+    // Deploy Safe and Token for each test account
+    for (const account of accounts) {
+      await deploy(account);
+    }
 
-    const response = await core.token.signup(account, {
-      safeAddress,
-    });
+    // Create trust connections
+    const connections = [
+      [0, 1, 25],
+      [1, 0, 50],
+      [1, 2, 10],
+      [2, 1, 20],
+      [2, 3, 5],
+      [3, 2, 15],
+      [3, 0, 25],
+      [3, 4, 25],
+      [4, 3, 15],
+      [4, 1, 10],
+    ];
 
-    expect(web3.utils.isHexStrict(response)).toBe(true);
-
-    await core.token.signup(otherAccount, {
-      safeAddress: otherSafeAddress,
-    });
-
-    tokenAddress = await core.token.getAddress(account, {
-      safeAddress,
-    });
+    for (const connection of connections) {
+      await trust(connection);
+    }
   });
 
-  it('should be a valid contract address', async () => {
-    expect(web3.eth.getCode(tokenAddress)).not.toBe('0x');
-  });
-
-  it('should get the initial payout balance', async () => {
-    const balance = await core.token.getBalance(account, {
-      safeAddress,
-      tokenAddress,
+  it('should get the current balance', async () => {
+    const balance = await core.token.getBalance(accounts[2], {
+      safeAddress: safeAddresses[2],
+      tokenAddress: tokenAddresses[2],
     });
 
-    expect(web3.utils.toBN(balance)).toMatchObject(INITIAL_PAYOUT);
+    expect(web3.utils.isBN(balance)).toBe(true);
   });
 
-  it('should send Circles to someone', async () => {
-    const value = web3.utils.toBN('20');
+  // @TODO Add negative tests
+  it('should send Circles to someone transitively', async () => {
+    const value = web3.utils.toBN('5');
+    const indexFrom = 0;
+    const indexTo = 4;
 
-    const response = await core.token.transfer(account, {
-      from: safeAddress,
-      to: otherSafeAddress,
+    const response = await core.token.transfer(accounts[indexFrom], {
+      from: safeAddresses[indexFrom],
+      to: safeAddresses[indexTo],
       value,
     });
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const accountBalance = await core.token.getBalance(account, {
-      safeAddress,
-      tokenAddress,
+    const accountBalance = await core.token.getBalance(accounts[indexFrom], {
+      safeAddress: safeAddresses[indexFrom],
+      tokenAddress: tokenAddresses[indexFrom],
     });
 
-    const otherAccountBalance = await core.token.getBalance(account, {
-      safeAddress: otherSafeAddress,
-      tokenAddress,
+    const otherAccountBalance = await core.token.getBalance(accounts[indexTo], {
+      safeAddress: safeAddresses[indexTo],
+      tokenAddress: tokenAddresses[indexTo],
     });
 
-    expect(web3.utils.toBN(otherAccountBalance)).toMatchObject(value);
+    expect(otherAccountBalance).toMatchObject(value);
 
-    const balance = web3.utils.toBN(accountBalance).toString();
+    const balance = accountBalance.toString();
 
     // Sometimes we receive different numbers from the relayer ..
+    // @TODO Correct these numbers:
     const isCorrectBalance =
       balance === '99999999999999905259' || balance === '99999999999999905387';
 
     expect(isCorrectBalance).toBe(true);
+  });
+
+  describe('getNetwork', () => {
+    it('should return the correct trust network', async () => {
+      const network = await getTrustNetwork(web3, utils, {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        networkHops: 3,
+      });
+
+      const connection = network.find(({ from, to }) => {
+        return from === safeAddresses[4] && to === safeAddresses[1];
+      });
+
+      expect(connection.limit).toBe(10);
+    });
   });
 
   describe('findTransitiveTransactionPath', () => {

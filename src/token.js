@@ -8,6 +8,193 @@ const DEFAULT_TOKEN_NAME = 'Circles';
 const DEFAULT_TRUST_NETWORK_HOPS = 4;
 
 /**
+ * Gather data from the graph node to get all information we need
+ * for transitive transactions.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - arguments
+ * @param {string} userOptions.from - sender Safe address
+ * @param {string} userOptions.to - receiver Safe address
+ * @param {number} userOptions.networkHops - max number of network hops
+ *
+ * @return {Object[]} - traversable trust network
+ */
+export async function getNetwork(web3, utils, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    networkHops: {
+      type: 'number',
+      default: DEFAULT_TRUST_NETWORK_HOPS,
+    },
+  });
+
+  // Methods to parse the data we get to break all down into
+  // given safe addresses, the tokens they own, the trust connections
+  // they have between each other and finally a list of all tokens
+  const connections = [];
+  const safes = [];
+  const tokens = [];
+
+  const findToken = tokenAddress => {
+    return safes.find(node => node.address === tokenAddress);
+  };
+
+  const findSafe = safeAddress => {
+    return safes.find(node => node.address === safeAddress);
+  };
+
+  const findConnection = (from, to) => {
+    return connections.find(edge => edge.from === from && edge.to === to);
+  };
+
+  const addConnection = (from, to, limit) => {
+    connections.push({
+      from,
+      limit,
+      to,
+    });
+  };
+
+  const addConnections = connections => {
+    connections.forEach(connection => {
+      const from = web3.utils.toChecksumAddress(connection.from.id);
+      const to = web3.utils.toChecksumAddress(connection.to.id);
+      const limit = parseInt(connection.limit, 10);
+
+      if (!findConnection(from, to)) {
+        addConnection(from, to, limit);
+      }
+    });
+  };
+
+  const addToken = (address, safeAddress) => {
+    tokens.push({
+      address,
+      safeAddress,
+    });
+  };
+
+  const addSafe = (safeAddress, balances) => {
+    const safe = balances.reduce(
+      (acc, item) => {
+        const tokenAddress = web3.utils.toChecksumAddress(item.token);
+        const tokenSafeAddress = web3.utils.toChecksumAddress(
+          item.ownedBySafe.id,
+        );
+
+        acc.tokens.push({
+          address: tokenAddress,
+          balance: item.balance,
+        });
+
+        if (!findToken(tokenAddress)) {
+          addToken(tokenAddress, tokenSafeAddress);
+        }
+
+        addConnections(item.trusts);
+        addConnections(item.isTrustedBy);
+
+        return acc;
+      },
+      {
+        address: web3.utils.toChecksumAddress(safeAddress),
+        tokens: [],
+      },
+    );
+
+    safes.push(safe);
+  };
+
+  // Get trust network information from the graph node
+  const requestSafe = async safeAddress => {
+    const response = await utils.requestGraph({
+      query: `{
+        safe(id: "${safeAddress.toLowerCase()}") {
+          trusts { limit from { id } to { id } }
+          isTrustedBy { limit from { id } to { id } }
+          balances {
+            amount
+            token
+            ownedBySafe {
+              id
+              trusts { limit from { id } to { id } }
+              isTrustedBy { limit from { id } to { id } }
+            }
+          }
+        }
+      }`,
+    });
+
+    if (!response.safe) {
+      throw new Error(`Could not find Safe with address ${safeAddress}`);
+    }
+
+    // Parse all received data when we haven't done this yet
+    if (!findSafe(safeAddress)) {
+      addSafe(safeAddress, response.safe.balances);
+
+      addConnections(response.safe.trusts);
+      addConnections(response.safe.isTrustedBy);
+    }
+  };
+
+  // Go through network until we found the
+  // receiver node or reached the limit of hops
+  let isReceiverFound = false;
+
+  const requestedSafeAddresses = {};
+
+  const hop = async (queue = [], currentHopIndex = 0) => {
+    queue.forEach(safeAddress => {
+      requestedSafeAddresses[safeAddress] = true;
+    });
+
+    await Promise.all(
+      queue.map(safeAddress => {
+        if (safeAddress === options.to) {
+          isReceiverFound = true;
+        }
+
+        return requestSafe(safeAddress);
+      }),
+    );
+
+    if (!isReceiverFound && currentHopIndex < options.networkHops) {
+      const newQueue = connections.reduce((acc, connection) => {
+        if (!requestedSafeAddresses[connection.from]) {
+          acc.push(connection.from);
+          requestedSafeAddresses[connection.from] = true;
+        }
+
+        if (!requestedSafeAddresses[connection.to]) {
+          acc.push(connection.to);
+          requestedSafeAddresses[connection.to] = true;
+        }
+
+        return acc;
+      }, []);
+
+      return await hop(newQueue, currentHopIndex + 1);
+    }
+  };
+
+  await hop([options.from]);
+
+  if (!isReceiverFound) {
+    throw new Error('Receiver is not in reach within senders trust network');
+  }
+
+  // @TODO Add more data about token balance & addresses
+  return connections;
+}
+
+/**
  * Find at least one (or more) paths through a trust graph
  * from someone to someone else to transitively
  * send an amount of Circles.
@@ -234,7 +421,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.safeAddress - address of Token owner
      * @param {string} userOptions.tokenAddress - address of particular Token
      *
-     * @return {string} - Current balance
+     * @return {BN} - Current balance
      */
     getBalance: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -261,7 +448,9 @@ export default function createTokenModule(web3, contracts, utils) {
 
       const token = getTokenContract(web3, options.tokenAddress);
 
-      return await token.methods.balanceOf(options.safeAddress).call();
+      const balance = await token.methods.balanceOf(options.safeAddress).call();
+
+      return new web3.utils.BN(balance);
     },
 
     /**
@@ -294,54 +483,17 @@ export default function createTokenModule(web3, contracts, utils) {
         },
       });
 
-      // Load trust network
-      const loadTrustNetwork = async (
-        safeAddress,
-        hopIndex = 1,
-        network = [],
-      ) => {
-        if (hopIndex > options.networkHops) {
-          return network;
-        }
-
-        const response = await utils.requestGraph({
-          query: `{
-            safe(id: ${safeAddress}) {
-              trusts { limit from { id } to { id } }
-              isTrustedBy { limit from { id } to { id } }
-            }
-          }`,
-
-          // @TODO
-          // balances {
-          //   amount
-          //   token
-          //   ownedBySafe {
-          //     id
-          //     trusts { limit from { id } to { id } }
-          //     isTrustedBy { limit from { id } to { id } }
-          //   }
-          // }
-        });
-
-        if (response.safe === null) {
-          throw new Error(`Safe not found at address ${options.safeAddress}`);
-        }
-
-        // @TODO
-        // const innerNetwork = loadTrustNetwork(address, hopIndex + 1, network);
-        // network.concat(innerNetwork);
-
-        return network;
-      };
-
-      const network = await loadTrustNetwork(options.from);
+      // Get trust network
+      const network = await getNetwork(web3, utils, options);
 
       // Calculate transactions for transitive payment
       const path = findTransitiveTransactionPath(web3, {
         ...options,
         network,
-      }).reduce(
+      });
+
+      // Convert path to contract argument format
+      const transfer = path.reduce(
         (acc, transaction) => {
           // Convert to Smart Contract method format
           acc.tokens.push(transaction.token);
@@ -361,10 +513,10 @@ export default function createTokenModule(web3, contracts, utils) {
 
       const txData = await hub.methods
         .transferThrough(
-          path.tokens,
-          path.sources,
-          path.destinations,
-          path.values,
+          transfer.tokens,
+          transfer.sources,
+          transfer.destinations,
+          transfer.values,
         )
         .encodeABI();
 
