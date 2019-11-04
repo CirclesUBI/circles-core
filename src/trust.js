@@ -2,6 +2,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
 const DEFAULT_TRUST_LIMIT = 20;
+const NO_TRUST_LIMIT = 0;
 
 /**
  * Trust submodule to add and remove trust connections.
@@ -28,15 +29,76 @@ export default function createTrustModule(web3, contracts, utils) {
     getNetwork: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      // @TODO: Implement this when Caching Service is ready.
-      throw new Error('Not implemented');
+      const safeAddress = options.safeAddress.toLowerCase();
+
+      const response = await utils.requestGraph({
+        query: `{
+          safe(id: "${safeAddress}") {
+            trusts { limit to { id } }
+            isTrustedBy { limit from { id } }
+          }
+        }`,
+      });
+
+      if (response.safe === null) {
+        throw new Error(`Safe not found at address ${options.safeAddress}`);
+      }
+
+      return []
+        .concat(response.safe.isTrustedBy)
+        .concat(response.safe.trusts)
+        .map(({ from, to, limit }) => {
+          const limitFrom = (from && parseInt(limit)) || NO_TRUST_LIMIT;
+          const limitTo = (to && parseInt(limit)) || NO_TRUST_LIMIT;
+
+          const isTrustingMe = limitFrom > NO_TRUST_LIMIT;
+          const isTrustedByMe = limitTo > NO_TRUST_LIMIT;
+
+          const safeAddress = to ? to.id : from.id;
+
+          return {
+            safeAddress: web3.utils.toChecksumAddress(safeAddress),
+            isTrustedByMe,
+            isTrustingMe,
+            limitFrom,
+            limitTo,
+          };
+        })
+        .reduce((acc, connection) => {
+          // Find duplicates ...
+          const index = acc.findIndex(item => {
+            return item.safeAddress === connection.safeAddress;
+          });
+
+          // ... and merge them
+          if (index > -1) {
+            const {
+              isTrustedByMe,
+              isTrustingMe,
+              limitFrom,
+              limitTo,
+              safeAddress,
+            } = acc[index];
+
+            acc[index] = {
+              safeAddress,
+              isTrustedByMe: connection.isTrustedByMe || isTrustedByMe,
+              isTrustingMe: connection.isTrustingMe || isTrustingMe,
+              limitFrom: connection.limitFrom + limitFrom,
+              limitTo: connection.limitTo + limitTo,
+            };
+          } else {
+            acc.push(connection);
+          }
+
+          return acc;
+        }, []);
     },
 
     /**
@@ -100,7 +162,9 @@ export default function createTrustModule(web3, contracts, utils) {
         },
       });
 
-      const txData = await hub.methods.trust(options.to, 0).encodeABI();
+      const txData = await hub.methods
+        .trust(options.to, NO_TRUST_LIMIT)
+        .encodeABI();
 
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
