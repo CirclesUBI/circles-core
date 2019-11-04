@@ -1,7 +1,7 @@
 import createCore from './helpers/createCore';
 import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
-import loop from './helpers/loop';
+import loop, { getTrustConnection } from './helpers/loop';
 import web3 from './helpers/web3';
 
 let account;
@@ -9,18 +9,6 @@ let otherAccount;
 let core;
 let safeAddress;
 let otherSafeAddress;
-
-async function getTrustConnection(
-  checkAccount,
-  checkSafeAddress,
-  checkOtherSafeAddress,
-) {
-  const network = await core.trust.getNetwork(checkAccount, {
-    safeAddress: checkSafeAddress,
-  });
-
-  return network.find(item => item.safeAddress === checkOtherSafeAddress);
-}
 
 beforeAll(async () => {
   account = getAccount();
@@ -53,7 +41,7 @@ describe('Trust', () => {
 
     const connection = await loop(
       () => {
-        return getTrustConnection(account, safeAddress, otherSafeAddress);
+        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
       },
       connection => connection,
     );
@@ -64,7 +52,12 @@ describe('Trust', () => {
 
     const otherConnection = await loop(
       () => {
-        return getTrustConnection(otherAccount, otherSafeAddress, safeAddress);
+        return getTrustConnection(
+          core,
+          otherAccount,
+          otherSafeAddress,
+          safeAddress,
+        );
       },
       connection => connection,
     );
@@ -82,17 +75,16 @@ describe('Trust', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    // @TODO: This does not work yet since the Subgraph needs to update the limit instead of adding a new entry every time
-    // const connection = await loop(
-    //   () => {
-    //     return getTrustConnection(account, safeAddress, otherSafeAddress);
-    //   },
-    //   connection => connection.limitTo === 0,
-    // );
+    const connection = await loop(
+      () => {
+        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
+      },
+      connection => connection.limitTo === 0,
+    );
 
-    // expect(connection.isTrustedByMe).toBe(false);
-    // expect(connection.isTrustingMe).toBe(false);
-    // expect(connection.limitFrom).toBe(0);
-    // expect(connection.limitTo).toBe(0);
+    expect(connection.isTrustedByMe).toBe(false);
+    expect(connection.isTrustingMe).toBe(false);
+    expect(connection.limitFrom).toBe(0);
+    expect(connection.limitTo).toBe(0);
   });
 });
