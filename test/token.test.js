@@ -1,10 +1,11 @@
 import createCore from './helpers/createCore';
 import deploySafe from './helpers/deploySafe';
 import getAccount from './helpers/getAccount';
+import loop, { getTrustConnection } from './helpers/loop';
 import web3 from './helpers/web3';
 
 import createUtilsModule from '~/utils';
-import { findTransitiveTransactionPath, getTrustNetwork } from '~/token';
+import { findTransitiveTransactionPath, getNetwork } from '~/token';
 
 let core;
 let utils;
@@ -14,7 +15,7 @@ const safeAddresses = [];
 const tokenAddresses = [];
 
 beforeAll(async () => {
-  new Array(5).fill({}).forEach((item, index) => {
+  new Array(6).fill({}).forEach((item, index) => {
     accounts.push(getAccount(index));
   });
 
@@ -22,7 +23,7 @@ beforeAll(async () => {
   utils = createUtilsModule(web3, core.contracts, core.options);
 });
 
-async function deploy(account) {
+async function deploySafeAndToken(account) {
   const safeAddress = await deploySafe(core, account);
 
   await core.token.signup(account, {
@@ -37,7 +38,7 @@ async function deploy(account) {
   tokenAddresses.push(tokenAddress);
 }
 
-async function trust([indexFrom, indexTo, limit]) {
+async function createTrustConnection([indexFrom, indexTo, limit]) {
   await core.trust.addConnection(accounts[indexFrom], {
     from: safeAddresses[indexFrom],
     to: safeAddresses[indexTo],
@@ -49,7 +50,7 @@ describe('Token', () => {
   beforeAll(async () => {
     // Deploy Safe and Token for each test account
     for (const account of accounts) {
-      await deploy(account);
+      await deploySafeAndToken(account);
     }
 
     // Create trust connections
@@ -67,20 +68,35 @@ describe('Token', () => {
     ];
 
     for (const connection of connections) {
-      await trust(connection);
+      await createTrustConnection(connection);
     }
+
+    // .. wait until the last trust connection was created ...
+    await loop(
+      () => {
+        return getTrustConnection(
+          core,
+          accounts[4],
+          safeAddresses[4],
+          safeAddresses[1],
+        );
+      },
+      connection => connection,
+    );
   });
 
   it('should get the current balance', async () => {
-    const balance = await core.token.getBalance(accounts[2], {
-      safeAddress: safeAddresses[2],
-      tokenAddress: tokenAddresses[2],
+    const balance = await core.token.getBalance(accounts[5], {
+      safeAddress: safeAddresses[5],
     });
 
-    expect(web3.utils.isBN(balance)).toBe(true);
+    // It should be equals the initial UBI payout
+    // which was set during Hub contract deployment:
+    expect(balance).toMatchObject(
+      new web3.utils.BN(web3.utils.toWei('100', 'ether')),
+    );
   });
 
-  // @TODO Add negative tests
   it('should send Circles to someone transitively', async () => {
     const value = web3.utils.toBN('5');
     const indexFrom = 0;
@@ -96,12 +112,10 @@ describe('Token', () => {
 
     const accountBalance = await core.token.getBalance(accounts[indexFrom], {
       safeAddress: safeAddresses[indexFrom],
-      tokenAddress: tokenAddresses[indexFrom],
     });
 
     const otherAccountBalance = await core.token.getBalance(accounts[indexTo], {
       safeAddress: safeAddresses[indexTo],
-      tokenAddress: tokenAddresses[indexTo],
     });
 
     expect(otherAccountBalance).toMatchObject(value);
@@ -116,9 +130,34 @@ describe('Token', () => {
     expect(isCorrectBalance).toBe(true);
   });
 
+  it('should fail sending Circles when there is no path', async () => {
+    // Max flow is smaller than the given transfer value.
+    const notEnoughFlow = core.token.transfer(accounts[0], {
+      from: safeAddresses[0],
+      to: safeAddresses[4],
+      value: web3.utils.toBN('100'),
+    });
+
+    expect(() => {
+      notEnoughFlow();
+    }).toThrow();
+
+    // Trust connection does not exist between
+    // node 0 and 5
+    const noTrustConnections = core.token.transfer(accounts[0], {
+      from: safeAddresses[0],
+      to: safeAddresses[5],
+      value: web3.utils.toBN('1'),
+    });
+
+    expect(() => {
+      noTrustConnections();
+    }).toThrow();
+  });
+
   describe('getNetwork', () => {
     it('should return the correct trust network', async () => {
-      const network = await getTrustNetwork(web3, utils, {
+      const network = await getNetwork(web3, utils, {
         from: safeAddresses[0],
         to: safeAddresses[4],
         networkHops: 3,
@@ -165,7 +204,7 @@ describe('Token', () => {
     });
 
     it('should fail when max-flow is too small', () => {
-      const value = new web3.utils.BN(100);
+      const value = new web3.utils.BN('100');
 
       expect(() => {
         findTransitiveTransactionPath(web3, {

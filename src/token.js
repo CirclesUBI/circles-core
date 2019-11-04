@@ -1,8 +1,9 @@
 import Graph from 'js-graph-algorithms';
 
+import { ZERO_ADDRESS } from '~/common/constants';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-import { getTokenContract } from '~/common/getContracts';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
 const DEFAULT_TRUST_NETWORK_HOPS = 4;
@@ -82,23 +83,21 @@ export async function getNetwork(web3, utils, userOptions) {
 
   const addSafe = (safeAddress, balances) => {
     const safe = balances.reduce(
-      (acc, item) => {
-        const tokenAddress = web3.utils.toChecksumAddress(item.token);
-        const tokenSafeAddress = web3.utils.toChecksumAddress(
-          item.ownedBySafe.id,
-        );
+      (acc, { token, amount }) => {
+        const tokenAddress = web3.utils.toChecksumAddress(token.id);
+        const tokenSafeAddress = web3.utils.toChecksumAddress(token.owner.id);
 
         acc.tokens.push({
           address: tokenAddress,
-          balance: item.balance,
+          balance: new web3.utils.BN(amount),
         });
 
         if (!findToken(tokenAddress)) {
           addToken(tokenAddress, tokenSafeAddress);
         }
 
-        addConnections(item.trusts);
-        addConnections(item.isTrustedBy);
+        addConnections(token.owner.trusts);
+        addConnections(token.owner.isTrustedBy);
 
         return acc;
       },
@@ -120,11 +119,13 @@ export async function getNetwork(web3, utils, userOptions) {
           isTrustedBy { limit from { id } to { id } }
           balances {
             amount
-            token
-            ownedBySafe {
+            token {
               id
-              trusts { limit from { id } to { id } }
-              isTrustedBy { limit from { id } to { id } }
+              owner {
+                id
+                trusts { limit from { id } to { id } }
+                isTrustedBy { limit from { id } to { id } }
+              }
             }
           }
         }
@@ -190,7 +191,7 @@ export async function getNetwork(web3, utils, userOptions) {
     throw new Error('Receiver is not in reach within senders trust network');
   }
 
-  // @TODO Add more data about token balance & addresses
+  // @TODO Add token balance & addresses data
   return connections;
 }
 
@@ -418,8 +419,8 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {string} userOptions.safeAddress - address of Token owner
-     * @param {string} userOptions.tokenAddress - address of particular Token
+     * @param {string} userOptions.safeAddress - safe address
+     * @param {string} userOptions.tokenAddress - optional token address in case only this one should be checked
      *
      * @return {BN} - Current balance
      */
@@ -432,25 +433,43 @@ export default function createTokenModule(web3, contracts, utils) {
         },
         tokenAddress: {
           type: web3.utils.checkAddressChecksum,
-          // default: ZERO_ADDRESS, // @TODO: Later we won't need this, see below
+          default: ZERO_ADDRESS,
         },
       });
 
-      // @TODO: This is not checking and summarizing the balance
-      // yet of all Tokens we own from Circles users. Right now
-      // we are only getting the Balance of our own deployed Token.
-      //
-      // One way to achieve this in the future is to 1. Get all Token
-      // addresses we own from the Caching Service 2. Query the balances
-      // with some sort of "balanceOfThrough" method in the Token contract
-      // by passing on an array of all Token addresses and receive a
-      // summarized balance from this.
+      const { safeAddress, tokenAddress } = options;
 
-      const token = getTokenContract(web3, options.tokenAddress);
+      const response = await utils.requestGraph({
+        query: `{
+          safe(id: "${safeAddress.toLowerCase()}") {
+            balances {
+              amount
+            }
+          }
+        }`,
+      });
 
-      const balance = await token.methods.balanceOf(options.safeAddress).call();
+      if (!response.safe) {
+        throw new Error(`Could not find Safe with address ${safeAddress}`);
+      }
 
-      return new web3.utils.BN(balance);
+      // Return only the balance of a particular token
+      if (tokenAddress !== ZERO_ADDRESS) {
+        const token = response.safe.balances.find(item => {
+          return item.token.id === tokenAddress;
+        });
+
+        if (!token) {
+          return web3.utils.toBN('0');
+        }
+
+        return web3.utils.toBN(token.amount);
+      }
+
+      // Summarize all given token amounts
+      return response.safe.balances.reduce((acc, { amount }) => {
+        return acc.iadd(web3.utils.toBN(amount));
+      }, web3.utils.toBN('0'));
     },
 
     /**
