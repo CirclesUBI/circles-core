@@ -34,7 +34,7 @@ describe('Trust', () => {
     const response = await core.trust.addConnection(account, {
       from: safeAddress,
       to: otherSafeAddress,
-      limit: 50,
+      limitPercentage: 44,
     });
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
@@ -48,7 +48,7 @@ describe('Trust', () => {
 
     expect(connection.isTrustedByMe).toBe(true);
     expect(connection.isTrustingMe).toBe(false);
-    expect(connection.limitTo).toBe(50);
+    expect(connection.limitPercentageTo).toBe(44);
 
     const otherConnection = await loop(
       () => {
@@ -64,7 +64,7 @@ describe('Trust', () => {
 
     expect(otherConnection.isTrustedByMe).toBe(false);
     expect(otherConnection.isTrustingMe).toBe(true);
-    expect(otherConnection.limitFrom).toBe(50);
+    expect(otherConnection.limitPercentageFrom).toBe(44);
   });
 
   it('should untrust someone', async () => {
@@ -75,16 +75,15 @@ describe('Trust', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const connection = await loop(
-      () => {
-        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
+    const network = await loop(
+      async () => {
+        return await core.trust.getNetwork(account, {
+          safeAddress,
+        });
       },
-      connection => connection.limitTo === 0,
+      network => network.length === 0,
     );
 
-    expect(connection.isTrustedByMe).toBe(false);
-    expect(connection.isTrustingMe).toBe(false);
-    expect(connection.limitFrom).toBe(0);
-    expect(connection.limitTo).toBe(0);
+    expect(network.length).toBe(0);
   });
 });

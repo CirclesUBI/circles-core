@@ -1,8 +1,8 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
-const DEFAULT_TRUST_LIMIT = 20;
-const NO_TRUST_LIMIT = 0;
+const DEFAULT_LIMIT_PERCENTAGE = 50;
+const NO_LIMIT_PERCENTAGE = 0;
 
 /**
  * Trust submodule to add and remove trust connections.
@@ -40,8 +40,16 @@ export default function createTrustModule(web3, contracts, utils) {
       const response = await utils.requestGraph({
         query: `{
           safe(id: "${safeAddress}") {
-            trusts { limit to { id } }
-            isTrustedBy { limit from { id } }
+            trusts {
+              limitPercentage
+              from { id }
+              to { id }
+            }
+            isTrustedBy {
+              limitPercentage
+              from { id }
+              to { id }
+            }
           }
         }`,
       });
@@ -53,23 +61,36 @@ export default function createTrustModule(web3, contracts, utils) {
       return []
         .concat(response.safe.isTrustedBy)
         .concat(response.safe.trusts)
-        .map(({ from, to, limit }) => {
-          const limitFrom = (from && parseInt(limit)) || NO_TRUST_LIMIT;
-          const limitTo = (to && parseInt(limit)) || NO_TRUST_LIMIT;
+        .reduce((acc, connection) => {
+          const limitPercentage = parseInt(connection.limitPercentage, 10);
 
-          const isTrustingMe = limitFrom > NO_TRUST_LIMIT;
-          const isTrustedByMe = limitTo > NO_TRUST_LIMIT;
+          if (limitPercentage === NO_LIMIT_PERCENTAGE) {
+            return acc;
+          }
 
-          const safeAddress = to ? to.id : from.id;
+          const from = web3.utils.toChecksumAddress(connection.from.id);
+          const to = web3.utils.toChecksumAddress(connection.to.id);
 
-          return {
-            safeAddress: web3.utils.toChecksumAddress(safeAddress),
-            isTrustedByMe,
-            isTrustingMe,
-            limitFrom,
-            limitTo,
-          };
-        })
+          if (from === options.safeAddress) {
+            acc.push({
+              isTrustedByMe: true,
+              isTrustingMe: false,
+              limitPercentageTo: limitPercentage,
+              limitPercentageFrom: NO_LIMIT_PERCENTAGE,
+              safeAddress: to,
+            });
+          } else if (to === options.safeAddress) {
+            acc.push({
+              isTrustedByMe: false,
+              isTrustingMe: true,
+              limitPercentageTo: NO_LIMIT_PERCENTAGE,
+              limitPercentageFrom: limitPercentage,
+              safeAddress: from,
+            });
+          }
+
+          return acc;
+        }, [])
         .reduce((acc, connection) => {
           // Find duplicates ...
           const index = acc.findIndex(item => {
@@ -81,17 +102,19 @@ export default function createTrustModule(web3, contracts, utils) {
             const {
               isTrustedByMe,
               isTrustingMe,
-              limitFrom,
-              limitTo,
+              limitPercentageFrom,
+              limitPercentageTo,
               safeAddress,
             } = acc[index];
 
             acc[index] = {
-              safeAddress,
               isTrustedByMe: connection.isTrustedByMe || isTrustedByMe,
               isTrustingMe: connection.isTrustingMe || isTrustingMe,
-              limitFrom: connection.limitFrom + limitFrom,
-              limitTo: connection.limitTo + limitTo,
+              limitPercentageFrom:
+                connection.limitPercentageFrom + limitPercentageFrom,
+              limitPercentageTo:
+                connection.limitPercentageTo + limitPercentageTo,
+              safeAddress,
             };
           } else {
             acc.push(connection);
@@ -108,7 +131,7 @@ export default function createTrustModule(web3, contracts, utils) {
      * @param {Object} userOptions - options
      * @param {string} userOptions.from - trust giver
      * @param {string} userOptions.to - trust receiver
-     * @param {number} userOptions.limit - trust limit for transitive transactions
+     * @param {number} userOptions.limitPercentage - trust limit in % for transitive transactions
      *
      * @return {string} - transaction hash
      */
@@ -122,14 +145,14 @@ export default function createTrustModule(web3, contracts, utils) {
         to: {
           type: web3.utils.checkAddressChecksum,
         },
-        limit: {
+        limitPercentage: {
           type: 'number',
-          default: DEFAULT_TRUST_LIMIT,
+          default: DEFAULT_LIMIT_PERCENTAGE,
         },
       });
 
       const txData = await hub.methods
-        .trust(options.to, options.limit)
+        .trust(options.to, options.limitPercentage)
         .encodeABI();
 
       // Call method and return result
@@ -163,7 +186,7 @@ export default function createTrustModule(web3, contracts, utils) {
       });
 
       const txData = await hub.methods
-        .trust(options.to, NO_TRUST_LIMIT)
+        .trust(options.to, NO_LIMIT_PERCENTAGE)
         .encodeABI();
 
       return await utils.executeTokenSafeTx(account, {

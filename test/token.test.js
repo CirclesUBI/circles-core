@@ -5,7 +5,8 @@ import loop, { getTrustConnection } from './helpers/loop';
 import web3 from './helpers/web3';
 
 import createUtilsModule from '~/utils';
-import { findTransitiveTransactionPath, getNetwork } from '~/token';
+import { findTransitiveTransactions, getNetwork } from '~/token';
+import { fromFreckles, toFreckles } from '~/common/convert';
 
 let core;
 let utils;
@@ -38,11 +39,11 @@ async function deploySafeAndToken(account) {
   tokenAddresses.push(tokenAddress);
 }
 
-async function createTrustConnection([indexFrom, indexTo, limit]) {
+async function createTrustConnection([indexFrom, indexTo, limitPercentage]) {
   await core.trust.addConnection(accounts[indexFrom], {
     from: safeAddresses[indexFrom],
     to: safeAddresses[indexTo],
-    limit,
+    limitPercentage,
   });
 }
 
@@ -92,13 +93,11 @@ describe('Token', () => {
 
     // It should be equals the initial UBI payout
     // which was set during Hub contract deployment:
-    expect(balance).toMatchObject(
-      new web3.utils.BN(web3.utils.toWei('100', 'ether')),
-    );
+    expect(balance).toMatchObject(new web3.utils.BN(toFreckles(web3, 100)));
   });
 
   it('should send Circles to someone transitively', async () => {
-    const value = web3.utils.toBN('5');
+    const value = web3.utils.toBN(toFreckles(web3, 5));
     const indexFrom = 0;
     const indexTo = 4;
 
@@ -110,68 +109,66 @@ describe('Token', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const accountBalance = await core.token.getBalance(accounts[indexFrom], {
-      safeAddress: safeAddresses[indexFrom],
-    });
+    const accountBalance = await loop(
+      () => {
+        return core.token.getBalance(accounts[indexFrom], {
+          safeAddress: safeAddresses[indexFrom],
+        });
+      },
+      balance => balance.toString().slice(0, 2) === '94',
+    );
 
     const otherAccountBalance = await core.token.getBalance(accounts[indexTo], {
       safeAddress: safeAddresses[indexTo],
     });
 
-    expect(otherAccountBalance).toMatchObject(value);
-
-    const balance = accountBalance.toString();
-
-    // Sometimes we receive different numbers from the relayer ..
-    // @TODO Correct these numbers:
-    const isCorrectBalance =
-      balance === '99999999999999905259' || balance === '99999999999999905387';
-
-    expect(isCorrectBalance).toBe(true);
+    expect(otherAccountBalance.toString().slice(0, 3)).toBe('104');
+    expect(accountBalance.toString().slice(0, 2)).toBe('94');
   });
 
   it('should fail sending Circles when there is no path', async () => {
     // Max flow is smaller than the given transfer value.
-    const notEnoughFlow = core.token.transfer(accounts[0], {
-      from: safeAddresses[0],
-      to: safeAddresses[4],
-      value: web3.utils.toBN('100'),
-    });
-
-    expect(() => {
-      notEnoughFlow();
-    }).toThrow();
+    await expect(
+      core.token.transfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value: web3.utils.toBN(toFreckles(web3, '100')),
+      }),
+    ).rejects.toThrow();
 
     // Trust connection does not exist between
     // node 0 and 5
-    const noTrustConnections = core.token.transfer(accounts[0], {
-      from: safeAddresses[0],
-      to: safeAddresses[5],
-      value: web3.utils.toBN('1'),
-    });
-
-    expect(() => {
-      noTrustConnections();
-    }).toThrow();
+    await expect(
+      core.token.transfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[5],
+        value: web3.utils.toBN('1'),
+      }),
+    ).rejects.toThrow();
   });
 
   describe('getNetwork', () => {
     it('should return the correct trust network', async () => {
-      const network = await getNetwork(web3, utils, {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        networkHops: 3,
-      });
+      const connection = await loop(
+        async () => {
+          const network = await getNetwork(web3, utils, {
+            from: safeAddresses[0],
+            to: safeAddresses[4],
+            networkHops: 3,
+          });
 
-      const connection = network.find(({ from, to }) => {
-        return from === safeAddresses[4] && to === safeAddresses[1];
-      });
+          return network.find(({ from, to }) => {
+            return from === safeAddresses[2] && to === safeAddresses[1];
+          });
+        },
+        connection => connection,
+      );
 
-      expect(connection.limit).toBe(10);
+      expect(connection.limit).toBe(toFreckles(web3, 10));
     });
   });
 
-  describe('findTransitiveTransactionPath', () => {
+  describe('findTransitiveTransactions', () => {
     const NUM_NODES = 8;
     const INDEX_SENDER = 0;
     const INDEX_RECEIVER = 7;
@@ -201,13 +198,23 @@ describe('Token', () => {
         { from: nodes[6], to: nodes[2], limit: 6 },
         { from: nodes[6], to: nodes[7], limit: 10 },
       ];
+
+      network.map(connection => {
+        connection.limit = web3.utils.toBN(toFreckles(web3, connection.limit));
+
+        connection.tokenAddress = web3.utils.toChecksumAddress(
+          web3.utils.randomHex(20),
+        );
+
+        return connection;
+      });
     });
 
     it('should fail when max-flow is too small', () => {
-      const value = new web3.utils.BN('100');
+      const value = new web3.utils.BN(toFreckles(web3, 100));
 
       expect(() => {
-        findTransitiveTransactionPath(web3, {
+        findTransitiveTransactions(web3, {
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
           value,
@@ -216,14 +223,14 @@ describe('Token', () => {
       }).toThrow();
     });
 
-    it('should successfully transfer an value transitively', () => {
+    it('should successfully find a path', () => {
       for (let i = 0; i < 10; i += 1) {
         const value = 1 + Math.round(Math.random() * 27);
 
-        const path = findTransitiveTransactionPath(web3, {
+        const path = findTransitiveTransactions(web3, {
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
-          value: new web3.utils.BN(value),
+          value: new web3.utils.BN(toFreckles(web3, value)),
           network,
         });
 
@@ -235,8 +242,8 @@ describe('Token', () => {
           const indexFrom = nodes.indexOf(transaction.from);
           const indexTo = nodes.indexOf(transaction.to);
 
-          balances[indexFrom] -= transaction.value.toNumber();
-          balances[indexTo] += transaction.value.toNumber();
+          balances[indexFrom] -= fromFreckles(web3, transaction.value);
+          balances[indexTo] += fromFreckles(web3, transaction.value);
         });
 
         expect(balances[INDEX_RECEIVER]).toBe(value);

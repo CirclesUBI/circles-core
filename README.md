@@ -108,7 +108,7 @@ await core.trust.removeConnection(account, {
 await core.trust.addConnection(account, {
   from: safeAddress,
   to: users[0].address,
-  limit: 20,
+  limitPercentage: 20,
 });
 
 // Get list of my activities
@@ -123,7 +123,7 @@ activities.forEach(activity => {
   if (type === 'transfer') {
     console.log(`${timestamp} - ${data.from} transferred ${data.value} Circles to ${data.to} through ${data.through} users`);
   } else if (type === 'addConnection') {
-    console.log(`${timestamp} - ${data.limit} ${data.from} trusted ${data.to}`);
+    console.log(`${timestamp} - ${data.limitPercentage} ${data.from} trusted ${data.to}`);
   } else if (type === 'removeConnection') {
     console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
   } else if (type === 'addOwner') {
