@@ -71,9 +71,14 @@ describe('Safe', () => {
       expect(owners[1]).toBe(account.address);
       expect(owners.length).toBe(2);
 
-      const ownedSafeAddress = await core.safe.getSafeAddress(account, {
-        ownerAddress: otherAccount.address,
-      });
+      const ownedSafeAddress = await loop(
+        () => {
+          return core.safe.getAddress(account, {
+            ownerAddress: otherAccount.address,
+          });
+        },
+        address => address,
+      );
 
       expect(ownedSafeAddress).toBe(safeAddress);
     });
@@ -95,7 +100,7 @@ describe('Safe', () => {
     });
 
     it('should return the Safe address owned by a wallet', async () => {
-      const response = await core.safe.getSafeAddress(account, {
+      const response = await core.safe.getAddress(account, {
         ownerAddress: account.address,
       });
 

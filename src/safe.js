@@ -102,7 +102,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @return {string} - Safe address
      */
-    getSafeAddress: async (account, userOptions) => {
+    getAddress: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
