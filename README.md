@@ -154,6 +154,11 @@ await core.safe.getOwners(account, {
   safeAddress,
 });
 
+// .. or get the Safe connected to an owner
+const safeAddress = await core.safe.getAddress(account, {
+  ownerAddress: '0x123...',
+});
+
 // Manage owners of my Safe
 await core.safe.removeOwner(account, {
   safeAddress,
