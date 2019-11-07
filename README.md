@@ -102,12 +102,12 @@ if (!isTrusted) {
 // Change trust state with users
 await core.trust.removeConnection(account, {
   from: safeAddress,
-  to: users[0].address,
+  to: users[0].safeAddress,
 });
 
 await core.trust.addConnection(account, {
   from: safeAddress,
-  to: users[0].address,
+  to: users[0].safeAddress,
   limitPercentage: 20,
 });
 
@@ -145,7 +145,7 @@ const balance = await core.token.getBalance(account, {
 // Transfer Circles to users (directly or transitively)
 await core.token.transfer(account, {
   from: safeAddress,
-  to: users[0].address,
+  to: users[0].safeAddress,
   value: 350,
 });
 
