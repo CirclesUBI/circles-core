@@ -20,11 +20,11 @@
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.6.4",
-    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/core": "^7.7.2",
+    "@babel/plugin-proposal-class-properties": "^7.7.0",
     "@babel/plugin-proposal-object-rest-spread": "^7.6.2",
     "@babel/plugin-transform-runtime": "^7.6.2",
-    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-env": "^7.7.1",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
     "babel-plugin-add-module-exports": "^1.0.2",
@@ -35,10 +35,11 @@
     "eslint-config-prettier": "^6.5.0",
     "eslint-plugin-prettier": "^3.1.1",
     "husky": "^3.0.9",
+    "isomorphic-fetch": "^2.2.1",
     "jest": "^24.9.0",
     "prettier": "^1.18.2",
     "rimraf": "^3.0.0",
-    "rollup": "^1.26.0",
+    "rollup": "^1.26.3",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-cleanup": "^3.1.1",
     "rollup-plugin-commonjs": "^10.1.0",
@@ -47,17 +48,16 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.3",
     "serialize-javascript": "^2.1.0",
-    "truffle": "^5.0.42",
+    "truffle": "^5.0.43",
     "web3": "^1.2.2"
   },
   "peerDependencies": {
+    "isomorphic-fetch": "^2.2.1",
     "web3": "^1.2.2"
   },
   "dependencies": {
-    "@babel/runtime": "^7.6.3",
+    "@babel/runtime": "^7.7.2",
     "@gnosis.pm/safe-contracts": "^1.0.0",
-    "circles-contracts": "^1.0.7",
-    "isomorphic-fetch": "^2.2.1",
-    "js-graph-algorithms": "^1.0.18"
+    "circles-contracts": "^1.0.8"
   }
 }
