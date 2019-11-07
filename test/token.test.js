@@ -66,6 +66,7 @@ describe('Token', () => {
       [3, 4, 25],
       [4, 3, 15],
       [4, 1, 10],
+      [2, 5, 50], // Unidirectional
     ];
 
     for (const connection of connections) {
@@ -94,6 +95,23 @@ describe('Token', () => {
     // It should be equals the initial UBI payout
     // which was set during Hub contract deployment:
     expect(balance).toMatchObject(new web3.utils.BN(toFreckles(web3, 100)));
+  });
+
+  it('should send Circles to someone directly', async () => {
+    const value = web3.utils.toBN(toFreckles(web3, 5));
+
+    // Unidirectional trust relationship from 2 to 5
+    const indexFrom = 5;
+    const indexTo = 2;
+
+    // Transfer from 5 to 2
+    const response = await core.token.transfer(accounts[indexFrom], {
+      from: safeAddresses[indexFrom],
+      to: safeAddresses[indexTo],
+      value,
+    });
+
+    expect(web3.utils.isHexStrict(response)).toBe(true);
   });
 
   it('should send Circles to someone transitively', async () => {

@@ -207,27 +207,27 @@ export async function getNetwork(web3, utils, userOptions) {
   // Find tokens for each connection we can actually use
   // for transitive transactions
   return connections.reduce((acc, connection) => {
-    const receiverSafeAddress = connection.to;
     const senderSafeAddress = connection.from;
+    const receiverSafeAddress = connection.to;
 
-    const senderSafe = findSafe(senderSafeAddress);
+    const receiverSafe = findSafe(receiverSafeAddress);
 
-    if (!senderSafe) {
+    if (!receiverSafe) {
       return acc;
     }
 
     // Get tokens the sender owns
-    const senderTokens = senderSafe.tokens;
+    const receiverTokens = receiverSafe.tokens;
 
     // Which of them are trusted by the receiving node?
-    const trustedTokens = senderTokens.reduce((tokenAcc, senderToken) => {
-      const token = findToken(senderToken.address);
+    const trustedTokens = receiverTokens.reduce((tokenAcc, receiverToken) => {
+      const token = findToken(receiverToken.address);
 
-      const tokenConnection = connections.find(item => {
+      const tokenConnection = connections.find(trustConnection => {
         return (
-          item.from === receiverSafeAddress &&
-          item.to === token.safeAddress &&
-          item.limit !== '0'
+          trustConnection.from === senderSafeAddress &&
+          trustConnection.to === token.safeAddress &&
+          trustConnection.limit !== '0'
         );
       });
 
@@ -242,10 +242,13 @@ export async function getNetwork(web3, utils, userOptions) {
       return tokenAcc;
     }, []);
 
+    // `from` and `to` are flipped here as a
+    // trust direction is the reverse of a
+    // transfer direction!
     trustedTokens.forEach(token => {
       acc.push({
-        from: senderSafeAddress,
-        to: receiverSafeAddress,
+        from: receiverSafeAddress,
+        to: senderSafeAddress,
         limit: token.limit,
         limitPercentage: token.limitPercentage,
         tokenOwnerAddress: token.tokenOwnerAddress,
