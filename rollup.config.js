@@ -8,14 +8,8 @@ import json from 'rollup-plugin-json';
 import resolve from 'rollup-plugin-node-resolve';
 import { uglify } from 'rollup-plugin-uglify';
 
-const DIST_FILE = 'index.js';
-const DIST_FOLDER = 'lib';
-
-const EXTENSIONS = ['.js', '.json'];
-
-const INPUT_FILE = 'index.js';
-const INPUT_FOLDER = 'src';
-
+const FOLDER_DIST = 'lib';
+const FOLDER_INPUT = 'src';
 const MODULE_NAME = 'CirclesCore';
 
 function rollupPlugins(isUglified = false) {
@@ -23,12 +17,11 @@ function rollupPlugins(isUglified = false) {
     json(),
     builtins(),
     resolve({
-      extensions: EXTENSIONS,
+      extensions: ['.js', '.json'],
       preferBuiltins: true,
     }),
     commonjs(),
     babel({
-      extensions: EXTENSIONS,
       runtimeHelpers: true,
     }),
     cleanup(),
@@ -41,13 +34,13 @@ function buildOptions(customOptions = {}) {
   const { file, isUglified } = customOptions;
 
   const defaultOptions = {
-    input: path.join(INPUT_FOLDER, INPUT_FILE),
+    input: path.join(FOLDER_INPUT, 'index.js'),
     external: ['isomorphic-fetch'],
     plugins: isUglified ? rollupPlugins(true) : rollupPlugins(),
     output: {
       file: file
-        ? path.join(DIST_FOLDER, file)
-        : path.join(DIST_FOLDER, DIST_FILE),
+        ? path.join(FOLDER_DIST, file)
+        : path.join(FOLDER_DIST, 'index.js'),
       name: MODULE_NAME,
       format: 'umd',
       sourcemap: isUglified || false,

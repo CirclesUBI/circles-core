@@ -102,18 +102,30 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @return {string} - Safe address
      */
-    getSafeAddress: async (account, userOptions) => {
+    getAddress: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
         ownerAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      // @TODO: Implement this when Caching Service is ready.
-      throw new Error('Not implemented');
+      const response = await utils.requestGraph({
+        query: `{
+          user(id: "${options.ownerAddress.toLowerCase()}") {
+            safe {
+              id
+            }
+          }
+        }`,
+      });
+
+      if (!response.user) {
+        return null;
+      }
+
+      return web3.utils.toChecksumAddress(response.user.safe.id);
     },
 
     /**

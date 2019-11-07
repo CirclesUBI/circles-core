@@ -29,8 +29,6 @@ describe('Safe', () => {
     });
 
     it('should be manually triggered to get deployed', async () => {
-      // @TODO: Get enough trust connections before,
-      // tho this is not implemented yet in the relayer.
       const result = await core.safe.deploy(account, {
         safeAddress,
       });
@@ -72,6 +70,17 @@ describe('Safe', () => {
       expect(owners[0]).toBe(otherAccount.address);
       expect(owners[1]).toBe(account.address);
       expect(owners.length).toBe(2);
+
+      const ownedSafeAddress = await loop(
+        () => {
+          return core.safe.getAddress(account, {
+            ownerAddress: otherAccount.address,
+          });
+        },
+        address => address,
+      );
+
+      expect(ownedSafeAddress).toBe(safeAddress);
     });
 
     it('should remove an owner from the Safe', async () => {
@@ -88,6 +97,14 @@ describe('Safe', () => {
 
       expect(owners[0]).toBe(account.address);
       expect(owners.length).toBe(1);
+    });
+
+    it('should return the Safe address owned by a wallet', async () => {
+      const response = await core.safe.getAddress(account, {
+        ownerAddress: account.address,
+      });
+
+      expect(response).toBe(safeAddress);
     });
   });
 });
