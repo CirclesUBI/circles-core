@@ -1,7 +1,6 @@
-import Graph from 'js-graph-algorithms';
-
 import { ZERO_ADDRESS } from '~/common/constants';
 
+import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { fromFreckles, toFreckles } from '~/common/convert';
@@ -311,7 +310,7 @@ export function findTransitiveTransactions(web3, userOptions) {
 
   // Create graph with nodes labelled after
   // the given addresses in trust network
-  const graph = new Graph.FlowNetwork(nodes.length);
+  const graph = new FlowNetwork(nodes.length);
 
   // Create weighted edges in the graph based
   // on trust connections and flow limits
@@ -320,7 +319,7 @@ export function findTransitiveTransactions(web3, userOptions) {
     const indexFrom = nodes.indexOf(connection.from);
     const indexTo = nodes.indexOf(connection.to);
 
-    const edge = new Graph.FlowEdge(indexFrom, indexTo, flow);
+    const edge = new FlowEdge(indexFrom, indexTo, flow);
     edge.tokenOwnerAddress = connection.tokenOwnerAddress;
 
     graph.addEdge(edge);
@@ -330,11 +329,7 @@ export function findTransitiveTransactions(web3, userOptions) {
   const indexSender = nodes.indexOf(options.from);
   const indexReceiver = nodes.indexOf(options.to);
 
-  const maximumFlow = new Graph.FordFulkerson(
-    graph,
-    indexSender,
-    indexReceiver,
-  );
+  const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
 
   const maximumFlowWei = new web3.utils.BN(toFreckles(web3, maximumFlow.value));
 
