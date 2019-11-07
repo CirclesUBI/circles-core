@@ -207,11 +207,13 @@ export async function getNetwork(web3, utils, userOptions) {
   // Find tokens for each connection we can actually use
   // for transitive transactions
   return connections.reduce((acc, connection) => {
-    const senderSafe = findSafe(connection.from);
-    const receiverSafe = findSafe(connection.to);
+    const receiverSafeAddress = connection.to;
+    const senderSafeAddress = connection.from;
 
-    if (!senderSafe || !receiverSafe) {
-      throw new Error('Inconsistent network data');
+    const senderSafe = findSafe(senderSafeAddress);
+
+    if (!senderSafe) {
+      return acc;
     }
 
     // Get tokens the sender owns
@@ -221,17 +223,16 @@ export async function getNetwork(web3, utils, userOptions) {
     const trustedTokens = senderTokens.reduce((tokenAcc, senderToken) => {
       const token = findToken(senderToken.address);
 
-      const tokenConnection = connections.find(connection => {
+      const tokenConnection = connections.find(item => {
         return (
-          connection.from === receiverSafe.address &&
-          connection.to === token.safeAddress &&
-          connection.limit !== '0'
+          item.from === receiverSafeAddress &&
+          item.to === token.safeAddress &&
+          item.limit !== '0'
         );
       });
 
       if (tokenConnection) {
         tokenAcc.push({
-          balance: senderToken.balance,
           limit: tokenConnection.limit,
           limitPercentage: tokenConnection.limitPercentage,
           tokenOwnerAddress: token.safeAddress,
@@ -243,10 +244,10 @@ export async function getNetwork(web3, utils, userOptions) {
 
     trustedTokens.forEach(token => {
       acc.push({
-        from: senderSafe.address,
+        from: senderSafeAddress,
+        to: receiverSafeAddress,
         limit: token.limit,
         limitPercentage: token.limitPercentage,
-        to: receiverSafe.address,
         tokenOwnerAddress: token.tokenOwnerAddress,
       });
     });
