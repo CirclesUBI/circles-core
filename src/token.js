@@ -1,8 +1,412 @@
+import Graph from 'js-graph-algorithms';
+
+import { ZERO_ADDRESS } from '~/common/constants';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-import { getTokenContract } from '~/common/getContracts';
+import { fromFreckles, toFreckles } from '~/common/convert';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
+const DEFAULT_TRUST_NETWORK_HOPS = 4;
+
+/**
+ * Gather data from the graph node to get all information we need
+ * for transitive transactions.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - arguments
+ * @param {string} userOptions.from - sender Safe address
+ * @param {string} userOptions.to - receiver Safe address
+ * @param {number} userOptions.networkHops - max number of network hops
+ *
+ * @return {Object[]} - traversable trust network
+ */
+export async function getNetwork(web3, utils, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    networkHops: {
+      type: 'number',
+      default: DEFAULT_TRUST_NETWORK_HOPS,
+    },
+  });
+
+  // Methods to parse the data we get to break all down into
+  // given safe addresses, the tokens they own, the trust connections
+  // they have between each other and finally a list of all tokens
+  const connections = [];
+  const safes = [];
+  const tokens = [];
+
+  const findToken = tokenAddress => {
+    return tokens.find(node => node.address === tokenAddress);
+  };
+
+  const findSafe = safeAddress => {
+    return safes.find(node => node.address === safeAddress);
+  };
+
+  const findConnection = (from, to) => {
+    return connections.find(edge => edge.from === from && edge.to === to);
+  };
+
+  const addConnection = (from, to, limit, limitPercentage) => {
+    connections.push({
+      from,
+      limit,
+      limitPercentage,
+      to,
+    });
+  };
+
+  const addConnections = connections => {
+    connections.forEach(connection => {
+      const from = web3.utils.toChecksumAddress(connection.from.id);
+      const to = web3.utils.toChecksumAddress(connection.to.id);
+      const { limit, limitPercentage } = connection;
+
+      if (!findConnection(from, to)) {
+        addConnection(from, to, limit, limitPercentage);
+      }
+    });
+  };
+
+  const addToken = (address, safeAddress) => {
+    tokens.push({
+      address,
+      safeAddress,
+    });
+  };
+
+  const addSafe = (safeAddress, balances) => {
+    const safe = balances.reduce(
+      (acc, { token, amount }) => {
+        const tokenAddress = web3.utils.toChecksumAddress(token.id);
+        const tokenSafeAddress = web3.utils.toChecksumAddress(token.owner.id);
+
+        acc.tokens.push({
+          address: tokenAddress,
+          balance: new web3.utils.BN(amount),
+        });
+
+        if (!findToken(tokenAddress)) {
+          addToken(tokenAddress, tokenSafeAddress);
+        }
+
+        addConnections(token.owner.trusts);
+        addConnections(token.owner.isTrustedBy);
+
+        return acc;
+      },
+      {
+        address: web3.utils.toChecksumAddress(safeAddress),
+        tokens: [],
+      },
+    );
+
+    safes.push(safe);
+  };
+
+  // Get trust network information from the graph node
+  const requestSafe = async safeAddress => {
+    const safeQuery = `{
+      limit
+      limitPercentage
+      from { id }
+      to { id }
+    }`;
+
+    const response = await utils.requestGraph({
+      query: `{
+        safe(id: "${safeAddress.toLowerCase()}") {
+          trusts ${safeQuery}
+          isTrustedBy ${safeQuery}
+          balances {
+            amount
+            token {
+              id
+              owner {
+                id
+                trusts ${safeQuery}
+                isTrustedBy ${safeQuery}
+              }
+            }
+          }
+        }
+      }`,
+    });
+
+    if (!response.safe) {
+      throw new Error(`Could not find Safe with address ${safeAddress}`);
+    }
+
+    // Parse all received data when we haven't done this yet
+    if (!findSafe(safeAddress)) {
+      addSafe(safeAddress, response.safe.balances);
+
+      addConnections(response.safe.trusts);
+      addConnections(response.safe.isTrustedBy);
+    }
+  };
+
+  // Go through network until we found the
+  // receiver node or reached the limit of hops
+  let isReceiverFound = false;
+
+  const requestedSafeAddresses = {};
+
+  const hop = async (queue = [], currentHopIndex = 0) => {
+    // Process the next batch of requests to be made
+    queue.forEach(safeAddress => {
+      requestedSafeAddresses[safeAddress] = true;
+    });
+
+    await Promise.all(
+      queue.map(safeAddress => {
+        // Did we reach the final receiver node?
+        if (safeAddress === options.to) {
+          isReceiverFound = true;
+        }
+
+        return requestSafe(safeAddress);
+      }),
+    );
+
+    //  Add more requests to queue when possible
+    if (!isReceiverFound && currentHopIndex < options.networkHops) {
+      const newQueue = connections.reduce((acc, connection) => {
+        if (!requestedSafeAddresses[connection.from]) {
+          acc.push(connection.from);
+          requestedSafeAddresses[connection.from] = true;
+        }
+
+        if (!requestedSafeAddresses[connection.to]) {
+          acc.push(connection.to);
+          requestedSafeAddresses[connection.to] = true;
+        }
+
+        return acc;
+      }, []);
+
+      // .. explore the trust network a little more
+      return await hop(newQueue, currentHopIndex + 1);
+    }
+  };
+
+  // Start exploring the trust network
+  await hop([options.from]);
+
+  if (!isReceiverFound) {
+    throw new Error('Receiver is not in reach within senders trust network');
+  }
+
+  // Find tokens for each connection we can actually use
+  // for transitive transactions
+  return connections.reduce((acc, connection) => {
+    const senderSafe = findSafe(connection.from);
+    const receiverSafe = findSafe(connection.to);
+
+    if (!senderSafe || !receiverSafe) {
+      throw new Error('Inconsistent network data');
+    }
+
+    // Get tokens the sender owns
+    const senderTokens = senderSafe.tokens;
+
+    // Which of them are trusted by the receiving node?
+    const trustedTokens = senderTokens.reduce((tokenAcc, senderToken) => {
+      const token = findToken(senderToken.address);
+
+      const tokenConnection = connections.find(connection => {
+        return (
+          connection.from === receiverSafe.address &&
+          connection.to === token.safeAddress &&
+          connection.limit !== '0'
+        );
+      });
+
+      if (tokenConnection) {
+        tokenAcc.push({
+          balance: senderToken.balance,
+          limit: tokenConnection.limit,
+          limitPercentage: tokenConnection.limitPercentage,
+          tokenOwnerAddress: token.safeAddress,
+        });
+      }
+
+      return tokenAcc;
+    }, []);
+
+    trustedTokens.forEach(token => {
+      acc.push({
+        from: senderSafe.address,
+        limit: token.limit,
+        limitPercentage: token.limitPercentage,
+        to: receiverSafe.address,
+        tokenOwnerAddress: token.tokenOwnerAddress,
+      });
+    });
+
+    return acc;
+  }, []);
+}
+
+/**
+ * Find at least one (or more) paths through a trust graph
+ * from someone to someone else to transitively
+ * send an amount of Circles.
+ *
+ * This algorithm makes use of the Ford-Fulkerson method which
+ * computes the maximum flow in a network.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} userOptions - search arguments
+ * @param {string} userOptions.from - sender Safe address
+ * @param {string} userOptions.to - receiver Safe address
+ * @param {BN} userOptions.value - value of Circles tokens
+ * @param {Object[]} userOptions.network - trust network connections
+ *
+ * @return {Object[]} - transaction steps
+ */
+export function findTransitiveTransactions(web3, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    value: {
+      type: web3.utils.isBN,
+    },
+    network: {
+      type: 'array',
+    },
+  });
+
+  const { network } = options;
+
+  // Find unique addresses in trust network
+  // and define them as nodes in the graph
+  const nodes = network.reduce((acc, edge) => {
+    if (!acc.includes(edge.from)) {
+      acc.push(edge.from);
+    }
+
+    if (!acc.includes(edge.to)) {
+      acc.push(edge.to);
+    }
+
+    return acc;
+  }, []);
+
+  if (nodes.length === 0) {
+    throw new Error('No nodes given in trust graph');
+  }
+
+  // Create graph with nodes labelled after
+  // the given addresses in trust network
+  const graph = new Graph.FlowNetwork(nodes.length);
+
+  // Create weighted edges in the graph based
+  // on trust connections and flow limits
+  network.forEach(connection => {
+    const flow = fromFreckles(web3, connection.limit);
+    const indexFrom = nodes.indexOf(connection.from);
+    const indexTo = nodes.indexOf(connection.to);
+
+    const edge = new Graph.FlowEdge(indexFrom, indexTo, flow);
+    edge.tokenOwnerAddress = connection.tokenOwnerAddress;
+
+    graph.addEdge(edge);
+  });
+
+  // Find maximum flow paths in graph
+  const indexSender = nodes.indexOf(options.from);
+  const indexReceiver = nodes.indexOf(options.to);
+
+  const maximumFlow = new Graph.FordFulkerson(
+    graph,
+    indexSender,
+    indexReceiver,
+  );
+
+  const maximumFlowWei = new web3.utils.BN(toFreckles(web3, maximumFlow.value));
+
+  if (options.value.gt(maximumFlowWei)) {
+    throw new Error('Could not find possible transaction path');
+  }
+
+  // We found a possible way! Traverse flow graph backwards
+  // to find out in which order transactions should take place
+  const traversePath = (index, flowRequired, path = []) => {
+    // Filter out unneeded nodes and sort them by flow capacity
+    const adjacentNodes = graph
+      .adj(index)
+      .reduce((acc, adjNode) => {
+        // Does our path already contain this?
+        if (adjNode.isInPath) {
+          return acc;
+        }
+
+        // Is this edge starting at current node?
+        if (adjNode.w !== index) {
+          return acc;
+        }
+
+        // Do we actually send any Tokens?
+        if (adjNode.flow === 0) {
+          return acc;
+        }
+
+        acc.push(adjNode);
+
+        return acc;
+      }, [])
+      .sort((nodeA, nodeB) => {
+        return nodeB.flow - nodeA.flow;
+      });
+
+    // Set the required flow for this node
+    // (we usually don't need the maximum)
+    let flowRequiredLeft = flowRequired;
+
+    // We recursively look for adjacent nodes until there are none
+    adjacentNodes.forEach(edge => {
+      // Calculate how much flow this adjacent node can give, we've
+      // sorted them above by flow capacity to prioritize larger ones
+      const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
+      flowRequiredLeft -= edgeFlow;
+
+      const innerPath = traversePath(edge.v, edgeFlow, path);
+      path.concat(innerPath);
+
+      if (!edge.isVisited && edgeFlow > 0) {
+        const value = new web3.utils.BN(toFreckles(web3, edgeFlow));
+
+        path.push({
+          from: nodes[edge.v],
+          to: nodes[edge.w],
+          tokenOwnerAddress: edge.tokenOwnerAddress,
+          value,
+        });
+      }
+
+      edge.isVisited = true;
+    });
+
+    graph.node(index).isInPath = true;
+
+    return path;
+  };
+
+  return traversePath(indexReceiver, fromFreckles(web3, options.value));
+}
 
 /**
  * UBI submodule to get current Token balance and send Circles to other users.
@@ -77,10 +481,10 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {string} userOptions.safeAddress - address of Token owner
-     * @param {string} userOptions.tokenAddress - address of particular Token
+     * @param {string} userOptions.safeAddress - safe address
+     * @param {string} userOptions.tokenAddress - optional token address in case only this one should be checked
      *
-     * @return {string} - Current balance
+     * @return {BN} - Current balance
      */
     getBalance: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -91,23 +495,43 @@ export default function createTokenModule(web3, contracts, utils) {
         },
         tokenAddress: {
           type: web3.utils.checkAddressChecksum,
-          // default: ZERO_ADDRESS, // @TODO: Later we won't need this, see below
+          default: ZERO_ADDRESS,
         },
       });
 
-      // @TODO: This is not checking and summarizing the balance
-      // yet of all Tokens we own from Circles users. Right now
-      // we are only getting the Balance of our own deployed Token.
-      //
-      // One way to achieve this in the future is to 1. Get all Token
-      // addresses we own from the Caching Service 2. Query the balances
-      // with some sort of "balanceOfThrough" method in the Token contract
-      // by passing on an array of all Token addresses and receive a
-      // summarized balance from this.
+      const { safeAddress, tokenAddress } = options;
 
-      const token = getTokenContract(web3, options.tokenAddress);
+      const response = await utils.requestGraph({
+        query: `{
+          safe(id: "${safeAddress.toLowerCase()}") {
+            balances {
+              amount
+            }
+          }
+        }`,
+      });
 
-      return await token.methods.balanceOf(options.safeAddress).call();
+      if (!response.safe) {
+        throw new Error(`Could not find Safe with address ${safeAddress}`);
+      }
+
+      // Return only the balance of a particular token
+      if (tokenAddress !== ZERO_ADDRESS) {
+        const token = response.safe.balances.find(item => {
+          return item.token.id === tokenAddress;
+        });
+
+        if (!token) {
+          return web3.utils.toBN('0');
+        }
+
+        return web3.utils.toBN(token.amount);
+      }
+
+      // Summarize all given token amounts
+      return response.safe.balances.reduce((acc, { amount }) => {
+        return acc.iadd(web3.utils.toBN(amount));
+      }, web3.utils.toBN('0'));
     },
 
     /**
@@ -134,26 +558,52 @@ export default function createTokenModule(web3, contracts, utils) {
         value: {
           type: web3.utils.isBN,
         },
+        networkHops: {
+          type: 'number',
+          default: DEFAULT_TRUST_NETWORK_HOPS,
+        },
       });
 
-      // @TODO: Call Transaction Graph Service before for transitive transfers
+      // Get trust network
+      const network = await getNetwork(web3, utils, options);
 
-      // @TODO: Remove as soon as we use the 'transferThrough' Hub method:
-      const tokenAddress = await hub.methods.userToToken(options.from).call();
-      const token = getTokenContract(web3, tokenAddress);
+      // Calculate transactions for transitive payment
+      const transactions = findTransitiveTransactions(web3, {
+        ...options,
+        network,
+      });
 
-      // @TODO: Use 'transferThrough' on Hub instead:
-      // const addresses = [options.to];
-      // const txData = await hub.methods
-      //   .transferThrough(addresses, options.value)
-      //   .encodeABI();
-      const txData = await token.methods
-        .transfer(options.to, options.value.toString())
+      // Convert connections to contract argument format
+      const transfer = transactions.reduce(
+        (acc, transaction) => {
+          // Convert to Smart Contract method format
+          acc.tokenOwners.push(transaction.tokenOwnerAddress);
+          acc.sources.push(transaction.from);
+          acc.destinations.push(transaction.to);
+          acc.values.push(transaction.value.toString());
+
+          return acc;
+        },
+        {
+          tokenOwners: [],
+          sources: [],
+          destinations: [],
+          values: [],
+        },
+      );
+
+      const txData = await hub.methods
+        .transferThrough(
+          transfer.tokenOwners,
+          transfer.sources,
+          transfer.destinations,
+          transfer.values,
+        )
         .encodeABI();
 
       return await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
-        to: tokenAddress,
+        to: hub.options.address,
         txData,
       });
     },

@@ -1,9 +1,13 @@
 import loop from './loop';
 import web3 from './web3';
 
+let counter = 0;
+
 export default async function deploySafe(core, account) {
+  counter += 1;
+
   const safeAddress = await core.safe.prepareDeploy(account, {
-    nonce: new Date().getTime(),
+    nonce: parseInt(`${counter}${Math.round(Math.random() * 10000)}`, 10),
   });
 
   await core.safe.deploy(account, {

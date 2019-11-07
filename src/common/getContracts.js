@@ -1,6 +1,6 @@
-import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/contracts/GnosisSafe.json';
+import GnosisSafeContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
 import HubContract from 'circles-contracts/build/contracts/Hub.json';
-import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/contracts/ProxyFactory.json';
+import ProxyFactoryContract from '@circles/safe-contracts/build/contracts/ProxyFactory.json';
 import TokenContract from 'circles-contracts/build/contracts/Token.json';
 
 /**
