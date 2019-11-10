@@ -23,10 +23,16 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 * web3.js
 * Python 2.7
 
+## Installation
+
+```
+npm i @circles/core
+```
+
 ## Usage
 
 ```js
-import CirclesCore from 'circles-core';
+import CirclesCore from '@circles/core';
 import Web3 from 'web3';
 
 const web3 = new Web3();
