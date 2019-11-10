@@ -71,6 +71,10 @@ export default function createTrustModule(web3, contracts, utils) {
           const from = web3.utils.toChecksumAddress(connection.from.id);
           const to = web3.utils.toChecksumAddress(connection.to.id);
 
+          if (from === to) {
+            return acc;
+          }
+
           if (from === options.safeAddress) {
             acc.push({
               isTrustedByMe: true,

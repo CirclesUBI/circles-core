@@ -210,6 +210,12 @@ export async function getNetwork(web3, utils, userOptions) {
     const senderSafeAddress = connection.from;
     const receiverSafeAddress = connection.to;
 
+    // Ignore connections where we trust ourselves
+    if (senderSafeAddress === receiverSafeAddress) {
+      return acc;
+    }
+
+    // Get the receivers Safe
     const receiverSafe = findSafe(receiverSafeAddress);
 
     if (!receiverSafe) {
