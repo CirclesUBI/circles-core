@@ -17,11 +17,12 @@ function checkArrayEntries(arr, validatorFn) {
  * Username resolver submodule to register and find usernames.
  *
  * @param {Web3} web3 - Web3 instance
+ * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
  *
  * @return {Object} - user module instance
  */
-export default function createUserModule(web3, utils) {
+export default function createUserModule(web3, contracts, utils) {
   return {
     /**
      * Register a new username and connect it to a Safe address.

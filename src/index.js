@@ -68,11 +68,15 @@ export default class CirclesCore {
     this.utils = createUtilsModule(web3, this.contracts, this.options);
 
     // Create submodules and pass utils and options to them
-    /** @type {Object} - safe module */
+    /** @type {Object} - activity module */
     this.activity = createActivityModule(web3, this.contracts, this.utils);
+    /** @type {Object} - safe module */
     this.safe = createSafeModule(web3, this.contracts, this.utils);
+    /** @type {Object} - token module */
     this.token = createTokenModule(web3, this.contracts, this.utils);
+    /** @type {Object} - trust module */
     this.trust = createTrustModule(web3, this.contracts, this.utils);
-    this.user = createUserModule(web3, this.utils);
+    /** @type {Object} - user module */
+    this.user = createUserModule(web3, this.contracts, this.utils);
   }
 }
