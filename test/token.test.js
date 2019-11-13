@@ -27,7 +27,7 @@ beforeAll(async () => {
 async function deploySafeAndToken(account) {
   const safeAddress = await deploySafe(core, account);
 
-  await core.token.signup(account, {
+  await core.token.deploy(account, {
     safeAddress,
   });
 

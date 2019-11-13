@@ -436,7 +436,7 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @return {string} - transaction hash
      */
-    signup: async (account, userOptions) => {
+    deploy: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {

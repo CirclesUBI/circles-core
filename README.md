@@ -102,7 +102,7 @@ if (!isTrusted) {
   await core.safe.deploy(account, { safeAddress });
 
   // Deploy Circles Token
-  await core.token.signup(account, { safeAddress });
+  await core.token.deploy(account, { safeAddress });
 }
 
 // Change trust state with users

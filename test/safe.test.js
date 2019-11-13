@@ -37,7 +37,7 @@ describe('Safe', () => {
       await loop(() => web3.eth.getCode(safeAddress));
 
       // Deploy Token as well to pay our fees later
-      await core.token.signup(account, {
+      await core.token.deploy(account, {
         safeAddress,
       });
 

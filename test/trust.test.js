@@ -21,11 +21,11 @@ describe('Trust', () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 
-    await core.token.signup(account, {
+    await core.token.deploy(account, {
       safeAddress,
     });
 
-    await core.token.signup(otherAccount, {
+    await core.token.deploy(otherAccount, {
       safeAddress: otherSafeAddress,
     });
   });
