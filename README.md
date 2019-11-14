@@ -32,7 +32,7 @@ npm i @circles/core
 ## Usage
 
 ```js
-import CirclesCore from '@circles/core';
+import CirclesCore, { ActivityTypes } from '@circles/core';
 import Web3 from 'web3';
 
 const web3 = new Web3();
@@ -118,7 +118,7 @@ await core.trust.addConnection(account, {
 });
 
 // Get list of my activities
-const activities = await core.activity.getActivities(account, {
+const { activities } = await core.activity.getLatest(account, {
   safeAddress,
 });
 
@@ -126,16 +126,16 @@ const activities = await core.activity.getActivities(account, {
 activities.forEach(activity => {
   const { timestamp, type, data } = activity;
 
-  if (type === 'transfer') {
-    console.log(`${timestamp} - ${data.from} transferred ${data.value} Circles to ${data.to} through ${data.through} users`);
-  } else if (type === 'addConnection') {
+  if (type === ActivityTypes.TRANSFER) {
+    console.log(`${timestamp} - ${data.from} transferred ${data.value.toString()} Circles to ${data.to}`);
+  } else if (type === ActivityTypes.ADD_CONNECTION) {
     console.log(`${timestamp} - ${data.limitPercentage} ${data.from} trusted ${data.to}`);
-  } else if (type === 'removeConnection') {
+  } else if (type === ActivityTypes.REMOVE_CONNECTION) {
     console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
-  } else if (type === 'addOwner') {
-    console.log(`${timestamp} - ${data.from} added ${data.ownerAddress} to ${data.safeAddress}`);
-  } else if (type === 'removeOwner') {
-    console.log(`${timestamp} - ${data.from} removed ${data.ownerAddress} from ${data.safeAddress}`);
+  } else if (type === ActivityTypes.ADD_OWNER) {
+    console.log(`${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`);
+  } else if (type === ActivityTypes.REMOVE_OWNER) {
+    console.log(`${timestamp} - removed ${data.ownerAddress} from ${data.safeAddress}`);
   }
 });
 

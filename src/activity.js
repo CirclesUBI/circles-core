@@ -1,6 +1,19 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
+const DEFAULT_TIMESTAMP = 0;
+
+export const ActivityTypes = [
+  'ADD_CONNECTION',
+  'REMOVE_CONNECTION',
+  'ADD_OWNER',
+  'REMOVE_OWNER',
+  'TRANSFER',
+].reduce((acc, type) => {
+  acc[type] = Symbol(type);
+  return acc;
+}, {});
+
 /**
  * Activity submodule to get latest log events.
  *
@@ -10,7 +23,6 @@ import checkOptions from '~/common/checkOptions';
  *
  * @return {Object} - activity module instance
  */
-// eslint-disable-next-line no-unused-vars
 export default function createActivityModule(web3, contracts, utils) {
   return {
     /**
@@ -22,18 +34,130 @@ export default function createActivityModule(web3, contracts, utils) {
      *
      * @return {Object} List of latest activities
      */
-    getActivities: async (account, userOptions) => {
+    getLatest: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      // eslint-disable-next-line no-unused-vars
       const options = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
+        timestamp: {
+          type: 'number',
+          default: DEFAULT_TIMESTAMP,
+        },
       });
 
-      // @TODO: Implement this when Caching Service is ready.
-      throw new Error('Not implemented');
+      const filter = `
+          orderBy: "time",
+          where: {
+            time_gt: ${options.timestamp},
+            safe: "${options.safeAddress.toLowerCase()}"
+          }
+      `;
+
+      const response = await utils.requestGraph({
+        query: `{
+          notifications(${filter}) {
+            id
+            transactionHash
+            safe {
+              id
+            }
+            type
+            time
+            trust {
+              from
+              to
+              limitPercentage
+            }
+            transfer {
+              from
+              to
+              amount
+            }
+            ownership {
+              adds
+              removes
+            }
+          }
+        }`,
+      });
+
+      if (!response.notifications || response.notifications.length === 0) {
+        return {
+          activities: [],
+          lastTimestamp: DEFAULT_TIMESTAMP,
+        };
+      }
+
+      const activities = response.notifications.reduce((acc, notification) => {
+        const timestamp = parseInt(notification.time, 10);
+        let data;
+        let type;
+
+        if (notification.type === 'OWNERSHIP') {
+          const { adds, removes } = notification.ownership;
+
+          type = adds ? ActivityTypes.ADD_OWNER : ActivityTypes.REMOVE_OWNER;
+
+          data = {
+            ownerAddress: adds ? adds : removes,
+            safeAddress: options.safeAddress,
+          };
+
+          data.ownerAddress = web3.utils.toChecksumAddress(data.ownerAddress);
+        } else if (notification.type === 'TRANSFER') {
+          const { from, to, amount } = notification.transfer;
+
+          type = ActivityTypes.TRANSFER;
+
+          data = {
+            from: web3.utils.toChecksumAddress(from),
+            to: web3.utils.toChecksumAddress(to),
+            value: new web3.utils.BN(amount),
+          };
+        } else if (notification.type === 'TRUST') {
+          const { from, to, limitPercentage } = notification.trust;
+
+          if (limitPercentage === '0') {
+            type = ActivityTypes.REMOVE_CONNECTION;
+          } else {
+            type = ActivityTypes.ADD_CONNECTION;
+          }
+
+          data = {
+            from: web3.utils.toChecksumAddress(from),
+            to: web3.utils.toChecksumAddress(to),
+            limitPercentage: parseInt(limitPercentage, 10),
+          };
+        } else {
+          // Unknown notification type, ignore it
+          return acc;
+        }
+
+        // Filter trust events which are related to ourselves
+        if (type === ActivityTypes.ADD_CONNECTION && data.from === data.to) {
+          return acc;
+        }
+
+        const { transactionHash } = notification;
+
+        acc.push({
+          data,
+          timestamp,
+          transactionHash,
+          type,
+        });
+
+        return acc;
+      }, []);
+
+      const lastActivity = activities[activities.length - 1];
+
+      return {
+        activities,
+        lastTimestamp: lastActivity.timestamp,
+      };
     },
   };
 }
