@@ -1,26 +1,13 @@
+import CoreError, { RequestError, ErrorCodes } from '~/common/error';
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
-import CoreErrorType, {
-  RequestError as RequestErrorType,
-  ErrorCodes as ErrorCodesList,
-} from '~/common/error';
-
-import createActivityModule, {
-  ActivityTypes as ActivityTypesList,
-} from '~/activity';
-
+import createActivityModule from '~/activity';
 import createSafeModule from '~/safe';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
-
-export const ActivityTypes = ActivityTypesList;
-
-export const CoreError = CoreErrorType;
-export const RequestError = RequestErrorType;
-export const ErrorCodes = ErrorCodesList;
 
 /**
  * Base class of CirclesCore.
@@ -72,6 +59,14 @@ export default class CirclesCore {
         type: 'string',
       },
     });
+
+    // Expose error classes and constants
+    /** @type {Error} - main error class */
+    this.CoreError = CoreError;
+    /** @type {Error} - network request error class */
+    this.RequestError = RequestError;
+    /** @type {Object} - error code constants */
+    this.ErrorCodes = ErrorCodes;
 
     // Create contracts once
     /** @type {Object} - smart contract instances */

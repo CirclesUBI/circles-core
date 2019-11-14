@@ -32,13 +32,7 @@ npm i @circles/core
 ## Usage
 
 ```js
-import CirclesCore, {
-  ActivityTypes,
-  CoreError,
-  ErrorCodes,
-  RequestError,
-} from '@circles/core';
-
+import CirclesCore from '@circles/core';
 import Web3 from 'web3';
 
 const web3 = new Web3();
@@ -129,6 +123,8 @@ const { activities } = await core.activity.getLatest(account, {
 });
 
 // Example: Display activities
+const { ActivityTypes } = core.activity;
+
 activities.forEach(activity => {
   const { timestamp, type, data } = activity;
 

@@ -4,7 +4,7 @@ import createSymbolObject from '~/common/createSymbolObject';
 
 const DEFAULT_TIMESTAMP = 0;
 
-export const ActivityTypes = createSymbolObject([
+const ActivityTypes = createSymbolObject([
   'ADD_CONNECTION',
   'REMOVE_CONNECTION',
   'ADD_OWNER',
@@ -23,6 +23,11 @@ export const ActivityTypes = createSymbolObject([
  */
 export default function createActivityModule(web3, contracts, utils) {
   return {
+    /**
+     * Activity type constants.
+     */
+    ActivityTypes,
+
     /**
      * Get the last activities of a user.
      *

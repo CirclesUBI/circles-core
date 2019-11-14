@@ -1,5 +1,3 @@
-import { ActivityTypes } from '~';
-
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
 import web3 from './helpers/web3';
@@ -97,7 +95,7 @@ describe('Activity', () => {
     const findOwnerActivity = accountAddress => {
       return latest.activities.find(({ type, data }) => {
         return (
-          type === ActivityTypes.ADD_OWNER &&
+          type === core.activity.ActivityTypes.ADD_OWNER &&
           data.safeAddress === safeAddress &&
           data.ownerAddress === accountAddress
         );
@@ -122,7 +120,7 @@ describe('Activity', () => {
   it('returns the first added owner event', async () => {
     const activity = activities.find(({ type, data }) => {
       return (
-        type === ActivityTypes.ADD_OWNER &&
+        type === core.activity.ActivityTypes.ADD_OWNER &&
         data.safeAddress === safeAddress &&
         data.ownerAddress === account.address
       );
@@ -134,7 +132,7 @@ describe('Activity', () => {
   it('returns the second added owner event', async () => {
     const activity = activities.find(({ type, data }) => {
       return (
-        type === ActivityTypes.ADD_OWNER &&
+        type === core.activity.ActivityTypes.ADD_OWNER &&
         data.safeAddress === safeAddress &&
         data.ownerAddress === secondOwnerAccount.address
       );
@@ -146,7 +144,7 @@ describe('Activity', () => {
   it('returns the trust event for both Safes', async () => {
     const query = ({ type, data }) => {
       return (
-        type === ActivityTypes.ADD_CONNECTION &&
+        type === core.activity.ActivityTypes.ADD_CONNECTION &&
         data.from === otherSafeAddress &&
         data.to === safeAddress
       );
@@ -159,7 +157,7 @@ describe('Activity', () => {
   it('returns the transfer event for both Safes', async () => {
     const query = ({ type, data }) => {
       return (
-        type === ActivityTypes.TRANSFER &&
+        type === core.activity.ActivityTypes.TRANSFER &&
         data.from === safeAddress &&
         data.to === otherSafeAddress
       );
