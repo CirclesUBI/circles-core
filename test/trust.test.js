@@ -1,8 +1,8 @@
-import createCore from './helpers/createCore';
-import deploySafe from './helpers/deploySafe';
-import getAccount from './helpers/getAccount';
-import loop, { getTrustConnection } from './helpers/loop';
+import createCore from './helpers/core';
+import getAccount from './helpers/account';
+import loop, { getTrustConnection, isReady } from './helpers/loop';
 import web3 from './helpers/web3';
+import { deploySafe, deployToken } from './helpers/transactions';
 
 let account;
 let otherAccount;
@@ -21,13 +21,8 @@ describe('Trust', () => {
     safeAddress = await deploySafe(core, account);
     otherSafeAddress = await deploySafe(core, otherAccount);
 
-    await core.token.deploy(account, {
-      safeAddress,
-    });
-
-    await core.token.deploy(otherAccount, {
-      safeAddress: otherSafeAddress,
-    });
+    await deployToken(core, account, { safeAddress });
+    await deployToken(core, otherAccount, { safeAddress: otherSafeAddress });
   });
 
   it('should trust someone', async () => {
@@ -39,28 +34,22 @@ describe('Trust', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const connection = await loop(
-      () => {
-        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
-      },
-      connection => connection,
-    );
+    const connection = await loop(() => {
+      return getTrustConnection(core, account, safeAddress, otherSafeAddress);
+    }, isReady);
 
     expect(connection.isTrustedByMe).toBe(true);
     expect(connection.isTrustingMe).toBe(false);
     expect(connection.limitPercentageTo).toBe(44);
 
-    const otherConnection = await loop(
-      () => {
-        return getTrustConnection(
-          core,
-          otherAccount,
-          otherSafeAddress,
-          safeAddress,
-        );
-      },
-      connection => connection,
-    );
+    const otherConnection = await loop(() => {
+      return getTrustConnection(
+        core,
+        otherAccount,
+        otherSafeAddress,
+        safeAddress,
+      );
+    }, isReady);
 
     expect(otherConnection.isTrustedByMe).toBe(false);
     expect(otherConnection.isTrustingMe).toBe(true);

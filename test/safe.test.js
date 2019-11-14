@@ -1,5 +1,5 @@
-import createCore from './helpers/createCore';
-import getAccount from './helpers/getAccount';
+import createCore from './helpers/core';
+import getAccount from './helpers/account';
 import loop from './helpers/loop';
 import web3 from './helpers/web3';
 

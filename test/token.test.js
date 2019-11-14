@@ -1,12 +1,11 @@
-import createCore from './helpers/createCore';
-import deploySafe from './helpers/deploySafe';
-import getAccount from './helpers/getAccount';
-import loop, { getTrustConnection } from './helpers/loop';
-import web3 from './helpers/web3';
-
 import createUtilsModule from '~/utils';
 import { findTransitiveTransactions, getNetwork } from '~/token';
-import { fromFreckles, toFreckles } from '~/common/convert';
+
+import createCore from './helpers/core';
+import getAccount from './helpers/account';
+import loop, { isReady } from './helpers/loop';
+import web3 from './helpers/web3';
+import { deploySafeAndToken, addTrustConnection } from './helpers/transactions';
 
 let core;
 let utils;
@@ -24,34 +23,17 @@ beforeAll(async () => {
   utils = createUtilsModule(web3, core.contracts, core.options);
 });
 
-async function deploySafeAndToken(account) {
-  const safeAddress = await deploySafe(core, account);
-
-  await core.token.deploy(account, {
-    safeAddress,
-  });
-
-  const tokenAddress = await core.token.getAddress(account, {
-    safeAddress,
-  });
-
-  safeAddresses.push(safeAddress);
-  tokenAddresses.push(tokenAddress);
-}
-
-async function createTrustConnection([indexFrom, indexTo, limitPercentage]) {
-  await core.trust.addConnection(accounts[indexFrom], {
-    from: safeAddresses[indexFrom],
-    to: safeAddresses[indexTo],
-    limitPercentage,
-  });
-}
-
 describe('Token', () => {
   beforeAll(async () => {
     // Deploy Safe and Token for each test account
     for (const account of accounts) {
-      await deploySafeAndToken(account);
+      const { safeAddress, tokenAddress } = await deploySafeAndToken(
+        core,
+        account,
+      );
+
+      safeAddresses.push(safeAddress);
+      tokenAddresses.push(tokenAddress);
     }
 
     // Create trust connections
@@ -70,21 +52,12 @@ describe('Token', () => {
     ];
 
     for (const connection of connections) {
-      await createTrustConnection(connection);
+      await addTrustConnection(core, accounts[connection[0]], {
+        from: safeAddresses[connection[0]],
+        to: safeAddresses[connection[1]],
+        limitPercentage: connection[2],
+      });
     }
-
-    // .. wait until the last trust connection was created ...
-    await loop(
-      () => {
-        return getTrustConnection(
-          core,
-          accounts[4],
-          safeAddresses[4],
-          safeAddresses[1],
-        );
-      },
-      connection => connection,
-    );
   });
 
   it('should get the current balance', async () => {
@@ -94,11 +67,13 @@ describe('Token', () => {
 
     // It should be equals the initial UBI payout
     // which was set during Hub contract deployment:
-    expect(balance).toMatchObject(new web3.utils.BN(toFreckles(web3, 100)));
+    expect(balance).toMatchObject(
+      new web3.utils.BN(core.utils.toFreckles(100)),
+    );
   });
 
   it('should send Circles to someone directly', async () => {
-    const value = web3.utils.toBN(toFreckles(web3, 5));
+    const value = web3.utils.toBN(core.utils.toFreckles(5));
 
     // Unidirectional trust relationship from 2 to 5
     const indexFrom = 5;
@@ -115,7 +90,7 @@ describe('Token', () => {
   });
 
   it('should send Circles to someone transitively', async () => {
-    const value = web3.utils.toBN(toFreckles(web3, 5));
+    const value = web3.utils.toBN(core.utils.toFreckles(5));
     const indexFrom = 0;
     const indexTo = 4;
 
@@ -150,7 +125,7 @@ describe('Token', () => {
       core.token.transfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(toFreckles(web3, '100')),
+        value: web3.utils.toBN(core.utils.toFreckles('100')),
       }),
     ).rejects.toThrow();
 
@@ -167,22 +142,19 @@ describe('Token', () => {
 
   describe('getNetwork', () => {
     it('should return the correct trust network', async () => {
-      const connection = await loop(
-        async () => {
-          const network = await getNetwork(web3, utils, {
-            from: safeAddresses[0],
-            to: safeAddresses[4],
-            networkHops: 3,
-          });
+      const connection = await loop(async () => {
+        const network = await getNetwork(web3, utils, {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          networkHops: 3,
+        });
 
-          return network.find(({ from, to }) => {
-            return from === safeAddresses[2] && to === safeAddresses[1];
-          });
-        },
-        connection => connection,
-      );
+        return network.find(({ from, to }) => {
+          return from === safeAddresses[2] && to === safeAddresses[1];
+        });
+      }, isReady);
 
-      expect(connection.limit).toBe(toFreckles(web3, 10));
+      expect(connection.limit).toBe(core.utils.toFreckles(10));
     });
   });
 
@@ -218,7 +190,9 @@ describe('Token', () => {
       ];
 
       network.map(connection => {
-        connection.limit = web3.utils.toBN(toFreckles(web3, connection.limit));
+        connection.limit = web3.utils.toBN(
+          core.utils.toFreckles(connection.limit),
+        );
 
         connection.tokenAddress = web3.utils.toChecksumAddress(
           web3.utils.randomHex(20),
@@ -229,10 +203,10 @@ describe('Token', () => {
     });
 
     it('should fail when max-flow is too small', () => {
-      const value = new web3.utils.BN(toFreckles(web3, 100));
+      const value = new web3.utils.BN(core.utils.toFreckles(100));
 
       expect(() => {
-        findTransitiveTransactions(web3, {
+        findTransitiveTransactions(web3, core.utils, {
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
           value,
@@ -245,10 +219,10 @@ describe('Token', () => {
       for (let i = 0; i < 10; i += 1) {
         const value = 1 + Math.round(Math.random() * 27);
 
-        const path = findTransitiveTransactions(web3, {
+        const path = findTransitiveTransactions(web3, core.utils, {
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
-          value: new web3.utils.BN(toFreckles(web3, value)),
+          value: new web3.utils.BN(core.utils.toFreckles(value)),
           network,
         });
 
@@ -260,8 +234,8 @@ describe('Token', () => {
           const indexFrom = nodes.indexOf(transaction.from);
           const indexTo = nodes.indexOf(transaction.to);
 
-          balances[indexFrom] -= fromFreckles(web3, transaction.value);
-          balances[indexTo] += fromFreckles(web3, transaction.value);
+          balances[indexFrom] -= core.utils.fromFreckles(transaction.value);
+          balances[indexTo] += core.utils.fromFreckles(transaction.value);
         });
 
         expect(balances[INDEX_RECEIVER]).toBe(value);

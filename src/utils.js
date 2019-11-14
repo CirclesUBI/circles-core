@@ -172,6 +172,29 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   return {
     /**
+     * Convert to fractional monetary unit of Circles
+     * named Freckles.
+     *
+     * @param {string|number} value - value in Circles
+     *
+     * @return {string} - value in Freckles
+     */
+    toFreckles: value => {
+      return web3.utils.toWei(`${value}`, 'ether');
+    },
+
+    /**
+     * Convert from Freckles to Circles number.
+     *
+     * @param {string|number} value - value in Freckles
+     *
+     * @return {number} - value in Circles
+     */
+    fromFreckles: value => {
+      return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
+    },
+
+    /**
      * Send an API request to the Gnosis Relayer.
      *
      * @param {Object} userOptions - request options

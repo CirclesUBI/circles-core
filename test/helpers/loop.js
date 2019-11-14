@@ -4,17 +4,21 @@ export function isContractDeployed(code) {
   return code !== '0x';
 }
 
+export function isReady(value) {
+  return value;
+}
+
 export async function getTrustConnection(
   core,
-  checkAccount,
-  checkSafeAddress,
-  checkOtherSafeAddress,
+  account,
+  safeAddress,
+  otherSafeAddress,
 ) {
-  const network = await core.trust.getNetwork(checkAccount, {
-    safeAddress: checkSafeAddress,
+  const network = await core.trust.getNetwork(account, {
+    safeAddress,
   });
 
-  return network.find(item => item.safeAddress === checkOtherSafeAddress);
+  return network.find(item => item.safeAddress === otherSafeAddress);
 }
 
 export default async function loop(request, condition = isContractDeployed) {

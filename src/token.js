@@ -3,7 +3,6 @@ import { ZERO_ADDRESS } from '~/common/constants';
 import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-import { fromFreckles, toFreckles } from '~/common/convert';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
 const DEFAULT_TRUST_NETWORK_HOPS = 4;
@@ -282,7 +281,7 @@ export async function getNetwork(web3, utils, userOptions) {
  *
  * @return {Object[]} - transaction steps
  */
-export function findTransitiveTransactions(web3, userOptions) {
+export function findTransitiveTransactions(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -325,7 +324,7 @@ export function findTransitiveTransactions(web3, userOptions) {
   // Create weighted edges in the graph based
   // on trust connections and flow limits
   network.forEach(connection => {
-    const flow = fromFreckles(web3, connection.limit);
+    const flow = utils.fromFreckles(connection.limit);
     const indexFrom = nodes.indexOf(connection.from);
     const indexTo = nodes.indexOf(connection.to);
 
@@ -340,8 +339,7 @@ export function findTransitiveTransactions(web3, userOptions) {
   const indexReceiver = nodes.indexOf(options.to);
 
   const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
-
-  const maximumFlowWei = new web3.utils.BN(toFreckles(web3, maximumFlow.value));
+  const maximumFlowWei = new web3.utils.BN(utils.toFreckles(maximumFlow.value));
 
   if (options.value.gt(maximumFlowWei)) {
     throw new Error('Could not find possible transaction path');
@@ -392,7 +390,7 @@ export function findTransitiveTransactions(web3, userOptions) {
       path.concat(innerPath);
 
       if (!edge.isVisited && edgeFlow > 0) {
-        const value = new web3.utils.BN(toFreckles(web3, edgeFlow));
+        const value = new web3.utils.BN(utils.toFreckles(edgeFlow));
 
         path.push({
           from: nodes[edge.v],
@@ -410,7 +408,7 @@ export function findTransitiveTransactions(web3, userOptions) {
     return path;
   };
 
-  return traversePath(indexReceiver, fromFreckles(web3, options.value));
+  return traversePath(indexReceiver, utils.fromFreckles(options.value));
 }
 
 /**
@@ -573,7 +571,7 @@ export default function createTokenModule(web3, contracts, utils) {
       const network = await getNetwork(web3, utils, options);
 
       // Calculate transactions for transitive payment
-      const transactions = findTransitiveTransactions(web3, {
+      const transactions = findTransitiveTransactions(web3, utils, {
         ...options,
         network,
       });

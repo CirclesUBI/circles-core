@@ -1,6 +1,6 @@
 import CirclesCore from '~';
 
-import createCore from './helpers/createCore';
+import createCore from './helpers/core';
 
 let core;
 
