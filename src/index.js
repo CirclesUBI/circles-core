@@ -1,12 +1,17 @@
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
-import createActivityModule from '~/activity';
+import createActivityModule, {
+  ActivityTypes as ActivityTypesList,
+} from '~/activity';
+
 import createSafeModule from '~/safe';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
+
+export const ActivityTypes = ActivityTypesList;
 
 /**
  * Base class of CirclesCore.
