@@ -23,10 +23,17 @@ export default class CoreError extends Error {
 }
 
 export class RequestError extends CoreError {
-  constructor(httpBody, httpStatusCode, ...args) {
-    super('Request failed', ErrorCodes.FAILED_REQUEST, ...args);
+  constructor(url, body, status, ...args) {
+    super(
+      `Request failed @ ${url} with error ${status}`,
+      ErrorCodes.FAILED_REQUEST,
+      ...args,
+    );
 
-    this.httpBody = httpBody;
-    this.httpStatusCode = httpStatusCode;
+    this.request = {
+      url,
+      body,
+      status,
+    };
   }
 }

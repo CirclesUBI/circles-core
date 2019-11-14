@@ -55,21 +55,21 @@ async function request(endpoint, userOptions) {
       if (contentType && contentType.includes('application/json')) {
         return response.json().then(json => {
           if (response.status >= 400) {
-            throw new RequestError(json, response.status);
+            throw new RequestError(url, json, response.status);
           }
 
           return json;
         });
       } else {
         if (response.status >= 400) {
-          throw new RequestError(response.body, response.status);
+          throw new RequestError(url, response.body, response.status);
         }
 
         return response.body;
       }
     });
   } catch (err) {
-    throw new RequestError(err.message);
+    throw new RequestError(url, err.message);
   }
 }
 
