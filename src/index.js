@@ -1,6 +1,11 @@
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
+import CoreErrorType, {
+  RequestError as RequestErrorType,
+  ErrorCodes as ErrorCodesList,
+} from '~/common/error';
+
 import createActivityModule, {
   ActivityTypes as ActivityTypesList,
 } from '~/activity';
@@ -12,6 +17,10 @@ import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
 export const ActivityTypes = ActivityTypesList;
+
+export const CoreError = CoreErrorType;
+export const RequestError = RequestErrorType;
+export const ErrorCodes = ErrorCodesList;
 
 /**
  * Base class of CirclesCore.
@@ -31,8 +40,8 @@ export default class CirclesCore {
    */
   constructor(web3, options) {
     // Check web3 instance
-    if (!web3) {
-      throw new Error('Web3 instance missing');
+    if (!web3 || !web3.version) {
+      throw new CoreError('Web3 instance missing');
     }
 
     /** @type {Web3} - instance of Web3 */

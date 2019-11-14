@@ -1,5 +1,6 @@
 import { ZERO_ADDRESS } from '~/common/constants';
 
+import CoreError, { ErrorCodes } from '~/common/error';
 import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
@@ -140,7 +141,10 @@ export async function getNetwork(web3, utils, userOptions) {
     });
 
     if (!response.safe) {
-      throw new Error(`Could not find Safe with address ${safeAddress}`);
+      throw new CoreError(
+        `Could not find Safe with address ${safeAddress}`,
+        ErrorCodes.SAFE_NOT_FOUND,
+      );
     }
 
     // Parse all received data when we haven't done this yet
@@ -200,7 +204,10 @@ export async function getNetwork(web3, utils, userOptions) {
   await hop([options.from]);
 
   if (!isReceiverFound) {
-    throw new Error('Receiver is not in reach within senders trust network');
+    throw new CoreError(
+      'Receiver is not in reach within senders trust network',
+      ErrorCodes.NETWORK_TOO_SMALL,
+    );
   }
 
   // Find tokens for each connection we can actually use
@@ -314,7 +321,10 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   }, []);
 
   if (nodes.length === 0) {
-    throw new Error('No nodes given in trust graph');
+    throw new CoreError(
+      'No nodes given in trust graph',
+      ErrorCodes.NETWORK_TOO_SMALL,
+    );
   }
 
   // Create graph with nodes labelled after
@@ -342,7 +352,10 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   const maximumFlowWei = new web3.utils.BN(utils.toFreckles(maximumFlow.value));
 
   if (options.value.gt(maximumFlowWei)) {
-    throw new Error('Could not find possible transaction path');
+    throw new CoreError(
+      'Could not find possible transaction path',
+      ErrorCodes.NETWORK_NO_PATH,
+    );
   }
 
   // We found a possible way! Traverse flow graph backwards
@@ -515,7 +528,10 @@ export default function createTokenModule(web3, contracts, utils) {
       });
 
       if (!response.safe) {
-        throw new Error(`Could not find Safe with address ${safeAddress}`);
+        throw new CoreError(
+          `Could not find Safe with address ${safeAddress}`,
+          ErrorCodes.SAFE_NOT_FOUND,
+        );
       }
 
       // Return only the balance of a particular token

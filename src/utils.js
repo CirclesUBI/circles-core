@@ -2,6 +2,7 @@ import fetch from 'isomorphic-fetch';
 
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 
+import CoreError, { RequestError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import parameterize from '~/common/parameterize';
@@ -49,22 +50,26 @@ async function request(endpoint, userOptions) {
 
   try {
     return fetch(url, request).then(response => {
-      if (response.status >= 400) {
-        throw new Error(`Request failed with error ${response.status}`);
-      }
-
       const contentType = response.headers.get('Content-Type');
 
       if (contentType && contentType.includes('application/json')) {
         return response.json().then(json => {
+          if (response.status >= 400) {
+            throw new RequestError(json, response.status);
+          }
+
           return json;
         });
       } else {
+        if (response.status >= 400) {
+          throw new RequestError(response.body, response.status);
+        }
+
         return response.body;
       }
     });
   } catch (err) {
-    throw new Error(err);
+    throw new RequestError(err.message);
   }
 }
 
@@ -253,8 +258,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const tokenAddress = await hub.methods.userToToken(safeAddress).call();
 
       if (tokenAddress === ZERO_ADDRESS) {
-        throw new Error(
+        throw new CoreError(
           'Invalid Token address. Did you forget to deploy the Token?',
+          ErrorCodes.TOKEN_NOT_FOUND
         );
       }
 

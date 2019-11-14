@@ -1,3 +1,4 @@
+import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
@@ -55,7 +56,10 @@ export default function createTrustModule(web3, contracts, utils) {
       });
 
       if (response.safe === null) {
-        throw new Error(`Safe not found at address ${options.safeAddress}`);
+        throw new CoreError(
+          `Safe not found at address ${options.safeAddress}`,
+          ErrorCodes.SAFE_NOT_FOUND,
+        );
       }
 
       return []

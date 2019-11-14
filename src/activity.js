@@ -1,18 +1,16 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
+import createSymbolObject from '~/common/createSymbolObject';
 
 const DEFAULT_TIMESTAMP = 0;
 
-export const ActivityTypes = [
+export const ActivityTypes = createSymbolObject([
   'ADD_CONNECTION',
   'REMOVE_CONNECTION',
   'ADD_OWNER',
   'REMOVE_OWNER',
   'TRANSFER',
-].reduce((acc, type) => {
-  acc[type] = Symbol(type);
-  return acc;
-}, {});
+]);
 
 /**
  * Activity submodule to get latest log events.

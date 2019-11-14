@@ -1,4 +1,4 @@
-import CirclesCore from '~';
+import CirclesCore, { CoreError } from '~';
 
 import createCore from './helpers/core';
 
@@ -16,6 +16,6 @@ describe('CirclesCore', () => {
   it('should throw an error when missing options', () => {
     expect(() => {
       new CirclesCore({});
-    }).toThrow();
+    }).toThrow(CoreError);
   });
 });

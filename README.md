@@ -32,7 +32,13 @@ npm i @circles/core
 ## Usage
 
 ```js
-import CirclesCore, { ActivityTypes } from '@circles/core';
+import CirclesCore, {
+  ActivityTypes,
+  CoreError,
+  ErrorCodes,
+  RequestError,
+} from '@circles/core';
+
 import Web3 from 'web3';
 
 const web3 = new Web3();

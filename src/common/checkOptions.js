@@ -1,3 +1,5 @@
+import CoreError, { ErrorCodes } from '~/common/error';
+
 const DEFAULT_TYPE = 'string';
 
 const validators = {
@@ -29,7 +31,7 @@ const validators = {
  */
 export default function checkOptions(options, fields) {
   if (!options || typeof options !== 'object') {
-    throw new Error('Options missing');
+    throw new CoreError('Options missing', ErrorCodes.INVALID_OPTIONS);
   }
 
   return Object.keys(fields).reduce((acc, key) => {
@@ -42,19 +44,28 @@ export default function checkOptions(options, fields) {
       fields[key] && 'default' in fields[key] ? fields[key].default : null;
 
     if (defaultValue !== null && !validatorFn(defaultValue)) {
-      throw new Error(`Field "${key}" has invalid default type`);
+      throw new CoreError(
+        `Field "${key}" has invalid default type`,
+        ErrorCodes.INVALID_OPTIONS,
+      );
     }
 
     if (!(key in options) || typeof options[key] === 'undefined') {
       if (defaultValue === null) {
-        throw new Error(`"${key}" is missing in options`);
+        throw new CoreError(
+          `"${key}" is missing in options`,
+          ErrorCodes.INVALID_OPTIONS,
+        );
       }
 
       acc[key] = defaultValue;
     } else if (validatorFn(options[key])) {
       acc[key] = options[key];
     } else {
-      throw new Error(`"${key}" has invalid type`);
+      throw new CoreError(
+        `"${key}" has invalid type`,
+        ErrorCodes.INVALID_OPTIONS,
+      );
     }
 
     return acc;
