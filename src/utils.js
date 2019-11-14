@@ -260,7 +260,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       if (tokenAddress === ZERO_ADDRESS) {
         throw new CoreError(
           'Invalid Token address. Did you forget to deploy the Token?',
-          ErrorCodes.TOKEN_NOT_FOUND
+          ErrorCodes.TOKEN_NOT_FOUND,
         );
       }
 
