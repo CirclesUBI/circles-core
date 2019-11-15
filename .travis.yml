@@ -40,6 +40,9 @@ before_install:
   - make contracts
   - make subgraph
 
+  # try starting failed services
+  - make up
+
   # copy core configs
   - cd $TRAVIS_BUILD_DIR
   - cp .env.example .env
