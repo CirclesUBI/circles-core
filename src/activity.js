@@ -34,6 +34,7 @@ export default function createActivityModule(web3, contracts, utils) {
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
+     * @param {number} userOptions.timestamp - show only messages after this time
      *
      * @return {Object} List of latest activities
      */
