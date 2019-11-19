@@ -248,13 +248,13 @@ export async function getNetwork(web3, utils, userOptions) {
         );
       });
 
-      // @TODO: We can do this better ..
-      const limit = web3.utils.BN.min(
-        web3.utils.toBN(tokenConnection.limit),
-        web3.utils.toBN(receiverToken.balance),
-      );
-
       if (tokenConnection) {
+        // @TODO: We can do this better ..
+        const limit = web3.utils.BN.min(
+          web3.utils.toBN(tokenConnection.limit),
+          web3.utils.toBN(receiverToken.balance),
+        );
+
         tokenAcc.push({
           limit,
           limitPercentage: tokenConnection.limitPercentage,
