@@ -236,16 +236,27 @@ export async function getNetwork(web3, utils, userOptions) {
       const token = findToken(receiverToken.address);
 
       const tokenConnection = connections.find(trustConnection => {
+        const limit = web3.utils.BN.min(
+          web3.utils.toBN(trustConnection.limit),
+          web3.utils.toBN(receiverToken.balance),
+        );
+
         return (
           trustConnection.from === senderSafeAddress &&
           trustConnection.to === token.safeAddress &&
-          trustConnection.limit !== '0'
+          limit !== '0'
         );
       });
 
+      // @TODO: We can do this better ..
+      const limit = web3.utils.BN.min(
+        web3.utils.toBN(tokenConnection.limit),
+        web3.utils.toBN(receiverToken.balance),
+      );
+
       if (tokenConnection) {
         tokenAcc.push({
-          limit: tokenConnection.limit,
+          limit,
           limitPercentage: tokenConnection.limitPercentage,
           tokenOwnerAddress: token.safeAddress,
         });
