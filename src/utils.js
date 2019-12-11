@@ -5,6 +5,7 @@ import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import CoreError, { RequestError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
+import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
@@ -374,6 +375,20 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       );
 
       const gasPrice = web3.utils.toWei('2', 'gwei');
+
+      // Wait until Relayer allocates enough funds to pay for transaction
+      const totalGasEstimate =
+        (parseInt(dataGas, 10) + parseInt(safeTxGas, 10)) *
+        parseInt(gasPrice, 10);
+
+      await loop(
+        () => {
+          return web3.eth.getBalance(safeAddress);
+        },
+        balance => {
+          return balance >= totalGasEstimate;
+        },
+      );
 
       const nonce = await getSafeContract(web3, safeAddress)
         .methods.nonce()

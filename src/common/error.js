@@ -1,6 +1,7 @@
 import createSymbolObject from '~/common/createSymbolObject';
 
 export const ErrorCodes = createSymbolObject([
+  'TOO_MANY_ATTEMPTS',
   'FAILED_REQUEST',
   'INVALID_OPTIONS',
   'NETWORK_NO_PATH',
