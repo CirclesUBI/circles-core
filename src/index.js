@@ -1,4 +1,9 @@
-import CoreError, { RequestError, ErrorCodes } from '~/common/error';
+import CoreError, {
+  ErrorCodes,
+  RequestError,
+  TransferError,
+} from '~/common/error';
+
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
@@ -63,6 +68,8 @@ export default class CirclesCore {
     // Expose error classes and constants
     /** @type {Error} - main error class */
     this.CoreError = CoreError;
+    /** @type {Error} - transfer error class */
+    this.TransferError = TransferError;
     /** @type {Error} - network request error class */
     this.RequestError = RequestError;
     /** @type {Object} - error code constants */
