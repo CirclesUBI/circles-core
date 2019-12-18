@@ -10,26 +10,20 @@ export const ErrorCodes = createSymbolObject([
   'UNKNOWN_ERROR',
 ]);
 
-class ExtendableError extends Error {
-  constructor(message) {
+export default class CoreError extends Error {
+  constructor(
+    message = 'Unknown error occurred',
+    code = ErrorCodes.UNKNOWN_ERROR,
+  ) {
     super(message);
 
-    this.name = this.constructor.name;
+    this.name = 'CoreError';
 
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, this.constructor);
     } else {
       this.stack = new Error(message).stack;
     }
-  }
-}
-
-export default class CoreError extends ExtendableError {
-  constructor(
-    message = 'Unknown error occurred',
-    code = ErrorCodes.UNKNOWN_ERROR,
-  ) {
-    super(message);
 
     this.code = code;
   }
@@ -41,6 +35,8 @@ export class RequestError extends CoreError {
       `Request failed @ ${url} with error ${status}`,
       ErrorCodes.FAILED_REQUEST,
     );
+
+    this.name = 'RequestError';
 
     this.request = {
       url,
@@ -54,6 +50,7 @@ export class TransferError extends CoreError {
   constructor(message, code, transferData = {}) {
     super(message, code);
 
+    this.name = 'TransferError';
     this.transfer = transferData;
   }
 }

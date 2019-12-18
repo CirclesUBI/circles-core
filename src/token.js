@@ -368,7 +368,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   const maximumFlowWei = new web3.utils.BN(utils.toFreckles(maximumFlow.value));
 
   if (options.value.gt(maximumFlowWei)) {
-    throw new CoreError(
+    throw new TransferError(
       'Could not find possible transaction path',
       ErrorCodes.NETWORK_NO_PATH,
     );
