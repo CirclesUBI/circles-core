@@ -208,7 +208,6 @@ export async function getNetwork(web3, utils, userOptions) {
       'Receiver is not in reach within senders trust network',
       ErrorCodes.NETWORK_TOO_SMALL,
       {
-        options,
         connections,
         safes,
         tokens,
@@ -341,9 +340,6 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     throw new TransferError(
       'No nodes given in trust graph',
       ErrorCodes.NETWORK_TOO_SMALL,
-      {
-        options,
-      },
     );
   }
 
@@ -618,6 +614,9 @@ export default function createTokenModule(web3, contracts, utils) {
       } catch (error) {
         if (error instanceof TransferError) {
           const data = {
+            from: options.from,
+            to: options.to,
+            value: options.value.toString(),
             network,
             transactions,
             ...error.transfer,
