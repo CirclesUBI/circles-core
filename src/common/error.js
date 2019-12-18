@@ -37,3 +37,11 @@ export class RequestError extends CoreError {
     };
   }
 }
+
+export class TransferError extends CoreError {
+  constructor(message, code, transferData = null, ...args) {
+    super(message, code, ...args);
+
+    this.transfer = transferData;
+  }
+}

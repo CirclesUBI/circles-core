@@ -1,6 +1,6 @@
 import { ZERO_ADDRESS } from '~/common/constants';
 
-import CoreError, { ErrorCodes } from '~/common/error';
+import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
@@ -204,9 +204,15 @@ export async function getNetwork(web3, utils, userOptions) {
   await hop([options.from]);
 
   if (!isReceiverFound) {
-    throw new CoreError(
+    throw new TransferError(
       'Receiver is not in reach within senders trust network',
       ErrorCodes.NETWORK_TOO_SMALL,
+      {
+        options,
+        connections,
+        safes,
+        tokens,
+      },
     );
   }
 
@@ -332,9 +338,12 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   }, []);
 
   if (nodes.length === 0) {
-    throw new CoreError(
+    throw new TransferError(
       'No nodes given in trust graph',
       ErrorCodes.NETWORK_TOO_SMALL,
+      {
+        options,
+      },
     );
   }
 
@@ -594,14 +603,31 @@ export default function createTokenModule(web3, contracts, utils) {
         },
       });
 
-      // Get trust network
-      const network = await getNetwork(web3, utils, options);
+      let transactions = [];
+      let network = [];
 
-      // Calculate transactions for transitive payment
-      const transactions = findTransitiveTransactions(web3, utils, {
-        ...options,
-        network,
-      });
+      try {
+        // Get trust network
+        network = await getNetwork(web3, utils, options);
+
+        // Calculate transactions for transitive payment
+        transactions = findTransitiveTransactions(web3, utils, {
+          ...options,
+          network,
+        });
+      } catch (error) {
+        if (error instanceof TransferError) {
+          const data = {
+            network,
+            transactions,
+            ...error.transfer,
+          };
+
+          throw new TransferError(error.message, error.code, data);
+        }
+
+        throw error;
+      }
 
       // Convert connections to contract argument format
       const transfer = transactions.reduce(
