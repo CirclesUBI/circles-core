@@ -55,11 +55,10 @@ export default function createTrustModule(web3, contracts, utils) {
         }`,
       });
 
-      if (response.safe === null) {
-        throw new CoreError(
-          `Safe not found at address ${options.safeAddress}`,
-          ErrorCodes.SAFE_NOT_FOUND,
-        );
+      if (!response || response.safe === null) {
+        // Fail silently with empty response / no trust connections
+        // when Safe does not exist yet
+        return [];
       }
 
       return []
