@@ -362,7 +362,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
 
-      const { dataGas, safeTxGas } = await estimateTransactionCosts(
+      const { dataGas, gasPrice, safeTxGas } = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
           gasToken,
@@ -374,19 +374,18 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const gasPrice = web3.utils.toWei('2', 'gwei');
-
       // Wait until Relayer allocates enough funds to pay for transaction
-      const totalGasEstimate =
-        (parseInt(dataGas, 10) + parseInt(safeTxGas, 10)) *
-        parseInt(gasPrice, 10);
+      const totalGasEstimate = web3.utils
+        .toBN(dataGas)
+        .add(new web3.utils.BN(safeTxGas))
+        .mul(new web3.utils.BN(gasPrice));
 
       await loop(
         () => {
           return web3.eth.getBalance(safeAddress);
         },
         balance => {
-          return balance >= totalGasEstimate;
+          return web3.utils.toBN(balance).gte(totalGasEstimate);
         },
       );
 
