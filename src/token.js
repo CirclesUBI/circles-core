@@ -58,7 +58,7 @@ export async function getNetwork(web3, utils, userOptions) {
     connections.push({
       from,
       limit,
-      limitPercentage,
+      limitPercentage: parseInt(limitPercentage, 10),
       to,
     });
   };

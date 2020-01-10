@@ -154,7 +154,7 @@ describe('Token', () => {
         });
       }, isReady);
 
-      expect(connection.limit).toBe(core.utils.toFreckles(10));
+      expect(connection.limitPercentage).toBe(10);
     });
   });
 
