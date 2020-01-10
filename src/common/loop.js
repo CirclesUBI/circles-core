@@ -1,6 +1,6 @@
 import CoreError, { ErrorCodes } from '~/common/error';
 
-const LOOP_INTERVAL = 1000;
+const LOOP_INTERVAL = 2500;
 const MAX_ATTEMPTS = 10;
 
 export default async function loop(request, condition) {
