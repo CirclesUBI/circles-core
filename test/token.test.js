@@ -26,15 +26,22 @@ beforeAll(async () => {
 describe('Token', () => {
   beforeAll(async () => {
     // Deploy Safe and Token for each test account
-    for (const account of accounts) {
-      const { safeAddress, tokenAddress } = await deploySafeAndToken(
-        core,
-        account,
-      );
+    const tasks = accounts.map(account => {
+      // @NOTE: Delay execution as it causes Invalid RPC messages
+      // during testing for unknown reasons
+      return new Promise(resolve =>
+        setTimeout(resolve, Math.random() * 5000),
+      ).then(deploySafeAndToken(core, account));
+    });
+
+    const results = await Promise.all(tasks);
+
+    results.forEach(result => {
+      const { safeAddress, tokenAddress } = result;
 
       safeAddresses.push(safeAddress);
       tokenAddresses.push(tokenAddress);
-    }
+    });
 
     // Create trust connections
     const connections = [
@@ -53,8 +60,8 @@ describe('Token', () => {
 
     for (const connection of connections) {
       await addTrustConnection(core, accounts[connection[0]], {
-        from: safeAddresses[connection[0]],
-        to: safeAddresses[connection[1]],
+        user: safeAddresses[connection[1]],
+        canSendTo: safeAddresses[connection[0]],
         limitPercentage: connection[2],
       });
     }
@@ -172,29 +179,29 @@ describe('Token', () => {
       });
 
       network = [
-        { from: nodes[0], to: nodes[1], limit: 10 },
-        { from: nodes[0], to: nodes[2], limit: 5 },
-        { from: nodes[0], to: nodes[3], limit: 15 },
-        { from: nodes[1], to: nodes[4], limit: 9 },
-        { from: nodes[1], to: nodes[5], limit: 15 },
-        { from: nodes[1], to: nodes[2], limit: 4 },
-        { from: nodes[2], to: nodes[5], limit: 8 },
-        { from: nodes[2], to: nodes[3], limit: 4 },
-        { from: nodes[3], to: nodes[6], limit: 16 },
-        { from: nodes[4], to: nodes[5], limit: 15 },
-        { from: nodes[4], to: nodes[7], limit: 10 },
-        { from: nodes[5], to: nodes[7], limit: 10 },
-        { from: nodes[5], to: nodes[6], limit: 15 },
-        { from: nodes[6], to: nodes[2], limit: 6 },
-        { from: nodes[6], to: nodes[7], limit: 10 },
+        { from: nodes[0], to: nodes[1], capacity: 10 },
+        { from: nodes[0], to: nodes[2], capacity: 5 },
+        { from: nodes[0], to: nodes[3], capacity: 15 },
+        { from: nodes[1], to: nodes[4], capacity: 9 },
+        { from: nodes[1], to: nodes[5], capacity: 15 },
+        { from: nodes[1], to: nodes[2], capacity: 4 },
+        { from: nodes[2], to: nodes[5], capacity: 8 },
+        { from: nodes[2], to: nodes[3], capacity: 4 },
+        { from: nodes[3], to: nodes[6], capacity: 16 },
+        { from: nodes[4], to: nodes[5], capacity: 15 },
+        { from: nodes[4], to: nodes[7], capacity: 10 },
+        { from: nodes[5], to: nodes[7], capacity: 10 },
+        { from: nodes[5], to: nodes[6], capacity: 15 },
+        { from: nodes[6], to: nodes[2], capacity: 6 },
+        { from: nodes[6], to: nodes[7], capacity: 10 },
       ];
 
       network.map(connection => {
-        connection.limit = web3.utils.toBN(
-          core.utils.toFreckles(connection.limit),
+        connection.capacity = web3.utils.toBN(
+          core.utils.toFreckles(connection.capacity),
         );
 
-        connection.tokenAddress = web3.utils.toChecksumAddress(
+        connection.tokenOwnerAddress = web3.utils.toChecksumAddress(
           web3.utils.randomHex(20),
         );
 

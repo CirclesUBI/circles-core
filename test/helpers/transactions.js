@@ -43,7 +43,12 @@ export async function addTrustConnection(core, account, userOptions) {
   const transactionHash = await core.trust.addConnection(account, userOptions);
 
   await loop(() => {
-    return getTrustConnection(core, account, userOptions.from, userOptions.to);
+    return getTrustConnection(
+      core,
+      account,
+      userOptions.canSendTo,
+      userOptions.user,
+    );
   }, isReady);
 
   return transactionHash;
