@@ -70,8 +70,8 @@ export default function createActivityModule(web3, contracts, utils) {
             type
             time
             trust {
-              from
-              to
+              user
+              canSendTo
               limitPercentage
             }
             transfer {
@@ -121,7 +121,7 @@ export default function createActivityModule(web3, contracts, utils) {
             value: new web3.utils.BN(amount),
           };
         } else if (notification.type === 'TRUST') {
-          const { from, to, limitPercentage } = notification.trust;
+          const { user, canSendTo, limitPercentage } = notification.trust;
 
           if (limitPercentage === '0') {
             type = ActivityTypes.REMOVE_CONNECTION;
@@ -130,8 +130,8 @@ export default function createActivityModule(web3, contracts, utils) {
           }
 
           data = {
-            from: web3.utils.toChecksumAddress(from),
-            to: web3.utils.toChecksumAddress(to),
+            user: web3.utils.toChecksumAddress(user),
+            canSendTo: web3.utils.toChecksumAddress(canSendTo),
             limitPercentage: parseInt(limitPercentage, 10),
           };
         } else {
@@ -140,7 +140,10 @@ export default function createActivityModule(web3, contracts, utils) {
         }
 
         // Filter trust events which are related to ourselves
-        if (type === ActivityTypes.ADD_CONNECTION && data.from === data.to) {
+        if (
+          type === ActivityTypes.ADD_CONNECTION &&
+          data.canSendTo === data.user
+        ) {
           return acc;
         }
 
