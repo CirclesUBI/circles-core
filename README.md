@@ -132,9 +132,9 @@ activities.forEach(activity => {
   if (type === ActivityTypes.TRANSFER) {
     console.log(`${timestamp} - ${data.from} transferred ${data.value.toString()} Circles to ${data.to}`);
   } else if (type === ActivityTypes.ADD_CONNECTION) {
-    console.log(`${timestamp} - ${data.limitPercentage} ${data.from} trusted ${data.to}`);
+    console.log(`${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`);
   } else if (type === ActivityTypes.REMOVE_CONNECTION) {
-    console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
+    console.log(`${timestamp} - ${data.canSendTo} untrusted ${data.user}`);
   } else if (type === ActivityTypes.ADD_OWNER) {
     console.log(`${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`);
   } else if (type === ActivityTypes.REMOVE_OWNER) {
