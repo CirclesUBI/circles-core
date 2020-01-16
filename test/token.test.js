@@ -26,22 +26,16 @@ beforeAll(async () => {
 describe('Token', () => {
   beforeAll(async () => {
     // Deploy Safe and Token for each test account
-    const tasks = accounts.map(account => {
-      // @NOTE: Delay execution as it causes Invalid RPC messages
-      // during testing for unknown reasons
-      return new Promise(resolve =>
-        setTimeout(resolve, Math.random() * 5000),
-      ).then(deploySafeAndToken(core, account));
-    });
-
-    const results = await Promise.all(tasks);
-
-    results.forEach(result => {
-      const { safeAddress, tokenAddress } = result;
+    // @TODO: Can we parallelize this?
+    for (const account of accounts) {
+      const { safeAddress, tokenAddress } = await deploySafeAndToken(
+        core,
+        account,
+      );
 
       safeAddresses.push(safeAddress);
       tokenAddresses.push(tokenAddress);
-    });
+    }
 
     // Create trust connections
     const connections = [
