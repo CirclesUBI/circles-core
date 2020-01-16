@@ -2,7 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   testEnvironment: 'node',
-  testTimeout: 120 * 1000,
+  testTimeout: 360 * 1000,
 
   // Resolve modules with alias
   moduleNameMapper: {
