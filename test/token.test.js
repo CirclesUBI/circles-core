@@ -155,7 +155,7 @@ describe('Token', () => {
         });
       }, isReady);
 
-      expect(connection.limitPercentage).toBe(10);
+      expect(connection.tokenOwnerAddress).toBe(safeAddresses[2]);
     });
   });
 
