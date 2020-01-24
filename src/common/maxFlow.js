@@ -1,4 +1,6 @@
-// @NOTE: Code taken from https://github.com/chen0040/js-graph-algorithms <3
+// Credits: Code taken from https://github.com/chen0040/js-graph-algorithms
+// and changed to support BN.
+import { MAX_WEI } from '~/common/constants';
 
 class QueueNode {
   constructor(value) {
@@ -18,11 +20,11 @@ class Queue {
     const oldLast = this.last;
     this.last = new QueueNode(item);
 
-    if (oldLast != null) {
+    if (oldLast !== null) {
       oldLast.next = this.last;
     }
 
-    if (this.first == null) {
+    if (this.first === null) {
       this.first = this.last;
     }
 
@@ -30,7 +32,7 @@ class Queue {
   }
 
   dequeue() {
-    if (this.first == null) {
+    if (this.first === null) {
       return undefined;
     }
 
@@ -38,7 +40,7 @@ class Queue {
     const item = oldFirst.value;
     this.first = oldFirst.next;
 
-    if (this.first == null) {
+    if (this.first === null) {
       this.last = null;
     }
 
@@ -52,14 +54,14 @@ class Queue {
   }
 
   isEmpty() {
-    return this.N == 0;
+    return this.N === 0;
   }
 
   toArray() {
     const result = [];
 
     let x = this.first;
-    while (x != null) {
+    while (x !== null) {
       result.push(x.value);
       x = x.next;
     }
@@ -69,26 +71,28 @@ class Queue {
 }
 
 export class FlowEdge {
-  constructor(v, w, capacity) {
+  constructor(web3, v, w, capacity) {
+    this.web3 = web3;
+
     this.v = v;
     this.w = w;
     this.capacity = capacity;
-    this.flow = 0;
+    this.flow = new this.web3.utils.BN('0');
   }
 
   residualCapacityTo(x) {
-    if (x == this.v) {
+    if (x === this.v) {
       return this.flow;
     } else {
-      return this.capacity - this.flow;
+      return this.capacity.sub(this.flow);
     }
   }
 
   addResidualFlowTo(x, deltaFlow) {
-    if (x == this.v) {
-      this.flow -= deltaFlow;
-    } else if (x == this.w) {
-      this.flow += deltaFlow;
+    if (x === this.v) {
+      this.flow = this.flow.sub(deltaFlow);
+    } else if (x === this.w) {
+      this.flow = this.flow.add(deltaFlow);
     }
   }
 
@@ -101,7 +105,7 @@ export class FlowEdge {
   }
 
   other(x) {
-    return x == this.v ? this.w : this.v;
+    return x === this.v ? this.w : this.v;
   }
 }
 
@@ -149,25 +153,30 @@ export class FlowNetwork {
 }
 
 export default class MaxFlow {
-  constructor(G, s, t) {
-    let bottle = Number.MAX_VALUE;
+  constructor(web3, G, s, t) {
+    this.web3 = web3;
 
-    this.value = 0;
+    this.value = new this.web3.utils.BN('0');
     this.marked = null;
     this.edgeTo = null;
     this.s = s;
     this.t = t;
 
+    let bottle = this.web3.utils.toBN(MAX_WEI);
+
     while (this.hasAugmentedPath(G)) {
-      for (let x = this.t; x != this.s; x = this.edgeTo[x].other(x)) {
-        bottle = Math.min(bottle, this.edgeTo[x].residualCapacityTo(x));
+      for (let x = this.t; x !== this.s; x = this.edgeTo[x].other(x)) {
+        bottle = this.web3.utils.BN.min(
+          bottle,
+          this.edgeTo[x].residualCapacityTo(x),
+        );
       }
 
-      for (let x = this.t; x != this.s; x = this.edgeTo[x].other(x)) {
+      for (let x = this.t; x !== this.s; x = this.edgeTo[x].other(x)) {
         this.edgeTo[x].addResidualFlowTo(x, bottle);
       }
 
-      this.value += bottle;
+      this.value = this.value.add(bottle);
     }
   }
 
@@ -195,7 +204,7 @@ export default class MaxFlow {
         const e = adj_v[i];
         const w = e.other(v);
 
-        if (!this.marked[w] && e.residualCapacityTo(w) > 0) {
+        if (!this.marked[w] && !e.residualCapacityTo(w).isZero()) {
           this.edgeTo[w] = e;
           this.marked[w] = true;
 

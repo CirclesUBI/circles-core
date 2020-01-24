@@ -27,8 +27,8 @@ describe('Trust', () => {
 
   it('should trust someone', async () => {
     const response = await core.trust.addConnection(account, {
-      from: safeAddress,
-      to: otherSafeAddress,
+      user: otherSafeAddress,
+      canSendTo: safeAddress,
       limitPercentage: 44,
     });
 
@@ -38,11 +38,13 @@ describe('Trust', () => {
       return getTrustConnection(core, account, safeAddress, otherSafeAddress);
     }, isReady);
 
-    expect(connection.isTrustedByMe).toBe(true);
-    expect(connection.isTrustingMe).toBe(false);
-    expect(connection.limitPercentageTo).toBe(44);
+    expect(connection.safeAddress).toBe(otherSafeAddress);
+    expect(connection.isIncoming).toBe(true);
+    expect(connection.isOutgoing).toBe(false);
+    expect(connection.limitPercentageIn).toBe(44);
+    expect(connection.limitPercentageOut).toBe(0);
 
-    const otherConnection = await loop(() => {
+    let otherConnection = await loop(() => {
       return getTrustConnection(
         core,
         otherAccount,
@@ -51,18 +53,47 @@ describe('Trust', () => {
       );
     }, isReady);
 
-    expect(otherConnection.isTrustedByMe).toBe(false);
-    expect(otherConnection.isTrustingMe).toBe(true);
-    expect(otherConnection.limitPercentageFrom).toBe(44);
+    expect(otherConnection.safeAddress).toBe(safeAddress);
+    expect(otherConnection.isIncoming).toBe(false);
+    expect(otherConnection.isOutgoing).toBe(true);
+    expect(otherConnection.limitPercentageIn).toBe(0);
+    expect(otherConnection.limitPercentageOut).toBe(44);
+
+    // Test bidirectional trust connections
+    await core.trust.addConnection(otherAccount, {
+      user: safeAddress,
+      canSendTo: otherSafeAddress,
+      limitPercentage: 72,
+    });
+
+    otherConnection = await loop(() => {
+      return getTrustConnection(
+        core,
+        otherAccount,
+        otherSafeAddress,
+        safeAddress,
+      );
+    }, isReady);
+
+    expect(otherConnection.safeAddress).toBe(safeAddress);
+    expect(otherConnection.isIncoming).toBe(true);
+    expect(otherConnection.isOutgoing).toBe(true);
+    expect(otherConnection.limitPercentageIn).toBe(72);
+    expect(otherConnection.limitPercentageOut).toBe(44);
   });
 
   it('should untrust someone', async () => {
     const response = await core.trust.removeConnection(account, {
-      from: safeAddress,
-      to: otherSafeAddress,
+      user: otherSafeAddress,
+      canSendTo: safeAddress,
     });
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
+
+    await core.trust.removeConnection(otherAccount, {
+      user: safeAddress,
+      canSendTo: otherSafeAddress,
+    });
 
     const network = await loop(
       async () => {

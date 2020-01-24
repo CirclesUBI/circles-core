@@ -3,6 +3,7 @@ import { ZERO_ADDRESS } from '~/common/constants';
 import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
+import checkArrayEntries from '~/common/checkArrayEntries';
 import checkOptions from '~/common/checkOptions';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
@@ -50,27 +51,28 @@ export async function getNetwork(web3, utils, userOptions) {
     return safes.find(node => node.address === safeAddress);
   };
 
-  const findConnection = (from, to) => {
-    return connections.find(edge => edge.from === from && edge.to === to);
+  const findConnection = (user, canSendTo) => {
+    return connections.find(
+      edge => edge.canSendTo === canSendTo && edge.user === user,
+    );
   };
 
-  const addConnection = (from, to, limit, limitPercentage) => {
+  const addConnection = (user, canSendTo, limit) => {
     connections.push({
-      from,
+      canSendTo,
       limit,
-      limitPercentage: parseInt(limitPercentage, 10),
-      to,
+      user,
     });
   };
 
   const addConnections = connections => {
     connections.forEach(connection => {
-      const from = web3.utils.toChecksumAddress(connection.from.id);
-      const to = web3.utils.toChecksumAddress(connection.to.id);
-      const { limit, limitPercentage } = connection;
+      const user = web3.utils.toChecksumAddress(connection.user.id);
+      const canSendTo = web3.utils.toChecksumAddress(connection.canSendTo.id);
+      const { limit } = connection;
 
-      if (!findConnection(from, to)) {
-        addConnection(from, to, limit, limitPercentage);
+      if (!findConnection(user, canSendTo)) {
+        addConnection(user, canSendTo, limit);
       }
     });
   };
@@ -97,8 +99,8 @@ export async function getNetwork(web3, utils, userOptions) {
           addToken(tokenAddress, tokenSafeAddress);
         }
 
-        addConnections(token.owner.trusts);
-        addConnections(token.owner.isTrustedBy);
+        addConnections(token.owner.outgoing);
+        addConnections(token.owner.incoming);
 
         return acc;
       },
@@ -115,24 +117,23 @@ export async function getNetwork(web3, utils, userOptions) {
   const requestSafe = async safeAddress => {
     const safeQuery = `{
       limit
-      limitPercentage
-      from { id }
-      to { id }
+      canSendTo { id }
+      user { id }
     }`;
 
     const response = await utils.requestGraph({
       query: `{
         safe(id: "${safeAddress.toLowerCase()}") {
-          trusts ${safeQuery}
-          isTrustedBy ${safeQuery}
+          outgoing ${safeQuery}
+          incoming ${safeQuery}
           balances {
             amount
             token {
               id
               owner {
                 id
-                trusts ${safeQuery}
-                isTrustedBy ${safeQuery}
+                outgoing ${safeQuery}
+                incoming ${safeQuery}
               }
             }
           }
@@ -151,8 +152,8 @@ export async function getNetwork(web3, utils, userOptions) {
     if (!findSafe(safeAddress)) {
       addSafe(safeAddress, response.safe.balances);
 
-      addConnections(response.safe.trusts);
-      addConnections(response.safe.isTrustedBy);
+      addConnections(response.safe.outgoing);
+      addConnections(response.safe.incoming);
     }
   };
 
@@ -179,17 +180,17 @@ export async function getNetwork(web3, utils, userOptions) {
       }),
     );
 
-    //  Add more requests to queue when possible
+    // Add more requests to queue when possible
     if (!isReceiverFound && currentHopIndex < options.networkHops) {
       const newQueue = connections.reduce((acc, connection) => {
-        if (!requestedSafeAddresses[connection.from]) {
-          acc.push(connection.from);
-          requestedSafeAddresses[connection.from] = true;
+        if (!requestedSafeAddresses[connection.canSendTo]) {
+          acc.push(connection.canSendTo);
+          requestedSafeAddresses[connection.canSendTo] = true;
         }
 
-        if (!requestedSafeAddresses[connection.to]) {
-          acc.push(connection.to);
-          requestedSafeAddresses[connection.to] = true;
+        if (!requestedSafeAddresses[connection.user]) {
+          acc.push(connection.user);
+          requestedSafeAddresses[connection.user] = true;
         }
 
         return acc;
@@ -218,68 +219,69 @@ export async function getNetwork(web3, utils, userOptions) {
   // Find tokens for each connection we can actually use
   // for transitive transactions
   return connections.reduce((acc, connection) => {
-    const senderSafeAddress = connection.from;
-    const receiverSafeAddress = connection.to;
+    const senderSafeAddress = connection.user;
+    const receiverSafeAddress = connection.canSendTo;
 
     // Ignore connections where we trust ourselves
     if (senderSafeAddress === receiverSafeAddress) {
       return acc;
     }
 
-    // Get the receivers Safe
-    const receiverSafe = findSafe(receiverSafeAddress);
+    // Get the senders Safe
+    const senderSafe = findSafe(senderSafeAddress);
 
-    if (!receiverSafe) {
+    if (!senderSafe) {
       return acc;
     }
 
     // Get tokens the sender owns
-    const receiverTokens = receiverSafe.tokens;
+    const senderTokens = senderSafe.tokens;
 
     // Which of them are trusted by the receiving node?
-    const trustedTokens = receiverTokens.reduce((tokenAcc, receiverToken) => {
-      const token = findToken(receiverToken.address);
+    const trustedTokens = senderTokens.reduce(
+      (tokenAcc, { address, balance }) => {
+        const token = findToken(address);
 
-      const tokenConnection = connections.find(trustConnection => {
-        const limit = web3.utils.BN.min(
-          web3.utils.toBN(trustConnection.limit),
-          web3.utils.toBN(receiverToken.balance),
+        const tokenConnection = connections.find(
+          ({ limit, user, canSendTo }) => {
+            // Calculate what maximum token value we can send
+            const capacity = web3.utils.BN.min(
+              web3.utils.toBN(limit),
+              web3.utils.toBN(balance),
+            );
+
+            return (
+              user === token.safeAddress &&
+              canSendTo === receiverSafeAddress &&
+              !capacity.isZero()
+            );
+          },
         );
 
-        return (
-          trustConnection.from === senderSafeAddress &&
-          trustConnection.to === token.safeAddress &&
-          limit !== '0'
-        );
-      });
+        if (tokenConnection) {
+          const capacity = web3.utils.BN.min(
+            web3.utils.toBN(tokenConnection.limit),
+            web3.utils.toBN(balance),
+          );
 
-      if (tokenConnection) {
-        // @TODO: We can do this better ..
-        const limit = web3.utils.BN.min(
-          web3.utils.toBN(tokenConnection.limit),
-          web3.utils.toBN(receiverToken.balance),
-        );
+          tokenAcc.push({
+            capacity,
+            tokenOwnerAddress: token.safeAddress,
+          });
+        }
 
-        tokenAcc.push({
-          limit,
-          limitPercentage: tokenConnection.limitPercentage,
-          tokenOwnerAddress: token.safeAddress,
-        });
-      }
+        return tokenAcc;
+      },
+      [],
+    );
 
-      return tokenAcc;
-    }, []);
-
-    // `from` and `to` are flipped here as a
-    // trust direction is the reverse of a
-    // transfer direction!
+    // Merge all known data to get a list in the end containing
+    // what Token can be sent to whom with what maximum value.
     trustedTokens.forEach(token => {
       acc.push({
-        from: receiverSafeAddress,
-        to: senderSafeAddress,
-        limit: token.limit,
-        limitPercentage: token.limitPercentage,
-        tokenOwnerAddress: token.tokenOwnerAddress,
+        from: senderSafeAddress,
+        to: receiverSafeAddress,
+        ...token,
       });
     });
 
@@ -316,7 +318,16 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
       type: web3.utils.isBN,
     },
     network: {
-      type: 'array',
+      type: arr => {
+        return checkArrayEntries(arr, entry => {
+          return (
+            web3.utils.checkAddressChecksum(entry.from) &&
+            web3.utils.checkAddressChecksum(entry.to) &&
+            web3.utils.checkAddressChecksum(entry.tokenOwnerAddress) &&
+            web3.utils.isBN(entry.capacity)
+          );
+        });
+      },
     },
   });
 
@@ -350,11 +361,11 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   // Create weighted edges in the graph based
   // on trust connections and flow limits
   network.forEach(connection => {
-    const flow = utils.fromFreckles(connection.limit);
+    const capacity = connection.capacity;
     const indexFrom = nodes.indexOf(connection.from);
     const indexTo = nodes.indexOf(connection.to);
 
-    const edge = new FlowEdge(indexFrom, indexTo, flow);
+    const edge = new FlowEdge(web3, indexFrom, indexTo, capacity);
     edge.tokenOwnerAddress = connection.tokenOwnerAddress;
 
     graph.addEdge(edge);
@@ -364,10 +375,9 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   const indexSender = nodes.indexOf(options.from);
   const indexReceiver = nodes.indexOf(options.to);
 
-  const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
-  const maximumFlowWei = new web3.utils.BN(utils.toFreckles(maximumFlow.value));
+  const maximumFlow = new MaxFlow(web3, graph, indexSender, indexReceiver);
 
-  if (options.value.gt(maximumFlowWei)) {
+  if (options.value.gt(maximumFlow.value)) {
     throw new TransferError(
       'Could not find possible transaction path',
       ErrorCodes.NETWORK_NO_PATH,
@@ -392,7 +402,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
         }
 
         // Do we actually send any Tokens?
-        if (adjNode.flow === 0) {
+        if (adjNode.flow.isZero()) {
           return acc;
         }
 
@@ -401,7 +411,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
         return acc;
       }, [])
       .sort((nodeA, nodeB) => {
-        return nodeB.flow - nodeA.flow;
+        return nodeB.flow.cmp(nodeA.flow);
       });
 
     // Set the required flow for this node
@@ -412,20 +422,24 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     adjacentNodes.forEach(edge => {
       // Calculate how much flow this adjacent node can give, we've
       // sorted them above by flow capacity to prioritize larger ones
-      const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
-      flowRequiredLeft -= edgeFlow;
+      const edgeFlow = edge.flow.sub(
+        web3.utils.BN.max(
+          web3.utils.toBN('0'),
+          edge.flow.sub(flowRequiredLeft),
+        ),
+      );
+
+      flowRequiredLeft = flowRequiredLeft.sub(edgeFlow);
 
       const innerPath = traversePath(edge.v, edgeFlow, path);
       path.concat(innerPath);
 
-      if (!edge.isVisited && edgeFlow > 0) {
-        const value = new web3.utils.BN(utils.toFreckles(edgeFlow));
-
+      if (!edge.isVisited && !edgeFlow.isZero()) {
         path.push({
           from: nodes[edge.v],
           to: nodes[edge.w],
           tokenOwnerAddress: edge.tokenOwnerAddress,
-          value,
+          value: edgeFlow,
         });
       }
 
@@ -437,7 +451,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     return path;
   };
 
-  return traversePath(indexReceiver, utils.fromFreckles(options.value));
+  return traversePath(indexReceiver, options.value);
 }
 
 /**

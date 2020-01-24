@@ -1,4 +1,3 @@
-import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
@@ -19,7 +18,8 @@ export default function createTrustModule(web3, contracts, utils) {
 
   return {
     /**
-     * Get the current state of a users trust network.
+     * Get the current state of a users trust network, containing
+     * data to find transfer path between users.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -41,15 +41,15 @@ export default function createTrustModule(web3, contracts, utils) {
       const response = await utils.requestGraph({
         query: `{
           safe(id: "${safeAddress}") {
-            trusts {
+            outgoing {
               limitPercentage
-              from { id }
-              to { id }
+              user { id }
+              canSendTo { id }
             }
-            isTrustedBy {
+            incoming {
               limitPercentage
-              from { id }
-              to { id }
+              user { id }
+              canSendTo { id }
             }
           }
         }`,
@@ -62,8 +62,8 @@ export default function createTrustModule(web3, contracts, utils) {
       }
 
       return []
-        .concat(response.safe.isTrustedBy)
-        .concat(response.safe.trusts)
+        .concat(response.safe.incoming)
+        .concat(response.safe.outgoing)
         .reduce((acc, connection) => {
           const limitPercentage = parseInt(connection.limitPercentage, 10);
 
@@ -71,28 +71,33 @@ export default function createTrustModule(web3, contracts, utils) {
             return acc;
           }
 
-          const from = web3.utils.toChecksumAddress(connection.from.id);
-          const to = web3.utils.toChecksumAddress(connection.to.id);
+          const user = web3.utils.toChecksumAddress(connection.user.id);
 
-          if (from === to) {
+          const canSendTo = web3.utils.toChecksumAddress(
+            connection.canSendTo.id,
+          );
+
+          // Filter connections to ourselves
+          if (user === canSendTo) {
             return acc;
           }
 
-          if (from === options.safeAddress) {
+          // Merge incoming and outgoing connections
+          if (user === options.safeAddress) {
             acc.push({
-              isTrustedByMe: true,
-              isTrustingMe: false,
-              limitPercentageTo: limitPercentage,
-              limitPercentageFrom: NO_LIMIT_PERCENTAGE,
-              safeAddress: to,
+              isIncoming: false,
+              isOutgoing: true,
+              limitPercentageIn: NO_LIMIT_PERCENTAGE,
+              limitPercentageOut: limitPercentage,
+              safeAddress: canSendTo,
             });
-          } else if (to === options.safeAddress) {
+          } else if (canSendTo === options.safeAddress) {
             acc.push({
-              isTrustedByMe: false,
-              isTrustingMe: true,
-              limitPercentageTo: NO_LIMIT_PERCENTAGE,
-              limitPercentageFrom: limitPercentage,
-              safeAddress: from,
+              isIncoming: true,
+              isOutgoing: false,
+              limitPercentageIn: limitPercentage,
+              limitPercentageOut: NO_LIMIT_PERCENTAGE,
+              safeAddress: user,
             });
           }
 
@@ -107,20 +112,20 @@ export default function createTrustModule(web3, contracts, utils) {
           // ... and merge them
           if (index > -1) {
             const {
-              isTrustedByMe,
-              isTrustingMe,
-              limitPercentageFrom,
-              limitPercentageTo,
+              isIncoming,
+              isOutgoing,
+              limitPercentageIn,
+              limitPercentageOut,
               safeAddress,
             } = acc[index];
 
             acc[index] = {
-              isTrustedByMe: connection.isTrustedByMe || isTrustedByMe,
-              isTrustingMe: connection.isTrustingMe || isTrustingMe,
-              limitPercentageFrom:
-                connection.limitPercentageFrom + limitPercentageFrom,
-              limitPercentageTo:
-                connection.limitPercentageTo + limitPercentageTo,
+              isIncoming: connection.isIncoming || isIncoming,
+              isOutgoing: connection.isOutgoing || isOutgoing,
+              limitPercentageIn:
+                connection.limitPercentageIn + limitPercentageIn,
+              limitPercentageOut:
+                connection.limitPercentageOut + limitPercentageOut,
               safeAddress,
             };
           } else {
@@ -132,12 +137,13 @@ export default function createTrustModule(web3, contracts, utils) {
     },
 
     /**
-     * Trust user with a token.
+     * Give other users possibility to send their Circles to you by
+     * giving them your trust.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {string} userOptions.from - trust giver
-     * @param {string} userOptions.to - trust receiver
+     * @param {string} userOptions.user - trust receiver / sender
+     * @param {string} userOptions.canSendTo - trust giver / receiver
      * @param {number} userOptions.limitPercentage - trust limit in % for transitive transactions
      *
      * @return {string} - transaction hash
@@ -146,10 +152,10 @@ export default function createTrustModule(web3, contracts, utils) {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        from: {
+        user: {
           type: web3.utils.checkAddressChecksum,
         },
-        to: {
+        canSendTo: {
           type: web3.utils.checkAddressChecksum,
         },
         limitPercentage: {
@@ -159,24 +165,25 @@ export default function createTrustModule(web3, contracts, utils) {
       });
 
       const txData = await hub.methods
-        .trust(options.to, options.limitPercentage)
+        .trust(options.user, options.limitPercentage)
         .encodeABI();
 
       // Call method and return result
       return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.from,
+        safeAddress: options.canSendTo,
         to: hub.options.address,
         txData,
       });
     },
 
     /**
-     * Revoke a trust connection with a user.
+     * Revoke a trust connection with a user. You don't allow this
+     * user to transfer their Token to or through you.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {string} userOptions.from - trust giver
-     * @param {string} userOptions.to - trust receiver
+     * @param {string} userOptions.user - trust receiver / sender
+     * @param {string} userOptions.canSendTo - trust giver / receiver
      *
      * @return {string} - transaction hash
      */
@@ -184,20 +191,20 @@ export default function createTrustModule(web3, contracts, utils) {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        from: {
+        user: {
           type: web3.utils.checkAddressChecksum,
         },
-        to: {
+        canSendTo: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
       const txData = await hub.methods
-        .trust(options.to, NO_LIMIT_PERCENTAGE)
+        .trust(options.user, NO_LIMIT_PERCENTAGE)
         .encodeABI();
 
       return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.from,
+        safeAddress: options.canSendTo,
         to: hub.options.address,
         txData,
       });

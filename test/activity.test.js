@@ -41,8 +41,8 @@ describe('Activity', () => {
 
     // .. and do some activity!
     await addTrustConnection(core, otherAccount, {
-      from: otherSafeAddress,
-      to: safeAddress,
+      user: safeAddress,
+      canSendTo: otherSafeAddress,
     });
 
     await core.token.transfer(account, {
@@ -145,8 +145,8 @@ describe('Activity', () => {
     const query = ({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_CONNECTION &&
-        data.from === otherSafeAddress &&
-        data.to === safeAddress
+        data.canSendTo === otherSafeAddress &&
+        data.user === safeAddress
       );
     };
 

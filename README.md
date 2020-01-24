@@ -79,12 +79,12 @@ const users = await core.user.resolve(account, {
 network.forEach(connection => {
   const user = users.find(item => item.safeAddress === connection.safeAddress);
 
-  if (connection.isTrustingMe) {
-    console.log(`${user.username} trusts you.`);
+  if (connection.isOutgoing) {
+    console.log(`${user.username} accepts your Circles.`);
   }
 
-  if (connection.isTrustedByMe) {
-    console.log(`You trust ${user.username}.`);
+  if (connection.isIncoming) {
+    console.log(`You accept Circles of ${user.username}.`);
   }
 });
 
@@ -92,7 +92,7 @@ network.forEach(connection => {
 const trustConnectionLimit = 3;
 
 const isTrusted = network.reduce((acc, connection) => {
-  return connection.isTrustingMe ? acc + 1 : acc;
+  return connection.isOutgoing ? acc + 1 : acc;
 }, 0) > trustConnectionLimit;
 
 if (!isTrusted) {
@@ -107,13 +107,14 @@ if (!isTrusted) {
 
 // Change trust state with users
 await core.trust.removeConnection(account, {
-  from: safeAddress,
-  to: users[0].safeAddress,
+  user: users[0].safeAddress,
+  canSendTo: safeAddress,
 });
 
+// .. give user the permission to send their Token to you
 await core.trust.addConnection(account, {
-  from: safeAddress,
-  to: users[0].safeAddress,
+  user: users[0].safeAddress,
+  canSendTo: safeAddress,
   limitPercentage: 20,
 });
 
@@ -131,9 +132,9 @@ activities.forEach(activity => {
   if (type === ActivityTypes.TRANSFER) {
     console.log(`${timestamp} - ${data.from} transferred ${data.value.toString()} Circles to ${data.to}`);
   } else if (type === ActivityTypes.ADD_CONNECTION) {
-    console.log(`${timestamp} - ${data.limitPercentage} ${data.from} trusted ${data.to}`);
+    console.log(`${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`);
   } else if (type === ActivityTypes.REMOVE_CONNECTION) {
-    console.log(`${timestamp} - ${data.from} untrusted ${data.to}`);
+    console.log(`${timestamp} - ${data.canSendTo} untrusted ${data.user}`);
   } else if (type === ActivityTypes.ADD_OWNER) {
     console.log(`${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`);
   } else if (type === ActivityTypes.REMOVE_OWNER) {

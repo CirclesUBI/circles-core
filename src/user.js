@@ -1,17 +1,6 @@
 import checkAccount from '~/common/checkAccount';
+import checkArrayEntries from '~/common/checkArrayEntries';
 import checkOptions from '~/common/checkOptions';
-
-function checkArrayEntries(arr, validatorFn) {
-  if (!Array.isArray(arr)) {
-    return false;
-  }
-
-  return (
-    arr.find(entry => {
-      return !validatorFn(entry);
-    }) === undefined
-  );
-}
 
 /**
  * Username resolver submodule to register and find usernames.
