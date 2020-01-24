@@ -116,5 +116,31 @@ export default function createUserModule(web3, contracts, utils) {
         },
       });
     },
+
+    /**
+     * Search for users by username.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.query - Search query
+     *
+     * @return {Object[]} - List of users
+     */
+    search: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        query: {
+          type: 'string',
+        },
+      });
+
+      return await utils.requestAPI({
+        path: ['users'],
+        data: {
+          query: options.query,
+        },
+      });
+    },
   };
 }

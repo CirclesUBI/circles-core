@@ -75,6 +75,11 @@ const users = await core.user.resolve(account, {
   addresses: network.map(connection => connection.safeAddress),
 });
 
+// Search for a user via username
+const users = await core.user.search(account, {
+  query: 'pand',
+});
+
 // Example: Display our trust network
 network.forEach(connection => {
   const user = users.find(item => item.safeAddress === connection.safeAddress);

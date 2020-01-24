@@ -47,5 +47,13 @@ describe('User', () => {
 
       expect(second.data[0].username).toEqual(username);
     });
+
+    it('should come up when searching for it', async () => {
+      const result = await core.user.search(account, {
+        query: 'pan',
+      });
+
+      expect(result.data[0].username).toEqual(username);
+    });
   });
 });
