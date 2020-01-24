@@ -41,12 +41,12 @@ export default function createTrustModule(web3, contracts, utils) {
       const response = await utils.requestGraph({
         query: `{
           safe(id: "${safeAddress}") {
-            trusts {
+            outgoing {
               limitPercentage
               user { id }
               canSendTo { id }
             }
-            isTrustedBy {
+            incoming {
               limitPercentage
               user { id }
               canSendTo { id }
@@ -60,11 +60,6 @@ export default function createTrustModule(web3, contracts, utils) {
         // when Safe does not exist yet
         return [];
       }
-
-      // Rename deprecated fields in response
-      // @TODO: Remove this when ready
-      response.safe.incoming = response.safe.isTrustedBy;
-      response.safe.outgoing = response.safe.trusts;
 
       return []
         .concat(response.safe.incoming)

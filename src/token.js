@@ -99,9 +99,8 @@ export async function getNetwork(web3, utils, userOptions) {
           addToken(tokenAddress, tokenSafeAddress);
         }
 
-        // @TODO: Change to incoming / outgoing
-        addConnections(token.owner.trusts);
-        addConnections(token.owner.isTrustedBy);
+        addConnections(token.owner.outgoing);
+        addConnections(token.owner.incoming);
 
         return acc;
       },
@@ -125,16 +124,16 @@ export async function getNetwork(web3, utils, userOptions) {
     const response = await utils.requestGraph({
       query: `{
         safe(id: "${safeAddress.toLowerCase()}") {
-          trusts ${safeQuery}
-          isTrustedBy ${safeQuery}
+          outgoing ${safeQuery}
+          incoming ${safeQuery}
           balances {
             amount
             token {
               id
               owner {
                 id
-                trusts ${safeQuery}
-                isTrustedBy ${safeQuery}
+                outgoing ${safeQuery}
+                incoming ${safeQuery}
               }
             }
           }
@@ -153,8 +152,8 @@ export async function getNetwork(web3, utils, userOptions) {
     if (!findSafe(safeAddress)) {
       addSafe(safeAddress, response.safe.balances);
 
-      addConnections(response.safe.trusts);
-      addConnections(response.safe.isTrustedBy);
+      addConnections(response.safe.outgoing);
+      addConnections(response.safe.incoming);
     }
   };
 
