@@ -6,6 +6,7 @@ let core;
 let safeAddress;
 let safeCreationNonce;
 let username;
+let email;
 
 beforeAll(async () => {
   account = getAccount();
@@ -21,12 +22,14 @@ describe('User', () => {
     });
 
     username = `panda${new Date().getTime()}`;
+    email = 'panda@zoo.org';
   });
 
   describe('when a new user registers its Safe address', () => {
     it('should return a success response', async () => {
       const response = await core.user.register(account, {
         nonce: safeCreationNonce,
+        email,
         safeAddress,
         username,
       });
@@ -46,6 +49,14 @@ describe('User', () => {
       });
 
       expect(second.data[0].username).toEqual(username);
+    });
+
+    it('should come up when searching for it', async () => {
+      const result = await core.user.search(account, {
+        query: username,
+      });
+
+      expect(result.data[0].username).toEqual(username);
     });
   });
 });
