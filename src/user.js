@@ -25,13 +25,14 @@ function checkArrayEntries(arr, validatorFn) {
 export default function createUserModule(web3, contracts, utils) {
   return {
     /**
-     * Register a new username and connect it to a Safe address.
+     * Register a new username and email address and connect it to a Safe address.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.nonce - nonce which was used to predict address, use it only when Safe was not deployed yet
      * @param {string} userOptions.safeAddress - owned Safe address
      * @param {string} userOptions.username - alphanumerical username
+     * @param {string} userOptions.email - email address
      *
      * @return {boolean} - Returns true when successful
      */
@@ -51,10 +52,15 @@ export default function createUserModule(web3, contracts, utils) {
             return /^[a-zA-Z0-9]+$/.test(value);
           },
         },
+        email: {
+          type: value => {
+            return /^\S+@\S+\.\S+/.test(value);
+          },
+        },
       });
 
       const { address } = account;
-      const { nonce, safeAddress, username } = options;
+      const { nonce, safeAddress, username, email } = options;
 
       const { signature } = web3.eth.accounts.sign(
         `${address}${nonce}${safeAddress}${username}`,
@@ -69,6 +75,7 @@ export default function createUserModule(web3, contracts, utils) {
           nonce: nonce > 0 ? nonce : null,
           signature,
           data: {
+            email,
             safeAddress,
             username,
           },

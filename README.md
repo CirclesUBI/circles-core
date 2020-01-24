@@ -53,6 +53,7 @@ const account = web3.eth.accounts.create();
 
 // Define nice username for us
 const username = 'margareth';
+const email = 'mgh@mail.org';
 
 // Generate a nonce to predict Safe address
 const nonce = new Date().getTime();
@@ -63,6 +64,7 @@ const safeAddress = await core.safe.prepareDeploy(account, { nonce });
 // Register username and connect it to Safe address
 await core.user.register(account, {
   nonce,
+  email,
   safeAddress,
   username,
 });
