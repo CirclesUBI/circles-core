@@ -2,6 +2,7 @@ import createCore from './helpers/core';
 import getAccount from './helpers/account';
 import loop from './helpers/loop';
 import web3 from './helpers/web3';
+import { fundSafe } from './helpers/transactions';
 
 let account;
 let core;
@@ -29,6 +30,8 @@ describe('Safe', () => {
     });
 
     it('should be manually triggered to get deployed', async () => {
+      await fundSafe(account, safeAddress);
+
       const result = await core.safe.deploy(account, {
         safeAddress,
       });

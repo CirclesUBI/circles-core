@@ -99,7 +99,7 @@ network.forEach(connection => {
 const trustConnectionLimit = 3;
 
 const isTrusted = network.reduce((acc, connection) => {
-  return connection.isOutgoing ? acc + 1 : acc;
+  return connection.isIncoming ? acc + 1 : acc;
 }, 0) > trustConnectionLimit;
 
 if (!isTrusted) {
@@ -157,6 +157,17 @@ const tokenAddress = core.token.getAddress(account, {
 const balance = await core.token.getBalance(account, {
   safeAddress,
 });
+
+// Request my UBI
+const payout = await core.token.checkUBIPayout(account, {
+  safeAddress,
+});
+
+if (!payout.isZero()) {
+  await core.token.requestUBIPayout(account, {
+    safeAddress,
+  });
+}
 
 // Transfer Circles to users (directly or transitively)
 await core.token.transfer(account, {
