@@ -1,5 +1,6 @@
 import createUtilsModule from '~/utils';
 import { findTransitiveTransactions, getNetwork } from '~/token';
+import { getTokenContract } from '~/common/getContracts';
 
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
@@ -241,6 +242,41 @@ describe('Token', () => {
 
         expect(balances[INDEX_RECEIVER]).toBe(value);
       }
+    });
+  });
+
+  describe('requestUBIPayout', () => {
+    let token;
+    let payout;
+
+    beforeAll(async () => {
+      token = await getTokenContract(web3, tokenAddresses[5]);
+
+      payout = await core.token.checkUBIPayout(accounts[5], {
+        safeAddress: safeAddresses[5],
+      });
+    });
+
+    it('should add the next payout to our balance', async () => {
+      const balanceBefore = await token.methods
+        .balanceOf(safeAddresses[5])
+        .call();
+
+      await core.token.requestUBIPayout(accounts[5], {
+        safeAddress: safeAddresses[5],
+      });
+
+      const balanceAfter = await token.methods
+        .balanceOf(safeAddresses[5])
+        .call();
+
+      const expectedBalance = web3.utils
+        .toBN(balanceBefore)
+        .add(payout)
+        .toString();
+
+      // Do not check for the exact amount as payout is changing every second
+      expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
     });
   });
 });
