@@ -1,7 +1,18 @@
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
 
+const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.002', 'ether');
+
 let counter = 0;
+
+export async function fundSafe(account, safeAddress) {
+  // Fund deployment (we don't want to wait to have enough trust connections)
+  return await web3.eth.sendTransaction({
+    from: account.address,
+    to: safeAddress,
+    value: SAFE_DEPLOYMENT_GAS,
+  });
+}
 
 export async function deploySafe(core, account) {
   counter += 1;
@@ -11,6 +22,8 @@ export async function deploySafe(core, account) {
   const safeAddress = await core.safe.prepareDeploy(account, {
     nonce,
   });
+
+  await fundSafe(account, safeAddress);
 
   await core.safe.deploy(account, {
     safeAddress,
