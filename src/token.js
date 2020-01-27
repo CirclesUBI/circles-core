@@ -5,6 +5,7 @@ import MaxFlow, { FlowEdge, FlowNetwork } from '~/common/maxFlow';
 import checkAccount from '~/common/checkAccount';
 import checkArrayEntries from '~/common/checkArrayEntries';
 import checkOptions from '~/common/checkOptions';
+import { getTokenContract } from '~/common/getContracts';
 
 const DEFAULT_TOKEN_NAME = 'Circles';
 const DEFAULT_TRUST_NETWORK_HOPS = 4;
@@ -551,6 +552,9 @@ export default function createTokenModule(web3, contracts, utils) {
         query: `{
           safe(id: "${safeAddress.toLowerCase()}") {
             balances {
+              token {
+                id
+              }
               amount
             }
           }
@@ -674,6 +678,82 @@ export default function createTokenModule(web3, contracts, utils) {
         safeAddress: options.from,
         to: hub.options.address,
         txData,
+      });
+    },
+
+    /**
+     * Return the current value of the pending UBI payout.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {string} userOptions.safeAddress - address of Token owner
+     *
+     * @return {BN} - Payout value
+     */
+    checkUBIPayout: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const tokenAddress = await hub.methods
+        .userToToken(options.safeAddress)
+        .call();
+
+      if (tokenAddress === ZERO_ADDRESS) {
+        throw new CoreError(
+          'Invalid Token address. Did you forget to deploy the Token?',
+          ErrorCodes.TOKEN_NOT_FOUND,
+        );
+      }
+
+      const token = await getTokenContract(web3, tokenAddress);
+      const payout = await token.methods.look().call();
+
+      return web3.utils.toBN(payout);
+    },
+
+    /**
+     * Request a UBI payout.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {string} userOptions.safeAddress - address of Token owner
+     *
+     * @return {string} - Transaction hash
+     */
+    requestUBIPayout: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const { safeAddress } = options;
+
+      // Find out token address of this Safe
+      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+
+      if (tokenAddress === ZERO_ADDRESS) {
+        throw new CoreError(
+          'Invalid Token address. Did you forget to deploy the Token?',
+          ErrorCodes.TOKEN_NOT_FOUND,
+        );
+      }
+
+      // Get Token contract
+      const token = await getTokenContract(web3, tokenAddress);
+
+      // Request UBI payout
+      const ubiTxData = await token.methods.update().encodeABI();
+
+      return await utils.executeTokenSafeTx(account, {
+        safeAddress: options.safeAddress,
+        to: token.options.address,
+        txData: ubiTxData,
       });
     },
   };
