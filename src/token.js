@@ -52,28 +52,32 @@ export async function getNetwork(web3, utils, userOptions) {
     return safes.find(node => node.address === safeAddress);
   };
 
-  const findConnection = (user, canSendTo) => {
+  const findConnection = (userAddress, canSendToAddress) => {
     return connections.find(
-      edge => edge.canSendTo === canSendTo && edge.user === user,
+      edge =>
+        edge.canSendToAddress === canSendToAddress &&
+        edge.userAddress === userAddress,
     );
   };
 
-  const addConnection = (user, canSendTo, limit) => {
+  const addConnection = (userAddress, canSendToAddress, limit) => {
     connections.push({
-      canSendTo,
+      canSendToAddress,
       limit,
-      user,
+      userAddress,
     });
   };
 
   const addConnections = connections => {
     connections.forEach(connection => {
-      const user = web3.utils.toChecksumAddress(connection.user.id);
-      const canSendTo = web3.utils.toChecksumAddress(connection.canSendTo.id);
+      const userAddress = web3.utils.toChecksumAddress(connection.userAddress);
+      const canSendToAddress = web3.utils.toChecksumAddress(
+        connection.canSendToAddress,
+      );
       const { limit } = connection;
 
-      if (!findConnection(user, canSendTo)) {
-        addConnection(user, canSendTo, limit);
+      if (!findConnection(userAddress, canSendToAddress)) {
+        addConnection(userAddress, canSendToAddress, limit);
       }
     });
   };
@@ -118,8 +122,8 @@ export async function getNetwork(web3, utils, userOptions) {
   const requestSafe = async safeAddress => {
     const safeQuery = `{
       limit
-      canSendTo { id }
-      user { id }
+      canSendToAddress
+      userAddress
     }`;
 
     const response = await utils.requestGraph({
@@ -184,14 +188,14 @@ export async function getNetwork(web3, utils, userOptions) {
     // Add more requests to queue when possible
     if (!isReceiverFound && currentHopIndex < options.networkHops) {
       const newQueue = connections.reduce((acc, connection) => {
-        if (!requestedSafeAddresses[connection.canSendTo]) {
-          acc.push(connection.canSendTo);
-          requestedSafeAddresses[connection.canSendTo] = true;
+        if (!requestedSafeAddresses[connection.canSendToAddress]) {
+          acc.push(connection.canSendToAddress);
+          requestedSafeAddresses[connection.canSendToAddress] = true;
         }
 
-        if (!requestedSafeAddresses[connection.user]) {
-          acc.push(connection.user);
-          requestedSafeAddresses[connection.user] = true;
+        if (!requestedSafeAddresses[connection.userAddress]) {
+          acc.push(connection.userAddress);
+          requestedSafeAddresses[connection.userAddress] = true;
         }
 
         return acc;
@@ -220,8 +224,8 @@ export async function getNetwork(web3, utils, userOptions) {
   // Find tokens for each connection we can actually use
   // for transitive transactions
   return connections.reduce((acc, connection) => {
-    const senderSafeAddress = connection.user;
-    const receiverSafeAddress = connection.canSendTo;
+    const senderSafeAddress = connection.userAddress;
+    const receiverSafeAddress = connection.canSendToAddress;
 
     // Ignore connections where we trust ourselves
     if (senderSafeAddress === receiverSafeAddress) {
@@ -244,7 +248,7 @@ export async function getNetwork(web3, utils, userOptions) {
         const token = findToken(address);
 
         const tokenConnection = connections.find(
-          ({ limit, user, canSendTo }) => {
+          ({ limit, userAddress, canSendToAddress }) => {
             // Calculate what maximum token value we can send
             const capacity = web3.utils.BN.min(
               web3.utils.toBN(limit),
@@ -252,8 +256,8 @@ export async function getNetwork(web3, utils, userOptions) {
             );
 
             return (
-              user === token.safeAddress &&
-              canSendTo === receiverSafeAddress &&
+              userAddress === token.safeAddress &&
+              canSendToAddress === receiverSafeAddress &&
               !capacity.isZero()
             );
           },

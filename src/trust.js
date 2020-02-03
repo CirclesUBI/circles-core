@@ -43,13 +43,13 @@ export default function createTrustModule(web3, contracts, utils) {
           safe(id: "${safeAddress}") {
             outgoing {
               limitPercentage
-              user { id }
-              canSendTo { id }
+              userAddress
+              canSendToAddress
             }
             incoming {
               limitPercentage
-              user { id }
-              canSendTo { id }
+              userAddress
+              canSendToAddress
             }
           }
         }`,
@@ -71,33 +71,35 @@ export default function createTrustModule(web3, contracts, utils) {
             return acc;
           }
 
-          const user = web3.utils.toChecksumAddress(connection.user.id);
+          const userAddress = web3.utils.toChecksumAddress(
+            connection.userAddress,
+          );
 
-          const canSendTo = web3.utils.toChecksumAddress(
-            connection.canSendTo.id,
+          const canSendToAddress = web3.utils.toChecksumAddress(
+            connection.canSendToAddress,
           );
 
           // Filter connections to ourselves
-          if (user === canSendTo) {
+          if (userAddress === canSendToAddress) {
             return acc;
           }
 
           // Merge incoming and outgoing connections
-          if (user === options.safeAddress) {
+          if (userAddress === options.safeAddress) {
             acc.push({
               isIncoming: false,
               isOutgoing: true,
               limitPercentageIn: NO_LIMIT_PERCENTAGE,
               limitPercentageOut: limitPercentage,
-              safeAddress: canSendTo,
+              safeAddress: canSendToAddress,
             });
-          } else if (canSendTo === options.safeAddress) {
+          } else if (canSendToAddress === options.safeAddress) {
             acc.push({
               isIncoming: true,
               isOutgoing: false,
               limitPercentageIn: limitPercentage,
               limitPercentageOut: NO_LIMIT_PERCENTAGE,
-              safeAddress: user,
+              safeAddress: userAddress,
             });
           }
 

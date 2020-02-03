@@ -55,7 +55,7 @@ export default function createActivityModule(web3, contracts, utils) {
           orderBy: "time",
           where: {
             time_gt: ${options.timestamp},
-            safe: "${options.safeAddress.toLowerCase()}"
+            safeAddress: "${options.safeAddress.toLowerCase()}"
           }
       `;
 
@@ -64,9 +64,7 @@ export default function createActivityModule(web3, contracts, utils) {
           notifications(${filter}) {
             id
             transactionHash
-            safe {
-              id
-            }
+            safeAddress
             type
             time
             trust {
