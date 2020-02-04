@@ -147,10 +147,9 @@ export async function getNetwork(web3, utils, userOptions) {
     });
 
     if (!response.safe) {
-      throw new CoreError(
-        `Could not find Safe with address ${safeAddress}`,
-        ErrorCodes.SAFE_NOT_FOUND,
-      );
+      // Silently fail when we could not find a Safe, it might not be
+      // deployed yet!
+      return;
     }
 
     // Parse all received data when we haven't done this yet
