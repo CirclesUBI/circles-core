@@ -114,9 +114,7 @@ export default function createSafeModule(web3, contracts, utils) {
       const response = await utils.requestGraph({
         query: `{
           user(id: "${options.ownerAddress.toLowerCase()}") {
-            safe {
-              id
-            }
+            safeAddress,
           }
         }`,
       });
@@ -125,7 +123,7 @@ export default function createSafeModule(web3, contracts, utils) {
         return null;
       }
 
-      return web3.utils.toChecksumAddress(response.user.safe.id);
+      return web3.utils.toChecksumAddress(response.user.safeAddress);
     },
 
     /**
