@@ -96,11 +96,9 @@ network.forEach(connection => {
 });
 
 // Check if we have enough trust connections
-const trustConnectionLimit = 3;
-
-const isTrusted = network.reduce((acc, connection) => {
-  return connection.isIncoming ? acc + 1 : acc;
-}, 0) > trustConnectionLimit;
+const isTrusted = await core.trust.isTrusted({
+  safeAddress,
+});
 
 if (!isTrusted) {
   console.log('Not enough trust connections yet ..');
