@@ -2,6 +2,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
 const DEFAULT_LIMIT_PERCENTAGE = 50;
+const DEFAULT_TRUST_LIMIT = 3;
 const NO_LIMIT_PERCENTAGE = 0;
 
 /**
@@ -17,6 +18,46 @@ export default function createTrustModule(web3, contracts, utils) {
   const { hub } = contracts;
 
   return {
+    /**
+     * Find out if safe address has enough incoming trust connections.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - Safe address of user
+     * @param {string} userOptions.limit - Incoming trust limit
+     *
+     * @return {bool} Safe has enough incoming trust connections
+     */
+    isTrusted: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        limit: {
+          type: 'number',
+          default: DEFAULT_TRUST_LIMIT,
+        },
+      });
+
+      const safeAddress = options.safeAddress.toLowerCase();
+
+      const response = await utils.requestGraph({
+        query: `{
+          trusts(where: { userAddress: "${safeAddress}" }) {
+            id
+          }
+        }`,
+      });
+
+      if (!response) {
+        return false;
+      }
+
+      return response.trusts.length >= options.limit;
+    },
+
     /**
      * Get the current state of a users trust network, containing
      * data to find transfer path between users.

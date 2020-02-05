@@ -80,6 +80,22 @@ describe('Trust', () => {
     expect(otherConnection.isOutgoing).toBe(true);
     expect(otherConnection.limitPercentageIn).toBe(72);
     expect(otherConnection.limitPercentageOut).toBe(44);
+
+    // This should not be true as we don't have enough
+    // trust connections yet
+    const isTrusted = await core.trust.isTrusted(otherAccount, {
+      safeAddress,
+    });
+
+    expect(isTrusted).toBe(false);
+
+    // This should be true as we lowered the limit
+    const isTrustedLowLimit = await core.trust.isTrusted(otherAccount, {
+      safeAddress,
+      limit: 1,
+    });
+
+    expect(isTrustedLowLimit).toBe(true);
   });
 
   it('should untrust someone', async () => {
