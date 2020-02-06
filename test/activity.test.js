@@ -154,10 +154,10 @@ describe('Activity', () => {
     expect(otherActivities.find(query)).toBeDefined();
   });
 
-  it('returns the transfer event for both Safes', async () => {
+  it('returns the hub transfer event for both Safes', async () => {
     const query = ({ type, data }) => {
       return (
-        type === core.activity.ActivityTypes.TRANSFER &&
+        type === core.activity.ActivityTypes.HUB_TRANSFER &&
         data.from === safeAddress &&
         data.to === otherSafeAddress
       );

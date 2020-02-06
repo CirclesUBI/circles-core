@@ -1,3 +1,5 @@
+import { ZERO_ADDRESS } from '~/common/constants';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import createSymbolObject from '~/common/createSymbolObject';
@@ -6,8 +8,9 @@ const DEFAULT_TIMESTAMP = 0;
 
 const ActivityTypes = createSymbolObject([
   'ADD_CONNECTION',
-  'REMOVE_CONNECTION',
   'ADD_OWNER',
+  'HUB_TRANSFER',
+  'REMOVE_CONNECTION',
   'REMOVE_OWNER',
   'TRANSFER',
 ]);
@@ -77,6 +80,11 @@ export default function createActivityModule(web3, contracts, utils) {
               to
               amount
             }
+            hubTransfer {
+              from
+              to
+              amount
+            }
             ownership {
               adds
               removes
@@ -118,6 +126,16 @@ export default function createActivityModule(web3, contracts, utils) {
             to: web3.utils.toChecksumAddress(to),
             value: new web3.utils.BN(amount),
           };
+        } else if (notification.type === 'HUB_TRANSFER') {
+          const { from, to, amount } = notification.hubTransfer;
+
+          type = ActivityTypes.HUB_TRANSFER;
+
+          data = {
+            from: web3.utils.toChecksumAddress(from),
+            to: web3.utils.toChecksumAddress(to),
+            value: new web3.utils.BN(amount),
+          };
         } else if (notification.type === 'TRUST') {
           const { user, canSendTo, limitPercentage } = notification.trust;
 
@@ -142,6 +160,12 @@ export default function createActivityModule(web3, contracts, utils) {
           type === ActivityTypes.ADD_CONNECTION &&
           data.canSendTo === data.user
         ) {
+          return acc;
+        }
+
+        // Filter transfer events which are not UBI payout as we have them
+        // covered through HUB_TRANSFER events
+        if (type === ActivityTypes.TRANSFER && data.from !== ZERO_ADDRESS) {
           return acc;
         }
 

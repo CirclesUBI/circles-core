@@ -134,7 +134,7 @@ const { ActivityTypes } = core.activity;
 activities.forEach(activity => {
   const { timestamp, type, data } = activity;
 
-  if (type === ActivityTypes.TRANSFER) {
+  if (type === ActivityTypes.HUB_TRANSFER) {
     console.log(`${timestamp} - ${data.from} transferred ${data.value.toString()} Circles to ${data.to}`);
   } else if (type === ActivityTypes.ADD_CONNECTION) {
     console.log(`${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`);
