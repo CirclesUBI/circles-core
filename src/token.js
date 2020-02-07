@@ -335,6 +335,8 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     },
   });
 
+  const value = parseFloat(web3.utils.fromWei(options.value, 'ether'));
+
   const { network } = options;
 
   // Find unique addresses in trust network
@@ -365,11 +367,15 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   // Create weighted edges in the graph based
   // on trust connections and flow limits
   network.forEach(connection => {
-    const capacity = connection.capacity;
+    // Simplify the numbers as the browser somehow freezes when using BN ..
+    const capacity = Math.floor(
+      parseFloat(web3.utils.fromWei(connection.capacity, 'ether')),
+    );
+
     const indexFrom = nodes.indexOf(connection.from);
     const indexTo = nodes.indexOf(connection.to);
 
-    const edge = new FlowEdge(web3, indexFrom, indexTo, capacity);
+    const edge = new FlowEdge(indexFrom, indexTo, capacity);
     edge.tokenOwnerAddress = connection.tokenOwnerAddress;
 
     graph.addEdge(edge);
@@ -379,9 +385,9 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
   const indexSender = nodes.indexOf(options.from);
   const indexReceiver = nodes.indexOf(options.to);
 
-  const maximumFlow = new MaxFlow(web3, graph, indexSender, indexReceiver);
+  const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
 
-  if (options.value.gt(maximumFlow.value)) {
+  if (value > maximumFlow.value) {
     throw new TransferError(
       'Could not find possible transaction path',
       ErrorCodes.NETWORK_NO_PATH,
@@ -406,7 +412,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
         }
 
         // Do we actually send any Tokens?
-        if (adjNode.flow.isZero()) {
+        if (adjNode.flow === 0) {
           return acc;
         }
 
@@ -415,7 +421,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
         return acc;
       }, [])
       .sort((nodeA, nodeB) => {
-        return nodeB.flow.cmp(nodeA.flow);
+        return nodeB.flow - nodeA.flow;
       });
 
     // Set the required flow for this node
@@ -426,24 +432,18 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     adjacentNodes.forEach(edge => {
       // Calculate how much flow this adjacent node can give, we've
       // sorted them above by flow capacity to prioritize larger ones
-      const edgeFlow = edge.flow.sub(
-        web3.utils.BN.max(
-          web3.utils.toBN('0'),
-          edge.flow.sub(flowRequiredLeft),
-        ),
-      );
-
-      flowRequiredLeft = flowRequiredLeft.sub(edgeFlow);
+      const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
+      flowRequiredLeft = flowRequiredLeft - edgeFlow;
 
       const innerPath = traversePath(edge.v, edgeFlow, path);
       path.concat(innerPath);
 
-      if (!edge.isVisited && !edgeFlow.isZero()) {
+      if (!edge.isVisited && edgeFlow > 0) {
         path.push({
           from: nodes[edge.v],
           to: nodes[edge.w],
           tokenOwnerAddress: edge.tokenOwnerAddress,
-          value: edgeFlow,
+          value: web3.utils.toWei(edgeFlow.toString(), 'ether'),
         });
       }
 
@@ -455,7 +455,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     return path;
   };
 
-  return traversePath(indexReceiver, options.value);
+  return traversePath(indexReceiver, value);
 }
 
 /**
@@ -637,7 +637,7 @@ export default function createTokenModule(web3, contracts, utils) {
           const data = {
             from: options.from,
             to: options.to,
-            value: options.value.toString(),
+            value: options.value,
             network,
             transactions,
             ...error.transfer,
