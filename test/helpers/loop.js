@@ -18,7 +18,7 @@ export async function getTrustConnection(
     safeAddress,
   });
 
-  return network.find(item => item.safeAddress === otherSafeAddress);
+  return network.find((item) => item.safeAddress === otherSafeAddress);
 }
 
 export default async function loop(request, condition = isContractDeployed) {

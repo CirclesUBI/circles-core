@@ -148,7 +148,7 @@ export default function createTrustModule(web3, contracts, utils) {
         }, [])
         .reduce((acc, connection) => {
           // Find duplicates ...
-          const index = acc.findIndex(item => {
+          const index = acc.findIndex((item) => {
             return item.safeAddress === connection.safeAddress;
           });
 

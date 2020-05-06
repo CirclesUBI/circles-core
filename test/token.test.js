@@ -110,7 +110,7 @@ describe('Token', () => {
           safeAddress: safeAddresses[indexFrom],
         });
       },
-      balance => balance.toString().slice(0, 2) === '94',
+      (balance) => balance.toString().slice(0, 2) === '94',
     );
 
     const otherAccountBalance = await core.token.getBalance(accounts[indexTo], {
@@ -191,7 +191,7 @@ describe('Token', () => {
         { from: nodes[6], to: nodes[7], capacity: 10 },
       ];
 
-      network.map(connection => {
+      network.map((connection) => {
         connection.capacity = web3.utils.toBN(
           core.utils.toFreckles(connection.capacity),
         );
@@ -232,7 +232,7 @@ describe('Token', () => {
         const balances = new Array(NUM_NODES).fill(0);
         balances[INDEX_SENDER] = value;
 
-        path.forEach(transaction => {
+        path.forEach((transaction) => {
           const indexFrom = nodes.indexOf(transaction.from);
           const indexTo = nodes.indexOf(transaction.to);
 

@@ -92,7 +92,7 @@ describe('Activity', () => {
       timestamp: lastTimestamp,
     });
 
-    const findOwnerActivity = accountAddress => {
+    const findOwnerActivity = (accountAddress) => {
       return latest.activities.find(({ type, data }) => {
         return (
           type === core.activity.ActivityTypes.ADD_OWNER &&

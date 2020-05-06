@@ -3,19 +3,19 @@ import CoreError, { ErrorCodes } from '~/common/error';
 const DEFAULT_TYPE = 'string';
 
 const validators = {
-  boolean: value => {
+  boolean: (value) => {
     return typeof value === 'boolean';
   },
-  number: value => {
+  number: (value) => {
     return typeof value === 'number';
   },
-  string: value => {
+  string: (value) => {
     return typeof value === 'string';
   },
-  object: value => {
+  object: (value) => {
     return typeof value === 'object';
   },
-  array: value => {
+  array: (value) => {
     return Array.isArray(value);
   },
 };

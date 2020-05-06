@@ -37,12 +37,12 @@ export default function createUserModule(web3, contracts, utils) {
           type: web3.utils.checkAddressChecksum,
         },
         username: {
-          type: value => {
+          type: (value) => {
             return /^[a-zA-Z0-9]+$/.test(value);
           },
         },
         email: {
-          type: value => {
+          type: (value) => {
             return /^\S+@\S+\.\S+/.test(value);
           },
         },
@@ -89,14 +89,14 @@ export default function createUserModule(web3, contracts, utils) {
 
       const options = checkOptions(userOptions, {
         addresses: {
-          type: arr => {
+          type: (arr) => {
             return checkArrayEntries(arr, web3.utils.checkAddressChecksum);
           },
           default: [],
         },
         usernames: {
-          type: arr => {
-            return checkArrayEntries(arr, entry => {
+          type: (arr) => {
+            return checkArrayEntries(arr, (entry) => {
               return /^[a-zA-Z0-9]+$/.test(entry);
             });
           },

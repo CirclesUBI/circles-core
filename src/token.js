@@ -44,17 +44,17 @@ export async function getNetwork(web3, utils, userOptions) {
   const safes = [];
   const tokens = [];
 
-  const findToken = tokenAddress => {
-    return tokens.find(node => node.address === tokenAddress);
+  const findToken = (tokenAddress) => {
+    return tokens.find((node) => node.address === tokenAddress);
   };
 
-  const findSafe = safeAddress => {
-    return safes.find(node => node.address === safeAddress);
+  const findSafe = (safeAddress) => {
+    return safes.find((node) => node.address === safeAddress);
   };
 
   const findConnection = (userAddress, canSendToAddress) => {
     return connections.find(
-      edge =>
+      (edge) =>
         edge.canSendToAddress === canSendToAddress &&
         edge.userAddress === userAddress,
     );
@@ -68,8 +68,8 @@ export async function getNetwork(web3, utils, userOptions) {
     });
   };
 
-  const addConnections = connections => {
-    connections.forEach(connection => {
+  const addConnections = (connections) => {
+    connections.forEach((connection) => {
       const userAddress = web3.utils.toChecksumAddress(connection.userAddress);
       const canSendToAddress = web3.utils.toChecksumAddress(
         connection.canSendToAddress,
@@ -119,7 +119,7 @@ export async function getNetwork(web3, utils, userOptions) {
   };
 
   // Get trust network information from the graph node
-  const requestSafe = async safeAddress => {
+  const requestSafe = async (safeAddress) => {
     const safeQuery = `{
       limit
       canSendToAddress
@@ -169,12 +169,12 @@ export async function getNetwork(web3, utils, userOptions) {
 
   const hop = async (queue = [], currentHopIndex = 0) => {
     // Process the next batch of requests to be made
-    queue.forEach(safeAddress => {
+    queue.forEach((safeAddress) => {
       requestedSafeAddresses[safeAddress] = true;
     });
 
     await Promise.all(
-      queue.map(safeAddress => {
+      queue.map((safeAddress) => {
         // Did we reach the final receiver node?
         if (safeAddress === options.to) {
           isReceiverFound = true;
@@ -281,7 +281,7 @@ export async function getNetwork(web3, utils, userOptions) {
 
     // Merge all known data to get a list in the end containing
     // what Token can be sent to whom with what maximum value.
-    trustedTokens.forEach(token => {
+    trustedTokens.forEach((token) => {
       acc.push({
         from: senderSafeAddress,
         to: receiverSafeAddress,
@@ -322,8 +322,8 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
       type: web3.utils.isBN,
     },
     network: {
-      type: arr => {
-        return checkArrayEntries(arr, entry => {
+      type: (arr) => {
+        return checkArrayEntries(arr, (entry) => {
           return (
             web3.utils.checkAddressChecksum(entry.from) &&
             web3.utils.checkAddressChecksum(entry.to) &&
@@ -366,7 +366,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
 
   // Create weighted edges in the graph based
   // on trust connections and flow limits
-  network.forEach(connection => {
+  network.forEach((connection) => {
     // Simplify the numbers as the browser somehow freezes when using BN ..
     const capacity = Math.floor(
       parseFloat(web3.utils.fromWei(connection.capacity, 'ether')),
@@ -429,7 +429,7 @@ export function findTransitiveTransactions(web3, utils, userOptions) {
     let flowRequiredLeft = flowRequired;
 
     // We recursively look for adjacent nodes until there are none
-    adjacentNodes.forEach(edge => {
+    adjacentNodes.forEach((edge) => {
       // Calculate how much flow this adjacent node can give, we've
       // sorted them above by flow capacity to prioritize larger ones
       const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
@@ -573,7 +573,7 @@ export default function createTokenModule(web3, contracts, utils) {
 
       // Return only the balance of a particular token
       if (tokenAddress !== ZERO_ADDRESS) {
-        const token = response.safe.balances.find(item => {
+        const token = response.safe.balances.find((item) => {
           return item.token.id === tokenAddress;
         });
 

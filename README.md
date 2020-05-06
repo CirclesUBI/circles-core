@@ -19,9 +19,9 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 
 ## Requirements
 
-* NodeJS
-* web3.js
-* Python 2.7
+- NodeJS
+- web3.js
+- Python 2.7
 
 ## Installation
 
@@ -74,7 +74,7 @@ const network = await core.trust.getNetwork(account, { safeAddress });
 
 // Resolve public addresses to user profiles
 const users = await core.user.resolve(account, {
-  addresses: network.map(connection => connection.safeAddress),
+  addresses: network.map((connection) => connection.safeAddress),
 });
 
 // Search for a user via username
@@ -83,8 +83,10 @@ const users = await core.user.search(account, {
 });
 
 // Example: Display our trust network
-network.forEach(connection => {
-  const user = users.find(item => item.safeAddress === connection.safeAddress);
+network.forEach((connection) => {
+  const user = users.find(
+    (item) => item.safeAddress === connection.safeAddress,
+  );
 
   if (connection.isOutgoing) {
     console.log(`${user.username} accepts your Circles.`);
@@ -131,19 +133,29 @@ const { activities } = await core.activity.getLatest(account, {
 // Example: Display activities
 const { ActivityTypes } = core.activity;
 
-activities.forEach(activity => {
+activities.forEach((activity) => {
   const { timestamp, type, data } = activity;
 
   if (type === ActivityTypes.HUB_TRANSFER) {
-    console.log(`${timestamp} - ${data.from} transferred ${data.value.toString()} Circles to ${data.to}`);
+    console.log(
+      `${timestamp} - ${
+        data.from
+      } transferred ${data.value.toString()} Circles to ${data.to}`,
+    );
   } else if (type === ActivityTypes.ADD_CONNECTION) {
-    console.log(`${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`);
+    console.log(
+      `${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`,
+    );
   } else if (type === ActivityTypes.REMOVE_CONNECTION) {
     console.log(`${timestamp} - ${data.canSendTo} untrusted ${data.user}`);
   } else if (type === ActivityTypes.ADD_OWNER) {
-    console.log(`${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`);
+    console.log(
+      `${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`,
+    );
   } else if (type === ActivityTypes.REMOVE_OWNER) {
-    console.log(`${timestamp} - removed ${data.ownerAddress} from ${data.safeAddress}`);
+    console.log(
+      `${timestamp} - removed ${data.ownerAddress} from ${data.safeAddress}`,
+    );
   }
 });
 

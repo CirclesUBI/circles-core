@@ -4,14 +4,9 @@
     "jest": true,
     "node": true
   },
-  "extends": [
-    "eslint:recommended",
-    "plugin:prettier/recommended"
-  ],
+  "extends": ["eslint:recommended", "plugin:prettier/recommended"],
   "parser": "babel-eslint",
-  "plugins": [
-    "prettier"
-  ],
+  "plugins": ["prettier"],
   "rules": {
     "no-console": "error"
   }

@@ -76,7 +76,7 @@ export async function addSafeOwner(core, account, userOptions) {
         safeAddress: userOptions.safeAddress,
       });
     },
-    owners => {
+    (owners) => {
       return owners.includes(userOptions.ownerAddress);
     },
   );

@@ -117,7 +117,7 @@ describe('Trust', () => {
           safeAddress,
         });
       },
-      network => network.length === 0,
+      (network) => network.length === 0,
     );
 
     expect(network.length).toBe(0);

@@ -50,11 +50,11 @@ async function request(endpoint, userOptions) {
   const url = `${endpoint}/${path.join('/')}${slash}${paramsStr}`;
 
   try {
-    return fetch(url, request).then(response => {
+    return fetch(url, request).then((response) => {
       const contentType = response.headers.get('Content-Type');
 
       if (contentType && contentType.includes('application/json')) {
-        return response.json().then(json => {
+        return response.json().then((json) => {
           if (response.status >= 400) {
             throw new RequestError(url, json, response.status);
           }
@@ -185,7 +185,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      *
      * @return {string} - value in Freckles
      */
-    toFreckles: value => {
+    toFreckles: (value) => {
       return web3.utils.toWei(`${value}`, 'ether');
     },
 
@@ -196,7 +196,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      *
      * @return {number} - value in Circles
      */
-    fromFreckles: value => {
+    fromFreckles: (value) => {
       return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
     },
 
@@ -209,7 +209,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {string} userOptions.method - API request method (GET, POST)
      * @param {Object} userOptions.data - data payload
      */
-    requestRelayer: async userOptions => {
+    requestRelayer: async (userOptions) => {
       return requestRelayer(relayServiceEndpoint, userOptions);
     },
 
@@ -220,7 +220,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {string} userOptions.query - GraphQL query
      * @param {Object} userOptions.variables - GraphQL variables
      */
-    requestGraph: async userOptions => {
+    requestGraph: async (userOptions) => {
       return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
     },
 
@@ -384,7 +384,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         () => {
           return web3.eth.getBalance(safeAddress);
         },
-        balance => {
+        (balance) => {
           return web3.utils.toBN(balance).gte(totalGasEstimate);
         },
       );
@@ -429,7 +429,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       return response.txHash;
     },
-    requestAPI: async userOptions => {
+    requestAPI: async (userOptions) => {
       const options = checkOptions(userOptions, {
         path: {
           type: 'array',

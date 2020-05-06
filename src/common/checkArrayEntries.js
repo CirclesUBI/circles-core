@@ -4,7 +4,7 @@ export default function checkArrayEntries(arr, validatorFn) {
   }
 
   return (
-    arr.find(entry => {
+    arr.find((entry) => {
       return !validatorFn(entry);
     }) === undefined
   );

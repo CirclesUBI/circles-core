@@ -80,7 +80,7 @@ describe('Safe', () => {
             ownerAddress: otherAccount.address,
           });
         },
-        address => address,
+        (address) => address,
       );
 
       expect(ownedSafeAddress).toBe(safeAddress);

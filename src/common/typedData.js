@@ -76,7 +76,7 @@ function dependencies(typedData, primaryType, found = []) {
 function encodeType(typedData, primaryType) {
   // Get dependencies primary first, then alphabetical
   let deps = dependencies(typedData, primaryType);
-  deps = deps.filter(t => t != primaryType);
+  deps = deps.filter((t) => t != primaryType);
   deps = [primaryType].concat(deps.sort());
 
   // Format as a string with fields

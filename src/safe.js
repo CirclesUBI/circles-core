@@ -215,7 +215,7 @@ export default function createSafeModule(web3, contracts, utils) {
 
       // .. to find out which previous owner in the list is pointing at the one we want to remove
       const ownerIndex = owners.findIndex(
-        owner => owner === options.ownerAddress,
+        (owner) => owner === options.ownerAddress,
       );
 
       const prevOwner =
