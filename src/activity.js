@@ -4,7 +4,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import createSymbolObject from '~/common/createSymbolObject';
 
-const DEFAULT_TIMESTAMP = 0;
+const DEFAULT_LIMIT = 20;
 
 const ActivityTypes = createSymbolObject([
   'ADD_CONNECTION',
@@ -37,7 +37,8 @@ export default function createActivityModule(web3, contracts, utils) {
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
-     * @param {number} userOptions.timestamp - show only messages after this time
+     * @param {number} userOptions.limit - pagination page size
+     * @param {number} userOptions.offset - pagination start index
      *
      * @return {Object} List of latest activities
      */
@@ -48,16 +49,22 @@ export default function createActivityModule(web3, contracts, utils) {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
-        timestamp: {
+        limit: {
           type: 'number',
-          default: DEFAULT_TIMESTAMP,
+          default: DEFAULT_LIMIT,
+        },
+        offset: {
+          type: 'number',
+          default: 0,
         },
       });
 
       const filter = `
           orderBy: "time",
+          orderDirection: "desc",
+          first: ${options.limit},
+          skip: ${options.offset},
           where: {
-            time_gt: ${options.timestamp},
             safeAddress: "${options.safeAddress.toLowerCase()}"
           }
       `;
@@ -96,7 +103,7 @@ export default function createActivityModule(web3, contracts, utils) {
       if (!response.notifications || response.notifications.length === 0) {
         return {
           activities: [],
-          lastTimestamp: DEFAULT_TIMESTAMP,
+          lastTimestamp: 0,
         };
       }
 
