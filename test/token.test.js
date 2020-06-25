@@ -27,16 +27,18 @@ beforeAll(async () => {
 describe('Token', () => {
   beforeAll(async () => {
     // Deploy Safe and Token for each test account
-    // @TODO: Can we parallelize this?
-    for (const account of accounts) {
-      const { safeAddress, tokenAddress } = await deploySafeAndToken(
-        core,
-        account,
-      );
+    const tasks = accounts.map((account) => {
+      return deploySafeAndToken(core, account);
+    });
+
+    const results = await Promise.all(tasks);
+
+    results.forEach((result) => {
+      const { safeAddress, tokenAddress } = result;
 
       safeAddresses.push(safeAddress);
       tokenAddresses.push(tokenAddress);
-    }
+    });
 
     // Create trust connections
     const connections = [
@@ -53,13 +55,17 @@ describe('Token', () => {
       [2, 5, 50], // Unidirectional
     ];
 
-    for (const connection of connections) {
-      await addTrustConnection(core, accounts[connection[0]], {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    const connectionTasks = connections.map((connection) => {
+      return addTrustConnection(core, accounts[connection[0]], {
         user: safeAddresses[connection[1]],
         canSendTo: safeAddresses[connection[0]],
         limitPercentage: connection[2],
       });
-    }
+    });
+
+    await Promise.all(connectionTasks);
   });
 
   it('should get the current balance', async () => {

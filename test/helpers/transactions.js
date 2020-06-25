@@ -1,7 +1,7 @@
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
 
-const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.002', 'ether');
+const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.01', 'ether');
 
 let counter = 0;
 
