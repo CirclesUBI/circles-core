@@ -1,5 +1,6 @@
 import Web3 from 'web3';
 
+import TransactionQueue from '~/common/queue';
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 import parameterize from '~/common/parameterize';
@@ -190,6 +191,80 @@ describe('Common', () => {
       const data = hub.methods.signup('testToken').encodeABI();
 
       expect(data).toContain('0x');
+    });
+  });
+
+  describe('TransactionQueue', () => {
+    let transactionQueue;
+    let ticketId1;
+    let ticketId2;
+    let ticketId3;
+
+    beforeEach(() => {
+      transactionQueue = new TransactionQueue();
+
+      ticketId1 = transactionQueue.queue('panda');
+      ticketId2 = transactionQueue.queue('panda');
+      ticketId3 = transactionQueue.queue('panda');
+    });
+
+    it('should give every queued task an unique ticket number', () => {
+      expect([ticketId2, ticketId3]).not.toContain(ticketId1);
+    });
+
+    it('should be a queue following a LIFO logic', () => {
+      expect(() => transactionQueue.unqueue('panda', ticketId1)).not.toThrow();
+      expect(() => transactionQueue.unqueue('panda', ticketId3)).toThrow();
+      expect(() => transactionQueue.unqueue('panda', ticketId2)).not.toThrow();
+    });
+
+    it('should tell us if the task is ready to get executed', () => {
+      expect(transactionQueue.isNextInQueue('panda', ticketId1)).toBe(true);
+      expect(transactionQueue.isNextInQueue('panda', ticketId2)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId3)).toBe(false);
+
+      transactionQueue.unqueue('panda', ticketId1);
+      expect(transactionQueue.isNextInQueue('panda', ticketId1)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId2)).toBe(true);
+      expect(transactionQueue.isNextInQueue('panda', ticketId3)).toBe(false);
+
+      transactionQueue.unqueue('panda', ticketId2);
+      expect(transactionQueue.isNextInQueue('panda', ticketId1)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId2)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId3)).toBe(true);
+
+      transactionQueue.unqueue('panda', ticketId3);
+      expect(transactionQueue.isNextInQueue('panda', ticketId1)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId2)).toBe(false);
+      expect(transactionQueue.isNextInQueue('panda', ticketId3)).toBe(false);
+    });
+
+    it('should lock keys with data attached', () => {
+      transactionQueue.lockTransaction('lala', { someData: 12345 });
+
+      expect(transactionQueue.getCurrentTransaction('lala').someData).toBe(
+        12345,
+      );
+    });
+
+    it('should lock and unlock keys', () => {
+      expect(transactionQueue.isLocked('baba')).toBe(false);
+
+      transactionQueue.lockTransaction('lala', { data: 123 });
+      expect(transactionQueue.isLocked('lala')).toBe(true);
+
+      transactionQueue.unlockTransaction('lala');
+      expect(transactionQueue.isLocked('lala')).toBe(false);
+    });
+
+    it('should fail when trying to lock an already locked key', () => {
+      expect(() =>
+        transactionQueue.lockTransaction('panda', { haha: 'huhu' }),
+      ).not.toThrow();
+
+      expect(() =>
+        transactionQueue.lockTransaction('panda', { haha: 'huhu' }),
+      ).toThrow();
     });
   });
 });
