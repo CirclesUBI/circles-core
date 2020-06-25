@@ -157,6 +157,140 @@ async function estimateTransactionCosts(
   });
 }
 
+// @TODO: Move all of this to own file
+const queue = {};
+let ticketNoCounter = 0;
+
+function lock(key) {
+  if (!(key in queue)) {
+    queue[key] = [];
+  }
+
+  ticketNoCounter++;
+  const ticketNo = ticketNoCounter;
+  queue[key].push(ticketNo);
+
+  return ticketNo;
+}
+
+function unlock(key, ticketNo) {
+  const index = queue[key].findIndex((item) => item === ticketNo);
+
+  if (index > -1) {
+    queue[key].splice(index, 1);
+  }
+}
+
+function isReady(key, ticketNo) {
+  return queue[key].findIndex((item) => item === ticketNo) === 0;
+}
+
+const pendingTransactions = {};
+
+function queuePendingTransaction(safeAddress, transactionData) {
+  if (safeAddress in pendingTransactions) {
+    throw new Error('This should be empty?!');
+  }
+
+  pendingTransactions[safeAddress] = transactionData;
+}
+
+function unqueuePendingTransaction(safeAddress, ticketNo) {
+  if (
+    safeAddress in pendingTransactions &&
+    pendingTransactions[safeAddress].ticketNo === ticketNo
+  ) {
+    delete pendingTransactions[safeAddress];
+  }
+}
+
+/**
+ * @TODO
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} endpoint - URL of Relayer Service
+ * @param {string} safeAddress - address of Safe
+ */
+async function waitForPendingTransactions(
+  web3,
+  endpoint,
+  safeAddress,
+  ticketNo,
+) {
+  await loop(
+    async () => {
+      if (safeAddress in pendingTransactions) {
+        const {
+          txHash,
+          nonce,
+          ticketNo: pendingTicketNo,
+        } = pendingTransactions[safeAddress];
+
+        try {
+          const response = await requestRelayer(endpoint, {
+            path: ['safes', safeAddress, 'transactions'],
+            method: 'GET',
+            version: 1,
+            data: {
+              limit: 1,
+              ethereum_tx__tx_hash: txHash,
+              nonce,
+            },
+          });
+
+          if (response.results.length === 1) {
+            unqueuePendingTransaction(safeAddress, pendingTicketNo);
+            unlock(safeAddress, pendingTicketNo);
+          }
+        } catch {
+          // Do nothing
+        }
+
+        return false;
+      }
+
+      return isReady(safeAddress, ticketNo);
+    },
+    (isReady) => {
+      return isReady;
+    },
+  );
+}
+
+/**
+ * Retreive an nonce and make sure it does not collide with currently
+ * pending transactions already using it.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} endpoint - URL of Relayer Service
+ * @param {string} safeAddress - address of Safe
+ */
+async function requestNonce(web3, endpoint, safeAddress) {
+  let nonce = null;
+
+  try {
+    const response = await requestRelayer(endpoint, {
+      path: ['safes', safeAddress, 'transactions'],
+      method: 'GET',
+      version: 1,
+      data: {
+        limit: 1,
+      },
+    });
+
+    nonce = response.results.length > 0 ? response.results[0].nonce : null;
+  } catch {
+    // Do nothing!
+  }
+
+  // Fallback to retreive nonce from Safe contract method (already incremented)
+  if (nonce === null) {
+    return await getSafeContract(web3, safeAddress).methods.nonce().call();
+  }
+
+  return `${parseInt(nonce, 10) + 1}`;
+}
+
 /**
  * Utils submodule for common transaction and relayer methods.
  *
@@ -251,6 +385,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const { txData, safeAddress, to } = options;
 
+      const ticketNo = lock(safeAddress);
+
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
@@ -280,9 +416,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const nonce = await getSafeContract(web3, safeAddress)
-        .methods.nonce()
-        .call();
+      await waitForPendingTransactions(
+        web3,
+        relayServiceEndpoint,
+        safeAddress,
+        ticketNo,
+      );
+
+      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
       const typedData = formatTypedData(
         to,
@@ -316,6 +457,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           nonce,
           gasToken,
         },
+      });
+
+      queuePendingTransaction(safeAddress, {
+        nonce,
+        ticketNo,
+        txHash: response.txHash,
       });
 
       return response.txHash;
@@ -359,6 +506,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       });
 
       const { to, gasToken, txData, value, safeAddress } = options;
+
+      const ticketNo = lock(safeAddress);
+
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
 
@@ -389,9 +539,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const nonce = await getSafeContract(web3, safeAddress)
-        .methods.nonce()
-        .call();
+      await waitForPendingTransactions(
+        web3,
+        relayServiceEndpoint,
+        safeAddress,
+        ticketNo,
+      );
+
+      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
       const typedData = formatTypedData(
         to,
@@ -427,8 +582,25 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       });
 
+      queuePendingTransaction(safeAddress, {
+        nonce,
+        ticketNo,
+        txHash: response.txHash,
+      });
+
       return response.txHash;
     },
+
+    /**
+     * @TODO
+     *
+     * @param {Object} userOptions - API query options
+     * @param {string} userOptions.path - API route
+     * @param {string} userOptions.method - HTTP method
+     * @param {object} userOptions.data - Request body (JSON)
+     *
+     * @return {Object} - API response
+     */
     requestAPI: async (userOptions) => {
       const options = checkOptions(userOptions, {
         path: {
