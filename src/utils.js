@@ -350,9 +350,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
 
-      // Register transaction in waiting queue
-      const ticketId = transactionQueue.queue(safeAddress);
-
       // Get Circles Token of this Safe / User
       const tokenAddress = await hub.methods.userToToken(safeAddress).call();
 
@@ -377,6 +374,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
+
+      // Register transaction in waiting queue
+      const ticketId = transactionQueue.queue(safeAddress);
 
       // Wait until transaction can be executed
       await waitForPendingTransactions(
@@ -407,32 +407,39 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const signature = signTypedData(web3, account.privateKey, typedData);
 
       // Send transaction to relayer
-      const { txHash } = await requestRelayer(relayServiceEndpoint, {
-        path: ['safes', safeAddress, 'transactions'],
-        method: 'POST',
-        version: 1,
-        data: {
-          to,
-          value,
-          data: txData,
-          operation,
-          signatures: [signature],
-          safeTxGas,
-          dataGas,
-          gasPrice,
+      try {
+        const { txHash } = await requestRelayer(relayServiceEndpoint, {
+          path: ['safes', safeAddress, 'transactions'],
+          method: 'POST',
+          version: 1,
+          data: {
+            to,
+            value,
+            data: txData,
+            operation,
+            signatures: [signature],
+            safeTxGas,
+            dataGas,
+            gasPrice,
+            nonce,
+            gasToken,
+          },
+        });
+
+        // Register transaction so we can check later if it finished
+        transactionQueue.lockTransaction(safeAddress, {
           nonce,
-          gasToken,
-        },
-      });
+          ticketId,
+          txHash,
+        });
 
-      // Register transaction so we can check later if it finished
-      transactionQueue.lockTransaction(safeAddress, {
-        nonce,
-        ticketId,
-        txHash,
-      });
+        return txHash;
+      } catch {
+        transactionQueue.unlockTransaction(safeAddress, ticketId);
+        transactionQueue.unqueue(safeAddress, ticketId);
 
-      return txHash;
+        return null;
+      }
     },
 
     /**
@@ -476,9 +483,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
 
-      // Register transaction in waiting queue
-      const ticketId = transactionQueue.queue(safeAddress);
-
       const { dataGas, gasPrice, safeTxGas } = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
@@ -490,6 +494,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
+
+      // Register transaction in waiting queue
+      const ticketId = transactionQueue.queue(safeAddress);
 
       // Wait until Relayer allocates enough funds to pay for transaction
       const totalGasEstimate = web3.utils
@@ -535,32 +542,39 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const signature = signTypedData(web3, account.privateKey, typedData);
 
       // Send transaction to relayer
-      const { txHash } = await requestRelayer(relayServiceEndpoint, {
-        path: ['safes', safeAddress, 'transactions'],
-        method: 'POST',
-        version: 1,
-        data: {
-          to,
-          value,
-          data: txData,
-          operation,
-          signatures: [signature],
-          safeTxGas,
-          dataGas,
-          gasPrice,
+      try {
+        const { txHash } = await requestRelayer(relayServiceEndpoint, {
+          path: ['safes', safeAddress, 'transactions'],
+          method: 'POST',
+          version: 1,
+          data: {
+            to,
+            value,
+            data: txData,
+            operation,
+            signatures: [signature],
+            safeTxGas,
+            dataGas,
+            gasPrice,
+            nonce,
+            gasToken,
+          },
+        });
+
+        // Register transaction so we can check later if it finished
+        transactionQueue.lockTransaction(safeAddress, {
           nonce,
-          gasToken,
-        },
-      });
+          ticketId,
+          txHash,
+        });
 
-      // Register transaction so we can check later if it finished
-      transactionQueue.lockTransaction(safeAddress, {
-        nonce,
-        ticketId,
-        txHash,
-      });
+        return txHash;
+      } catch {
+        transactionQueue.unlockTransaction(safeAddress, ticketId);
+        transactionQueue.unqueue(safeAddress, ticketId);
 
-      return txHash;
+        return null;
+      }
     },
 
     /**
