@@ -3,12 +3,15 @@ import fetch from 'isomorphic-fetch';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 
 import CoreError, { RequestError, ErrorCodes } from '~/common/error';
+import TransactionQueue from '~/common/queue';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
+
+const transactionQueue = new TransactionQueue();
 
 async function request(endpoint, userOptions) {
   const options = checkOptions(userOptions, {
@@ -158,6 +161,99 @@ async function estimateTransactionCosts(
 }
 
 /**
+ * Manages transaction queue to finalize currently running tasks and starts the
+ * next one when ready.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} endpoint - URL of relayer Service
+ * @param {string} safeAddress - address of Safe
+ * @param {number} pendingTicketId - id of the task
+ */
+async function waitForPendingTransactions(
+  web3,
+  endpoint,
+  safeAddress,
+  pendingTicketId,
+) {
+  await loop(
+    async () => {
+      // Check if transaction is ready and leave loop if yes
+      if (!transactionQueue.isLocked(safeAddress)) {
+        return transactionQueue.isNextInQueue(safeAddress, pendingTicketId);
+      }
+
+      // .. otherwise check what task is currently running
+      const {
+        txHash,
+        nonce,
+        ticketId: currentTicketId,
+      } = transactionQueue.getCurrentTransaction(safeAddress);
+
+      // Ask relayer if it finished
+      try {
+        const response = await requestRelayer(endpoint, {
+          path: ['safes', safeAddress, 'transactions'],
+          method: 'GET',
+          version: 1,
+          data: {
+            limit: 1,
+            ethereum_tx__tx_hash: txHash,
+            nonce,
+          },
+        });
+
+        // ... and unqueue the task in case it did!
+        if (response.results.length === 1) {
+          transactionQueue.unlockTransaction(safeAddress, currentTicketId);
+          transactionQueue.unqueue(safeAddress, currentTicketId);
+        }
+      } catch {
+        // Do nothing
+      }
+
+      return false;
+    },
+    (isReady) => {
+      return isReady;
+    },
+  );
+}
+
+/**
+ * Retreive an nonce and make sure it does not collide with currently
+ * pending transactions already using it.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} endpoint - URL of Relayer Service
+ * @param {string} safeAddress - address of Safe
+ */
+async function requestNonce(web3, endpoint, safeAddress) {
+  let nonce = null;
+
+  try {
+    const response = await requestRelayer(endpoint, {
+      path: ['safes', safeAddress, 'transactions'],
+      method: 'GET',
+      version: 1,
+      data: {
+        limit: 1,
+      },
+    });
+
+    nonce = response.results.length > 0 ? response.results[0].nonce : null;
+  } catch {
+    // Do nothing!
+  }
+
+  // Fallback to retreive nonce from Safe contract method (already incremented)
+  if (nonce === null) {
+    return await getSafeContract(web3, safeAddress).methods.nonce().call();
+  }
+
+  return `${parseInt(nonce, 10) + 1}`;
+}
+
+/**
  * Utils submodule for common transaction and relayer methods.
  *
  * @param {Web3} web3 - Web3 instance
@@ -250,7 +346,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       });
 
       const { txData, safeAddress, to } = options;
-
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
@@ -280,10 +375,21 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const nonce = await getSafeContract(web3, safeAddress)
-        .methods.nonce()
-        .call();
+      // Register transaction in waiting queue
+      const ticketId = transactionQueue.queue(safeAddress);
 
+      // Wait until transaction can be executed
+      await waitForPendingTransactions(
+        web3,
+        relayServiceEndpoint,
+        safeAddress,
+        ticketId,
+      );
+
+      // Request nonce for Safe
+      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
+
+      // Prepare EIP712 transaction data and sign it
       const typedData = formatTypedData(
         to,
         value,
@@ -300,25 +406,40 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
-      const response = await requestRelayer(relayServiceEndpoint, {
-        path: ['safes', safeAddress, 'transactions'],
-        method: 'POST',
-        version: 1,
-        data: {
-          to,
-          value,
-          data: txData,
-          operation,
-          signatures: [signature],
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          nonce,
-          gasToken,
-        },
-      });
+      // Send transaction to relayer
+      try {
+        const { txHash } = await requestRelayer(relayServiceEndpoint, {
+          path: ['safes', safeAddress, 'transactions'],
+          method: 'POST',
+          version: 1,
+          data: {
+            to,
+            value,
+            data: txData,
+            operation,
+            signatures: [signature],
+            safeTxGas,
+            dataGas,
+            gasPrice,
+            nonce,
+            gasToken,
+          },
+        });
 
-      return response.txHash;
+        // Register transaction so we can check later if it finished
+        transactionQueue.lockTransaction(safeAddress, {
+          nonce,
+          ticketId,
+          txHash,
+        });
+
+        return txHash;
+      } catch {
+        transactionQueue.unlockTransaction(safeAddress, ticketId);
+        transactionQueue.unqueue(safeAddress, ticketId);
+
+        return null;
+      }
     },
 
     /**
@@ -374,6 +495,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
+      // Register transaction in waiting queue
+      const ticketId = transactionQueue.queue(safeAddress);
+
       // Wait until Relayer allocates enough funds to pay for transaction
       const totalGasEstimate = web3.utils
         .toBN(dataGas)
@@ -389,10 +513,18 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const nonce = await getSafeContract(web3, safeAddress)
-        .methods.nonce()
-        .call();
+      // Wait until transaction can be executed
+      await waitForPendingTransactions(
+        web3,
+        relayServiceEndpoint,
+        safeAddress,
+        ticketId,
+      );
 
+      // Request nonce for Safe
+      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
+
+      // Prepare EIP712 transaction data and sign it
       const typedData = formatTypedData(
         to,
         value,
@@ -409,26 +541,52 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
-      const response = await requestRelayer(relayServiceEndpoint, {
-        path: ['safes', safeAddress, 'transactions'],
-        method: 'POST',
-        version: 1,
-        data: {
-          to,
-          value,
-          data: txData,
-          operation,
-          signatures: [signature],
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          nonce,
-          gasToken,
-        },
-      });
+      // Send transaction to relayer
+      try {
+        const { txHash } = await requestRelayer(relayServiceEndpoint, {
+          path: ['safes', safeAddress, 'transactions'],
+          method: 'POST',
+          version: 1,
+          data: {
+            to,
+            value,
+            data: txData,
+            operation,
+            signatures: [signature],
+            safeTxGas,
+            dataGas,
+            gasPrice,
+            nonce,
+            gasToken,
+          },
+        });
 
-      return response.txHash;
+        // Register transaction so we can check later if it finished
+        transactionQueue.lockTransaction(safeAddress, {
+          nonce,
+          ticketId,
+          txHash,
+        });
+
+        return txHash;
+      } catch {
+        transactionQueue.unlockTransaction(safeAddress, ticketId);
+        transactionQueue.unqueue(safeAddress, ticketId);
+
+        return null;
+      }
     },
+
+    /**
+     * Make a request to the Circles server API.
+     *
+     * @param {Object} userOptions - API query options
+     * @param {string} userOptions.path - API route
+     * @param {string} userOptions.method - HTTP method
+     * @param {object} userOptions.data - Request body (JSON)
+     *
+     * @return {Object} - API response
+     */
     requestAPI: async (userOptions) => {
       const options = checkOptions(userOptions, {
         path: {

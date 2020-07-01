@@ -2,7 +2,7 @@ import createCore from './helpers/core';
 import getAccount from './helpers/account';
 import loop, { getTrustConnection, isReady } from './helpers/loop';
 import web3 from './helpers/web3';
-import { deploySafe, deployToken } from './helpers/transactions';
+import { deploySafeAndToken } from './helpers/transactions';
 
 let account;
 let otherAccount;
@@ -18,11 +18,13 @@ beforeAll(async () => {
 
 describe('Trust', () => {
   beforeAll(async () => {
-    safeAddress = await deploySafe(core, account);
-    otherSafeAddress = await deploySafe(core, otherAccount);
-
-    await deployToken(core, account, { safeAddress });
-    await deployToken(core, otherAccount, { safeAddress: otherSafeAddress });
+    await Promise.all([
+      await deploySafeAndToken(core, account),
+      await deploySafeAndToken(core, otherAccount),
+    ]).then((result) => {
+      safeAddress = result[0].safeAddress;
+      otherSafeAddress = result[1].safeAddress;
+    });
   });
 
   it('should trust someone', async () => {
@@ -66,14 +68,19 @@ describe('Trust', () => {
       limitPercentage: 72,
     });
 
-    otherConnection = await loop(() => {
-      return getTrustConnection(
-        core,
-        otherAccount,
-        otherSafeAddress,
-        safeAddress,
-      );
-    }, isReady);
+    otherConnection = await loop(
+      () => {
+        return getTrustConnection(
+          core,
+          otherAccount,
+          otherSafeAddress,
+          safeAddress,
+        );
+      },
+      ({ isIncoming, isOutgoing }) => {
+        return isIncoming && isOutgoing;
+      },
+    );
 
     expect(otherConnection.safeAddress).toBe(safeAddress);
     expect(otherConnection.isIncoming).toBe(true);

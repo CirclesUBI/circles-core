@@ -1,5 +1,6 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
+import loop from './helpers/loop';
 import web3 from './helpers/web3';
 
 import {
@@ -21,6 +22,16 @@ let thirdOwnerAccount;
 let activities;
 let otherActivities;
 let lastTimestamp;
+
+const findOwnerActivity = (accountAddress, items) => {
+  return items.find(({ type, data }) => {
+    return (
+      type === core.activity.ActivityTypes.ADD_OWNER &&
+      data.safeAddress === safeAddress &&
+      data.ownerAddress === accountAddress
+    );
+  });
+};
 
 beforeAll(async () => {
   account = getAccount();
@@ -56,6 +67,17 @@ describe('Activity', () => {
       ownerAddress: secondOwnerAccount.address,
     });
 
+    await loop(
+      () => {
+        return core.activity.getLatest(account, {
+          safeAddress,
+        });
+      },
+      (result) => {
+        return findOwnerActivity(secondOwnerAccount.address, result.activities);
+      },
+    );
+
     // Get activities!
     const latest = await core.activity.getLatest(account, {
       safeAddress,
@@ -87,33 +109,30 @@ describe('Activity', () => {
       ownerAddress: thirdOwnerAccount.address,
     });
 
-    const latest = await core.activity.getLatest(account, {
-      safeAddress,
-      timestamp: lastTimestamp,
-    });
-
-    const findOwnerActivity = (accountAddress) => {
-      return latest.activities.find(({ type, data }) => {
-        return (
-          type === core.activity.ActivityTypes.ADD_OWNER &&
-          data.safeAddress === safeAddress &&
-          data.ownerAddress === accountAddress
-        );
-      });
-    };
+    const latest = await loop(
+      () => {
+        return core.activity.getLatest(account, {
+          safeAddress,
+          timestamp: lastTimestamp,
+        });
+      },
+      (result) => {
+        return findOwnerActivity(thirdOwnerAccount.address, result.activities);
+      },
+    );
 
     let activity;
 
     // Expect latest activity
-    activity = findOwnerActivity(thirdOwnerAccount.address);
+    activity = findOwnerActivity(thirdOwnerAccount.address, latest.activities);
     expect(activity).toBeDefined();
     expect(activity.transactionHash).toBe(transactionHash);
 
     // .. but not the older ones
-    activity = findOwnerActivity(secondOwnerAccount.address);
+    activity = findOwnerActivity(secondOwnerAccount.address, latest.activities);
     expect(activity).toBeUndefined();
 
-    activity = findOwnerActivity(account.address);
+    activity = findOwnerActivity(account.address, latest.activities);
     expect(activity).toBeUndefined();
   });
 
