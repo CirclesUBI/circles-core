@@ -1,5 +1,3 @@
-import createUtilsModule from '~/utils';
-import { findTransitiveTransactions, getNetwork } from '~/token';
 import { getTokenContract } from '~/common/getContracts';
 
 import createCore from './helpers/core';
@@ -9,7 +7,6 @@ import web3 from './helpers/web3';
 import { deploySafeAndToken, addTrustConnection } from './helpers/transactions';
 
 let core;
-let utils;
 
 const accounts = [];
 const safeAddresses = [];
@@ -21,7 +18,6 @@ beforeAll(async () => {
   });
 
   core = createCore();
-  utils = createUtilsModule(web3, core.contracts, core.options);
 });
 
 describe('Token', () => {
@@ -151,7 +147,7 @@ describe('Token', () => {
   describe('getNetwork', () => {
     it('should return the correct trust network', async () => {
       const connection = await loop(async () => {
-        const network = await getNetwork(web3, utils, {
+        const network = await core.token.getNetwork({
           from: safeAddresses[0],
           to: safeAddresses[4],
           networkHops: 3,
@@ -214,7 +210,7 @@ describe('Token', () => {
       const value = new web3.utils.BN(core.utils.toFreckles(100));
 
       expect(() => {
-        findTransitiveTransactions(web3, core.utils, {
+        core.tolen.findTransitiveTransactions({
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
           value,
@@ -227,7 +223,7 @@ describe('Token', () => {
       for (let i = 0; i < 10; i += 1) {
         const value = 1 + Math.round(Math.random() * 27);
 
-        const path = findTransitiveTransactions(web3, core.utils, {
+        const path = core.token.findTransitiveTransactions({
           from: nodes[INDEX_SENDER],
           to: nodes[INDEX_RECEIVER],
           value: new web3.utils.BN(core.utils.toFreckles(value)),

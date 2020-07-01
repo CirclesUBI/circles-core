@@ -23,7 +23,7 @@ const DEFAULT_TRUST_NETWORK_HOPS = 4;
  *
  * @return {Object[]} - traversable trust network
  */
-export async function getNetwork(web3, utils, userOptions) {
+async function getNetwork(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -302,6 +302,7 @@ export async function getNetwork(web3, utils, userOptions) {
  * computes the maximum flow in a network.
  *
  * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
  * @param {Object} userOptions - search arguments
  * @param {string} userOptions.from - sender Safe address
  * @param {string} userOptions.to - receiver Safe address
@@ -310,7 +311,7 @@ export async function getNetwork(web3, utils, userOptions) {
  *
  * @return {Object[]} - transaction steps
  */
-export function findTransitiveTransactions(web3, utils, userOptions) {
+function findTransitiveTransactions(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -758,6 +759,41 @@ export default function createTokenModule(web3, contracts, utils) {
         to: token.options.address,
         txData: ubiTxData,
       });
+    },
+
+    /**
+     * Gather data from the graph node to get all information we need
+     * for transitive transactions.
+     *
+     * @param {Object} userOptions - arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {number} userOptions.networkHops - max number of network hops
+     *
+     * @return {Object[]} - traversable trust network
+     */
+    getNetwork: async (userOptions) => {
+      return await getNetwork(web3, utils, userOptions);
+    },
+
+    /**
+     * Find at least one (or more) paths through a trust graph
+     * from someone to someone else to transitively
+     * send an amount of Circles.
+     *
+     * This algorithm makes use of the Ford-Fulkerson method which
+     * computes the maximum flow in a network.
+     *
+     * @param {Object} userOptions - search arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {BN} userOptions.value - value of Circles tokens
+     * @param {Object[]} userOptions.network - trust network connections
+     *
+     * @return {Object[]} - transaction steps
+     */
+    findTransitiveTransactions(userOptions) {
+      return findTransitiveTransactions(web3, utils, userOptions);
     },
   };
 }
