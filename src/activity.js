@@ -162,20 +162,6 @@ export default function createActivityModule(web3, contracts, utils) {
           return acc;
         }
 
-        // Filter trust events which are related to ourselves
-        if (
-          type === ActivityTypes.ADD_CONNECTION &&
-          data.canSendTo === data.user
-        ) {
-          return acc;
-        }
-
-        // Filter transfer events which are not UBI payout as we have them
-        // covered through HUB_TRANSFER events
-        if (type === ActivityTypes.TRANSFER && data.from !== ZERO_ADDRESS) {
-          return acc;
-        }
-
         const { transactionHash } = notification;
 
         acc.push({
@@ -187,6 +173,13 @@ export default function createActivityModule(web3, contracts, utils) {
 
         return acc;
       }, []);
+
+      if (activities.length === 0) {
+        return {
+          activities: [],
+          lastTimestamp: 0,
+        };
+      }
 
       const lastActivity = activities[activities.length - 1];
 
