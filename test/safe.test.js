@@ -30,7 +30,19 @@ describe('Safe', () => {
     });
 
     it('should be manually triggered to get deployed', async () => {
+      expect(
+        await core.safe.isFunded(account, {
+          safeAddress,
+        }),
+      ).toBe(false);
+
       await fundSafe(account, safeAddress);
+
+      expect(
+        await core.safe.isFunded(account, {
+          safeAddress,
+        }),
+      ).toBe(true);
 
       const result = await core.safe.deploy(account, {
         safeAddress,
@@ -48,7 +60,7 @@ describe('Safe', () => {
     });
   });
 
-  describe('When I want to manage the owners of a Safe', () => {
+  describe('when I want to manage the owners of a Safe', () => {
     it('should return a list of the current owners', async () => {
       const owners = await core.safe.getOwners(account, {
         safeAddress,

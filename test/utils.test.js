@@ -24,6 +24,23 @@ describe('Utils', () => {
     safe = getSafeContract(web3, safeAddress);
   });
 
+  describe('estimateTransactionCosts', () => {
+    it('should return the total gas fees of an transaction', async () => {
+      const txData = safe.methods
+        .addOwnerWithThreshold(otherAccount.address, 1)
+        .encodeABI();
+
+      const gasCosts = await core.utils.estimateTransactionCosts(account, {
+        safeAddress,
+        to: safeAddress,
+        txData,
+      });
+
+      expect(web3.utils.isBN(gasCosts)).toBe(true);
+      expect(gasCosts.isZero()).toBe(false);
+    });
+  });
+
   describe('executeSafeTx', () => {
     it('should send a transaction to the relayer', async () => {
       const txData = safe.methods

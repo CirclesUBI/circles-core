@@ -473,6 +473,42 @@ export default function createTokenModule(web3, contracts, utils) {
 
   return {
     /**
+     * Returns true if there are enough balance on this Safe address to deploy
+     * a Token contract.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user arguments
+     * @param {string} userOptions.safeAddress - safe address to check
+     *
+     * @return {boolean} - has enough funds
+     */
+    isFunded: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const txData = await hub.methods.signup(DEFAULT_TOKEN_NAME).encodeABI();
+
+      try {
+        const costs = await utils.estimateTransactionCosts(account, {
+          safeAddress: options.safeAddress,
+          to: hub.options.address,
+          txData,
+        });
+
+        const balance = await web3.eth.getBalance(options.safeAddress);
+
+        return web3.utils.toBN(balance).gte(costs);
+      } catch {
+        return false;
+      }
+    },
+
+    /**
      * Deploy new Circles Token for a user.
      *
      * @param {Object} account - web3 account instance
@@ -535,7 +571,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.safeAddress - safe address
      * @param {string} userOptions.tokenAddress - optional token address in case only this one should be checked
      *
-     * @return {BN} - Current balance
+     * @return {BN} - current balance
      */
     getBalance: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -691,7 +727,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {Object} account - web3 account instance
      * @param {string} userOptions.safeAddress - address of Token owner
      *
-     * @return {BN} - Payout value
+     * @return {BN} - payout value
      */
     checkUBIPayout: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -765,6 +801,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * Gather data from the graph node to get all information we need
      * for transitive transactions.
      *
+     * @param {Object} account - web3 account instance
      * @param {Object} userOptions - arguments
      * @param {string} userOptions.from - sender Safe address
      * @param {string} userOptions.to - receiver Safe address
@@ -772,7 +809,8 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @return {Object[]} - traversable trust network
      */
-    getNetwork: async (userOptions) => {
+    getNetwork: async (account, userOptions) => {
+      checkAccount(web3, account);
       return await getNetwork(web3, utils, userOptions);
     },
 
@@ -784,6 +822,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * This algorithm makes use of the Ford-Fulkerson method which
      * computes the maximum flow in a network.
      *
+     * @param {Object} account - web3 account instance
      * @param {Object} userOptions - search arguments
      * @param {string} userOptions.from - sender Safe address
      * @param {string} userOptions.to - receiver Safe address
@@ -792,7 +831,8 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @return {Object[]} - transaction steps
      */
-    findTransitiveTransactions(userOptions) {
+    findTransitiveTransactions: (account, userOptions) => {
+      checkAccount(web3, account);
       return findTransitiveTransactions(web3, utils, userOptions);
     },
   };

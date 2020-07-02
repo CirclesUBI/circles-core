@@ -450,6 +450,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {string} userOptions.to - forwarded address (from is the relayer)
+     * @param {string} userOptions.gasToken - address of ERC20 token
      * @param {object} userOptions.txData - encoded transaction data
      * @param {number} userOptions.value - value in Wei
      *
@@ -607,6 +608,64 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         method: options.method,
         path: ['api'].concat(options.path),
       });
+    },
+
+    /**
+     * Estimates the total gas fees for a relayer transaction.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - transaction options
+     * @param {string} userOptions.safeAddress - address of Safe
+     * @param {string} userOptions.to - forwarded address (from is the relayer)
+     * @param {string} userOptions.gasToken - address of ERC20 token
+     * @param {object} userOptions.txData - encoded transaction data
+     * @param {number} userOptions.value - value in Wei
+     *
+     * @return {BN} - estimated gas fees
+     */
+    estimateTransactionCosts: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        to: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        gasToken: {
+          type: web3.utils.checkAddressChecksum,
+          default: ZERO_ADDRESS,
+        },
+        txData: {
+          type: web3.utils.isHexStrict,
+          default: '0x',
+        },
+        value: {
+          type: 'number',
+          default: 0,
+        },
+      });
+
+      const { txData, gasToken, safeAddress, to, value } = options;
+      const operation = CALL_OP;
+
+      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+        relayServiceEndpoint,
+        {
+          gasToken,
+          operation,
+          safeAddress,
+          to,
+          txData,
+          value,
+        },
+      );
+
+      return web3.utils
+        .toBN(dataGas)
+        .add(new web3.utils.BN(safeTxGas))
+        .mul(new web3.utils.BN(gasPrice));
     },
   };
 }
