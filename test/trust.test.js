@@ -90,17 +90,20 @@ describe('Trust', () => {
 
     // This should not be true as we don't have enough
     // trust connections yet
-    const isTrusted = await core.trust.isTrusted(otherAccount, {
+    const { isTrusted } = await core.trust.isTrusted(otherAccount, {
       safeAddress,
     });
 
     expect(isTrusted).toBe(false);
 
     // This should be true as we lowered the limit
-    const isTrustedLowLimit = await core.trust.isTrusted(otherAccount, {
-      safeAddress,
-      limit: 1,
-    });
+    const { isTrusted: isTrustedLowLimit } = await core.trust.isTrusted(
+      otherAccount,
+      {
+        safeAddress,
+        limit: 1,
+      },
+    );
 
     expect(isTrustedLowLimit).toBe(true);
   });

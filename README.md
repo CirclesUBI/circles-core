@@ -98,7 +98,7 @@ network.forEach((connection) => {
 });
 
 // Check if we have enough trust connections
-const isTrusted = await core.trust.isTrusted({
+const { isTrusted } = await core.trust.isTrusted({
   safeAddress,
 });
 
