@@ -21,7 +21,6 @@ let thirdOwnerAccount;
 
 let activities;
 let otherActivities;
-let lastTimestamp;
 
 const findOwnerActivity = (accountAddress, items) => {
   return items.find(({ type, data }) => {
@@ -84,7 +83,6 @@ describe('Activity', () => {
     });
 
     activities = latest.activities;
-    lastTimestamp = latest.lastTimestamp;
 
     const otherLatest = await core.activity.getLatest(otherAccount, {
       safeAddress: otherSafeAddress,
@@ -103,25 +101,25 @@ describe('Activity', () => {
     });
   });
 
-  it('returns activities newer than the given timestamp', async () => {
+  it('returns activities based on pagination arguments', async () => {
     const transactionHash = await addSafeOwner(core, account, {
       safeAddress,
       ownerAddress: thirdOwnerAccount.address,
     });
 
+    let activity;
+
     const latest = await loop(
       () => {
         return core.activity.getLatest(account, {
           safeAddress,
-          timestamp: lastTimestamp,
+          limit: 1,
         });
       },
       (result) => {
         return findOwnerActivity(thirdOwnerAccount.address, result.activities);
       },
     );
-
-    let activity;
 
     // Expect latest activity
     activity = findOwnerActivity(thirdOwnerAccount.address, latest.activities);
