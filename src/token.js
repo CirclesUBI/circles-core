@@ -491,6 +491,11 @@ export default function createTokenModule(web3, contracts, utils) {
         },
       });
 
+      // Do not attempt asking the relayer when Safe does not exist yet
+      if ((await web3.eth.getCode(options.safeAddress)) === '0x') {
+        return false;
+      }
+
       const txData = await hub.methods.signup(DEFAULT_TOKEN_NAME).encodeABI();
 
       try {
