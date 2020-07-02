@@ -65,6 +65,43 @@ export default function createSafeModule(web3, contracts, utils) {
     },
 
     /**
+     * Returns true if there are enough balance on this address to deploy
+     * a Safe.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user arguments
+     * @param {string} userOptions.safeAddress - safe address to check
+     *
+     * @return {boolean} - has enough funds
+     */
+    isFunded: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      try {
+        const result = await utils.requestRelayer({
+          path: ['safes', 'estimates'],
+          data: {
+            numberOwners: 1,
+          },
+          version: 2,
+          method: 'POST',
+        });
+
+        const balance = await web3.eth.getBalance(options.safeAddress);
+
+        return web3.utils.toBN(balance).gte(web3.utils.toBN(result[0].payment));
+      } catch {
+        return false;
+      }
+    },
+
+    /**
      * Requests the relayer to not wait for the Safe deployment task.
      * This might still fail when the Safe is not funded or does not
      * have enough trust connections yet.

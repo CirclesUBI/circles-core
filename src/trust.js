@@ -26,7 +26,7 @@ export default function createTrustModule(web3, contracts, utils) {
      * @param {string} userOptions.safeAddress - Safe address of user
      * @param {string} userOptions.limit - Incoming trust limit
      *
-     * @return {bool} Safe has enough incoming trust connections
+     * @return {boolean} Safe has enough incoming trust connections
      */
     isTrusted: async (account, userOptions) => {
       checkAccount(web3, account);
