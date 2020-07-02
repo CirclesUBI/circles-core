@@ -13,21 +13,11 @@ node_js:
   - '11'
 
 env:
-  - PYTHON_VERSION=2.7.15 PYENV_TAG=v1.2.13 CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
+  - CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
 
 before_install:
   # disable travis postgres
   - sudo /etc/init.d/postgresql stop
-
-  # get latest pyenv version
-  # - cd $(pyenv root)
-  # - git fetch --all --tags
-  # - git checkout tags/$PYENV_TAG
-  # - cd $HOME
-
-  # install python
-  - pyenv install $PYTHON_VERSION -s
-  - pyenv global $PYTHON_VERSION
 
   # get circles-docker repository and copy configs
   - git clone https://github.com/CirclesUBI/circles-docker.git $CIRCLES_DOCKER
