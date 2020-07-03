@@ -20,9 +20,23 @@ const validators = {
   },
 };
 
+// Takes the validator function and wraps it safely around a try/catch block
+// before it gets executed
+function safelyValidate(validatorFn, value) {
+  if (!(typeof validatorFn === 'function')) {
+    throw Error('Validation for "checkOptions" has to be of type function');
+  }
+
+  try {
+    return !!validatorFn(value);
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Check for required option fields, validate them and use fallback
- * value when default is given.
+ * Check for required option fields, validate them and use fallback value when
+ * default is given.
  *
  * @param {Object} options - given user options
  * @param {Object} fields - defined option types and default values
@@ -43,7 +57,7 @@ export default function checkOptions(options, fields) {
     const defaultValue =
       fields[key] && 'default' in fields[key] ? fields[key].default : null;
 
-    if (defaultValue !== null && !validatorFn(defaultValue)) {
+    if (defaultValue !== null && !safelyValidate(validatorFn, defaultValue)) {
       throw new CoreError(
         `Field "${key}" has invalid default type`,
         ErrorCodes.INVALID_OPTIONS,
@@ -59,7 +73,7 @@ export default function checkOptions(options, fields) {
       }
 
       acc[key] = defaultValue;
-    } else if (validatorFn(options[key])) {
+    } else if (safelyValidate(validatorFn, options[key])) {
       acc[key] = options[key];
     } else {
       throw new CoreError(
