@@ -10,21 +10,18 @@ import {
   addTrustConnection,
 } from './helpers/transactions';
 
-let core;
+describe('Token', () => {
+  let core;
+  let accounts;
 
-const accounts = [];
-const safeAddresses = [];
-const tokenAddresses = [];
+  beforeAll(async () => {
+    accounts = new Array(6).fill({}).map((item, index) => {
+      return getAccount(index);
+    });
 
-beforeAll(async () => {
-  new Array(6).fill({}).forEach((item, index) => {
-    accounts.push(getAccount(index));
+    core = createCore();
   });
 
-  core = createCore();
-});
-
-describe('Token', () => {
   describe('isFunded', () => {
     it('should check if safe has enough funds for token to be deployed', async () => {
       const safeAddress = await deploySafe(core, accounts[0]);
@@ -38,6 +35,9 @@ describe('Token', () => {
   });
 
   describe('Transitive Transactions', () => {
+    let safeAddresses;
+    let tokenAddresses;
+
     beforeAll(async () => {
       // Deploy Safe and Token for each test account
       const tasks = accounts.map((account) => {
@@ -45,6 +45,9 @@ describe('Token', () => {
       });
 
       const results = await Promise.all(tasks);
+
+      safeAddresses = [];
+      tokenAddresses = [];
 
       results.forEach((result) => {
         const { safeAddress, tokenAddress } = result;
@@ -67,8 +70,6 @@ describe('Token', () => {
         [4, 1, 10],
         [2, 5, 50], // Unidirectional
       ];
-
-      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const connectionTasks = connections.map((connection) => {
         return addTrustConnection(core, accounts[connection[0]], {
