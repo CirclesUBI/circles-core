@@ -5,6 +5,7 @@ import checkOptions from '~/common/checkOptions';
 import createSymbolObject from '~/common/createSymbolObject';
 
 const DEFAULT_LIMIT = 20;
+const DEFAULT_TIMESTAMP = 0;
 
 const ActivityTypes = createSymbolObject([
   'ADD_CONNECTION',
@@ -39,6 +40,7 @@ export default function createActivityModule(web3, contracts, utils) {
      * @param {string} userOptions.safeAddress - Safe address of user
      * @param {number} userOptions.limit - pagination page size
      * @param {number} userOptions.offset - pagination start index
+     * @param {number} userOptions.timestamp - show only messages after this time
      *
      * @return {Object} List of latest activities
      */
@@ -57,6 +59,10 @@ export default function createActivityModule(web3, contracts, utils) {
           type: 'number',
           default: 0,
         },
+        timestamp: {
+          type: 'number',
+          default: DEFAULT_TIMESTAMP,
+        },
       });
 
       const filter = `
@@ -65,6 +71,7 @@ export default function createActivityModule(web3, contracts, utils) {
           first: ${options.limit},
           skip: ${options.offset},
           where: {
+            time_gt: ${options.timestamp},
             safeAddress: "${options.safeAddress.toLowerCase()}"
           }
       `;
@@ -188,6 +195,7 @@ export default function createActivityModule(web3, contracts, utils) {
         return acc;
       }, []);
 
+      // Results are empty after filtering
       if (activities.length === 0) {
         return {
           activities: [],
