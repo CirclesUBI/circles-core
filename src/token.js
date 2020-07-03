@@ -10,6 +10,152 @@ import { getTokenContract } from '~/common/getContracts';
 const DEFAULT_TOKEN_NAME = 'Circles';
 const DEFAULT_TRUST_NETWORK_HOPS = 4;
 
+function checkNetworkOptions(web3, arr) {
+  return checkArrayEntries(arr, (entry) => {
+    return (
+      web3.utils.checkAddressChecksum(entry.from) &&
+      web3.utils.checkAddressChecksum(entry.to) &&
+      web3.utils.checkAddressChecksum(entry.tokenOwnerAddress) &&
+      web3.utils.isBN(entry.capacity)
+    );
+  });
+}
+
+// Traverse flow graph backwards to find out in which order transactions should
+// take place
+function traversePath(web3, graph, nodes, indexReceiver, value) {
+  const traversePathInner = (index, flowRequired, path = []) => {
+    // Filter out unneeded nodes and sort them by flow capacity
+    const adjacentNodes = graph
+      .adj(index)
+      .reduce((acc, adjNode) => {
+        // Does our path already contain this?
+        if (adjNode.isInPath) {
+          return acc;
+        }
+
+        // Is this edge starting at current node?
+        if (adjNode.w !== index) {
+          return acc;
+        }
+
+        // Do we actually send any Tokens?
+        if (adjNode.flow === 0) {
+          return acc;
+        }
+
+        acc.push(adjNode);
+
+        return acc;
+      }, [])
+      .sort((nodeA, nodeB) => {
+        return nodeB.flow - nodeA.flow;
+      });
+
+    // Set the required flow for this node
+    // (we usually don't need the maximum)
+    let flowRequiredLeft = flowRequired;
+
+    // We recursively look for adjacent nodes until there are none
+    adjacentNodes.forEach((edge) => {
+      // Calculate how much flow this adjacent node can give, we've
+      // sorted them above by flow capacity to prioritize larger ones
+      const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
+      flowRequiredLeft = flowRequiredLeft - edgeFlow;
+
+      const innerPath = traversePathInner(edge.v, edgeFlow, path);
+
+      path.concat(innerPath);
+
+      if (!edge.isVisited && edgeFlow > 0) {
+        path.push({
+          from: nodes[edge.v],
+          to: nodes[edge.w],
+          tokenOwnerAddress: edge.tokenOwnerAddress,
+          value: web3.utils.toWei(edgeFlow.toString(), 'ether'),
+        });
+      }
+
+      edge.isVisited = true;
+    });
+
+    graph.node(index).isInPath = true;
+
+    return path;
+  };
+
+  return traversePathInner(indexReceiver, value);
+}
+
+/**
+ * This algorithm makes use of the Ford-Fulkerson method which computes the
+ * maximum flow in a trust network between two users.
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} from - sender Safe address
+ * @param {string} to - receiver Safe address
+ * @param {Object[]} network - trust network connections
+ *
+ * @return {Object} - Results including maximumFlow value and graph data
+ */
+export function calculateMaxFlow(web3, from, to, network) {
+  // Find unique addresses in trust network
+  // and define them as nodes in the graph
+  const nodes = network.reduce((acc, edge) => {
+    if (!acc.includes(edge.from)) {
+      acc.push(edge.from);
+    }
+
+    if (!acc.includes(edge.to)) {
+      acc.push(edge.to);
+    }
+
+    return acc;
+  }, []);
+
+  if (nodes.length === 0) {
+    throw new TransferError(
+      'No nodes given in trust graph',
+      ErrorCodes.NETWORK_TOO_SMALL,
+    );
+  }
+
+  // Create graph with nodes labelled after
+  // the given addresses in trust network
+  const graph = new FlowNetwork(nodes.length);
+
+  // Create weighted edges in the graph based
+  // on trust connections and flow limits
+  network.forEach((connection) => {
+    // Simplify the numbers as the browser somehow freezes when using BN ..
+    const capacity = Math.floor(
+      parseFloat(web3.utils.fromWei(connection.capacity, 'ether')),
+    );
+
+    const indexFrom = nodes.indexOf(connection.from);
+    const indexTo = nodes.indexOf(connection.to);
+
+    const edge = new FlowEdge(indexFrom, indexTo, capacity);
+    edge.tokenOwnerAddress = connection.tokenOwnerAddress;
+
+    graph.addEdge(edge);
+  });
+
+  // Find maximum flow paths in graph
+  const indexSender = nodes.indexOf(from);
+  const indexReceiver = nodes.indexOf(to);
+
+  const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
+
+  return {
+    graph,
+    indexReceiver,
+    indexSender,
+    maximumFlow: maximumFlow.value,
+    nodes,
+  };
+}
+
 /**
  * Gather data from the graph node to get all information we need
  * for transitive transactions.
@@ -23,7 +169,7 @@ const DEFAULT_TRUST_NETWORK_HOPS = 4;
  *
  * @return {Object[]} - traversable trust network
  */
-async function getNetwork(web3, utils, userOptions) {
+export async function getNetwork(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -311,7 +457,7 @@ async function getNetwork(web3, utils, userOptions) {
  *
  * @return {Object[]} - transaction steps
  */
-function findTransitiveTransactions(web3, utils, userOptions) {
+export function findTransitiveTransactions(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -324,139 +470,30 @@ function findTransitiveTransactions(web3, utils, userOptions) {
     },
     network: {
       type: (arr) => {
-        return checkArrayEntries(arr, (entry) => {
-          return (
-            web3.utils.checkAddressChecksum(entry.from) &&
-            web3.utils.checkAddressChecksum(entry.to) &&
-            web3.utils.checkAddressChecksum(entry.tokenOwnerAddress) &&
-            web3.utils.isBN(entry.capacity)
-          );
-        });
+        return checkNetworkOptions(web3, arr);
       },
     },
   });
 
+  // Calculate the maximum flow between the nodes in the trust graph
+  const { maximumFlow, graph, nodes, indexReceiver } = calculateMaxFlow(
+    web3,
+    options.from,
+    options.to,
+    options.network,
+  );
+
   const value = parseFloat(web3.utils.fromWei(options.value, 'ether'));
 
-  const { network } = options;
-
-  // Find unique addresses in trust network
-  // and define them as nodes in the graph
-  const nodes = network.reduce((acc, edge) => {
-    if (!acc.includes(edge.from)) {
-      acc.push(edge.from);
-    }
-
-    if (!acc.includes(edge.to)) {
-      acc.push(edge.to);
-    }
-
-    return acc;
-  }, []);
-
-  if (nodes.length === 0) {
-    throw new TransferError(
-      'No nodes given in trust graph',
-      ErrorCodes.NETWORK_TOO_SMALL,
-    );
-  }
-
-  // Create graph with nodes labelled after
-  // the given addresses in trust network
-  const graph = new FlowNetwork(nodes.length);
-
-  // Create weighted edges in the graph based
-  // on trust connections and flow limits
-  network.forEach((connection) => {
-    // Simplify the numbers as the browser somehow freezes when using BN ..
-    const capacity = Math.floor(
-      parseFloat(web3.utils.fromWei(connection.capacity, 'ether')),
-    );
-
-    const indexFrom = nodes.indexOf(connection.from);
-    const indexTo = nodes.indexOf(connection.to);
-
-    const edge = new FlowEdge(indexFrom, indexTo, capacity);
-    edge.tokenOwnerAddress = connection.tokenOwnerAddress;
-
-    graph.addEdge(edge);
-  });
-
-  // Find maximum flow paths in graph
-  const indexSender = nodes.indexOf(options.from);
-  const indexReceiver = nodes.indexOf(options.to);
-
-  const maximumFlow = new MaxFlow(graph, indexSender, indexReceiver);
-
-  if (value > maximumFlow.value) {
+  if (value > maximumFlow) {
     throw new TransferError(
       'Could not find possible transaction path',
       ErrorCodes.NETWORK_NO_PATH,
     );
   }
 
-  // We found a possible way! Traverse flow graph backwards
-  // to find out in which order transactions should take place
-  const traversePath = (index, flowRequired, path = []) => {
-    // Filter out unneeded nodes and sort them by flow capacity
-    const adjacentNodes = graph
-      .adj(index)
-      .reduce((acc, adjNode) => {
-        // Does our path already contain this?
-        if (adjNode.isInPath) {
-          return acc;
-        }
-
-        // Is this edge starting at current node?
-        if (adjNode.w !== index) {
-          return acc;
-        }
-
-        // Do we actually send any Tokens?
-        if (adjNode.flow === 0) {
-          return acc;
-        }
-
-        acc.push(adjNode);
-
-        return acc;
-      }, [])
-      .sort((nodeA, nodeB) => {
-        return nodeB.flow - nodeA.flow;
-      });
-
-    // Set the required flow for this node
-    // (we usually don't need the maximum)
-    let flowRequiredLeft = flowRequired;
-
-    // We recursively look for adjacent nodes until there are none
-    adjacentNodes.forEach((edge) => {
-      // Calculate how much flow this adjacent node can give, we've
-      // sorted them above by flow capacity to prioritize larger ones
-      const edgeFlow = edge.flow - Math.max(0, edge.flow - flowRequiredLeft);
-      flowRequiredLeft = flowRequiredLeft - edgeFlow;
-
-      const innerPath = traversePath(edge.v, edgeFlow, path);
-      path.concat(innerPath);
-
-      if (!edge.isVisited && edgeFlow > 0) {
-        path.push({
-          from: nodes[edge.v],
-          to: nodes[edge.w],
-          tokenOwnerAddress: edge.tokenOwnerAddress,
-          value: web3.utils.toWei(edgeFlow.toString(), 'ether'),
-        });
-      }
-
-      edge.isVisited = true;
-    });
-
-    graph.node(index).isInPath = true;
-
-    return path;
-  };
-
-  return traversePath(indexReceiver, value);
+  // We found a path!
+  return traversePath(web3, graph, nodes, indexReceiver, value);
 }
 
 /**
@@ -633,6 +670,71 @@ export default function createTokenModule(web3, contracts, utils) {
     },
 
     /**
+     * This algorithm makes use of the Ford-Fulkerson method which computes the
+     * maximum flow in a trust network between two users. It returns the
+     * maximum flow and the transactions path in the graph for a value (when
+     * possible).
+     *
+     * This method does not execute any real transactions.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - search arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {BN} userOptions.value - value for transactions path
+     * @param {number} userOptions.networkHops - max number of network hops
+     *
+     * @return {Object} - maximum possible Circles value and transactions path
+     */
+    calculateTransfer: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        from: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        to: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        value: {
+          type: web3.utils.isBN,
+        },
+        networkHops: {
+          type: 'number',
+          default: DEFAULT_TRUST_NETWORK_HOPS,
+        },
+      });
+
+      const network = await getNetwork(web3, utils, {
+        from: options.from,
+        to: options.to,
+        networkHops: options.networkHops,
+      });
+
+      // Calculate the maximum flow between the nodes in the trust graph
+      const { maximumFlow, graph, nodes, indexReceiver } = calculateMaxFlow(
+        web3,
+        options.from,
+        options.to,
+        network,
+      );
+
+      // Give a transactions path when possible
+      const value = parseFloat(web3.utils.fromWei(options.value, 'ether'));
+      const transactionsPath =
+        value > maximumFlow
+          ? []
+          : traversePath(web3, graph, nodes, indexReceiver, value);
+
+      return {
+        maximumFlow: web3.utils.toBN(
+          web3.utils.toWei(`${maximumFlow}`, 'ether'),
+        ),
+        transactionsPath,
+      };
+    },
+
+    /**
      * Transfer Circles from one user to another.
      *
      * @param {Object} account - web3 account instance
@@ -800,45 +902,6 @@ export default function createTokenModule(web3, contracts, utils) {
         to: token.options.address,
         txData: ubiTxData,
       });
-    },
-
-    /**
-     * Gather data from the graph node to get all information we need
-     * for transitive transactions.
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - arguments
-     * @param {string} userOptions.from - sender Safe address
-     * @param {string} userOptions.to - receiver Safe address
-     * @param {number} userOptions.networkHops - max number of network hops
-     *
-     * @return {Object[]} - traversable trust network
-     */
-    getNetwork: async (account, userOptions) => {
-      checkAccount(web3, account);
-      return await getNetwork(web3, utils, userOptions);
-    },
-
-    /**
-     * Find at least one (or more) paths through a trust graph
-     * from someone to someone else to transitively
-     * send an amount of Circles.
-     *
-     * This algorithm makes use of the Ford-Fulkerson method which
-     * computes the maximum flow in a network.
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - search arguments
-     * @param {string} userOptions.from - sender Safe address
-     * @param {string} userOptions.to - receiver Safe address
-     * @param {BN} userOptions.value - value of Circles tokens
-     * @param {Object[]} userOptions.network - trust network connections
-     *
-     * @return {Object[]} - transaction steps
-     */
-    findTransitiveTransactions: (account, userOptions) => {
-      checkAccount(web3, account);
-      return findTransitiveTransactions(web3, utils, userOptions);
     },
   };
 }
