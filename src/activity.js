@@ -203,11 +203,9 @@ export default function createActivityModule(web3, contracts, utils) {
         };
       }
 
-      const lastActivity = activities[activities.length - 1];
-
       return {
         activities,
-        lastTimestamp: lastActivity.timestamp,
+        lastTimestamp: activities[0].timestamp,
       };
     },
   };
