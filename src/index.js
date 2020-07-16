@@ -23,12 +23,12 @@ export default class CirclesCore {
    *
    * @param {Web3} web3 - instance of Web3
    * @param {Object} options - global core options
+   * @param {string} options.apiServiceEndpoint - URL of the username resolver service
+   * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
-   * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
-   * @param {string} options.graphNodeEndpoint - URL of the graph node
-   * @param {string} options.usernameServiceEndpoint - URL of the username resolver service
    * @param {string} options.relayServiceEndpoint - URL of the Relayer server
+   * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
    */
   constructor(web3, options) {
     // Check web3 instance
@@ -54,7 +54,7 @@ export default class CirclesCore {
       graphNodeEndpoint: {
         type: 'string',
       },
-      usernameServiceEndpoint: {
+      apiServiceEndpoint: {
         type: 'string',
       },
       relayServiceEndpoint: {

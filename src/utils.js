@@ -1,13 +1,12 @@
 import fetch from 'isomorphic-fetch';
 
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
-
 import CoreError, { RequestError, ErrorCodes } from '~/common/error';
 import TransactionQueue from '~/common/queue';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
+import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getSafeContract } from '~/common/getContracts';
 
@@ -264,10 +263,10 @@ async function requestNonce(web3, endpoint, safeAddress) {
  */
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const {
+    apiServiceEndpoint,
     graphNodeEndpoint,
     relayServiceEndpoint,
     subgraphName,
-    usernameServiceEndpoint,
   } = globalOptions;
 
   const { hub } = contracts;
@@ -603,7 +602,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       });
 
-      return request(usernameServiceEndpoint, {
+      return request(apiServiceEndpoint, {
         data: options.data,
         method: options.method,
         path: ['api'].concat(options.path),
