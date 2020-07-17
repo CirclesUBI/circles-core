@@ -1,6 +1,6 @@
 {
   "name": "@circles/core",
-  "version": "0.11.1",
+  "version": "1.0.0",
   "description": "Common methods to interact with the Circles ecosystem",
   "main": "lib/index.js",
   "contributors": [
