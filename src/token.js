@@ -278,6 +278,13 @@ export default function createTokenModule(web3, contracts, utils) {
       try {
         response = await findTransitiveTransfer(web3, utils, options);
 
+        if (response.transferSteps.length === 0) {
+          throw new TransferError(
+            'No possible transfer found',
+            ErrorCodes.TRANSFER_NOT_FOUND,
+          );
+        }
+
         if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
           throw new TransferError(
             'Too many transfer steps',

@@ -8,6 +8,7 @@ export const ErrorCodes = createSymbolObject([
   'TOKEN_NOT_FOUND',
   'TOO_COMPLEX_TRANSFER',
   'TOO_MANY_ATTEMPTS',
+  'TRANSFER_NOT_FOUND',
   'UNKNOWN_ERROR',
 ]);
 
