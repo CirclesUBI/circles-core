@@ -20,10 +20,10 @@
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.10.4",
+    "@babel/core": "^7.10.5",
     "@babel/plugin-proposal-class-properties": "^7.10.4",
     "@babel/plugin-proposal-object-rest-spread": "^7.10.4",
-    "@babel/plugin-transform-runtime": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "babel-eslint": "^10.1.0",
     "babel-jest": "^26.1.0",
@@ -31,7 +31,7 @@
     "babel-plugin-module-resolver": "^4.0.0",
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
-    "eslint": "^7.3.1",
+    "eslint": "^7.4.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.4",
     "husky": "^4.2.5",
@@ -39,7 +39,7 @@
     "jest": "^26.1.0",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
-    "rollup": "^2.18.2",
+    "rollup": "^2.21.0",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-cleanup": "^3.1.1",
     "rollup-plugin-commonjs": "^10.1.0",
@@ -48,16 +48,16 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.4",
     "serialize-javascript": "^4.0.0",
-    "truffle": "^5.1.32",
-    "web3": "^1.2.9"
+    "truffle": "^5.1.35",
+    "web3": "^1.2.10"
   },
   "peerDependencies": {
     "isomorphic-fetch": "^2.2.1",
-    "web3": "^1.2.9"
+    "web3": "^1.2.10"
   },
   "dependencies": {
-    "@babel/runtime": "^7.10.4",
-    "@circles/safe-contracts": "^1.0.6",
-    "circles-contracts": "^1.0.18"
+    "@babel/runtime": "^7.10.5",
+    "@circles/safe-contracts": "^1.0.7",
+    "circles-contracts": "^1.0.19"
   }
 }
