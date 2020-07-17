@@ -1,13 +1,13 @@
 import createSymbolObject from '~/common/createSymbolObject';
 
 export const ErrorCodes = createSymbolObject([
-  'TOO_MANY_ATTEMPTS',
   'FAILED_REQUEST',
   'INVALID_OPTIONS',
-  'NETWORK_NO_PATH',
-  'NETWORK_TOO_SMALL',
+  'INVALID_TRANSFER',
   'SAFE_NOT_FOUND',
   'TOKEN_NOT_FOUND',
+  'TOO_COMPLEX_TRANSFER',
+  'TOO_MANY_ATTEMPTS',
   'UNKNOWN_ERROR',
 ]);
 
