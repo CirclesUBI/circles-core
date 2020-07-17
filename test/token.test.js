@@ -1,10 +1,8 @@
-import createUtilsModule from '~/utils';
-import { findTransitiveTransactions, getNetwork } from '~/token';
 import { getTokenContract } from '~/common/getContracts';
 
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop, { isReady } from './helpers/loop';
+import loop from './helpers/loop';
 import web3 from './helpers/web3';
 import {
   deploySafe,
@@ -66,7 +64,6 @@ async function deployTestNetwork(
 
 describe('Token', () => {
   let core;
-  let utils;
   let accounts;
 
   beforeAll(async () => {
@@ -75,7 +72,6 @@ describe('Token', () => {
     });
 
     core = createCore();
-    utils = createUtilsModule(web3, core.contracts, core.options);
   });
 
   describe('isFunded', () => {
@@ -102,46 +98,41 @@ describe('Token', () => {
       it('should return empty path when no transfer is possible', async () => {
         const value = new web3.utils.BN(core.utils.toFreckles(100));
 
-        const result = await core.token.calculateTransfer(accounts[0], {
+        const result = await core.token.findTransitiveTransfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
           value,
         });
 
-        expect(result.transactionsPath.length).toBe(0);
-
-        expect(result.maximumFlow.toString()).toBe(
-          web3.utils.toWei('25', 'ether'),
-        );
+        expect(result.transferSteps.length).toBe(0);
+        expect(result.maxFlowValue).toBe(25);
       });
 
       it('should return max flow and possible path', async () => {
         const value = new web3.utils.BN(core.utils.toFreckles(1));
 
-        const result = await core.token.calculateTransfer(accounts[0], {
+        const result = await core.token.findTransitiveTransfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
           value,
         });
 
-        expect(result.transactionsPath.length).toBe(2);
+        expect(result.transferSteps.length).toBe(2);
 
-        expect(result.transactionsPath[0].from).toBe(safeAddresses[0]);
-        expect(result.transactionsPath[0].to).toBe(safeAddresses[3]);
-        expect(result.transactionsPath[0].value).toBe(value.toString());
-        expect(result.transactionsPath[0].tokenOwnerAddress).toBe(
+        expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+        expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+        expect(result.transferSteps[0].value).toBe(1);
+        expect(result.transferSteps[0].tokenOwnerAddress).toBe(
           safeAddresses[0],
         );
-        expect(result.transactionsPath[1].from).toBe(safeAddresses[3]);
-        expect(result.transactionsPath[1].to).toBe(safeAddresses[4]);
-        expect(result.transactionsPath[1].value).toBe(value.toString());
-        expect(result.transactionsPath[1].tokenOwnerAddress).toBe(
+        expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+        expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+        expect(result.transferSteps[1].value).toBe(1);
+        expect(result.transferSteps[1].tokenOwnerAddress).toBe(
           safeAddresses[3],
         );
 
-        expect(result.maximumFlow.toString()).toBe(
-          web3.utils.toWei('25', 'ether'),
-        );
+        expect(result.maxFlowValue).toBe(25);
       });
     });
   });
@@ -205,7 +196,9 @@ describe('Token', () => {
               safeAddress: safeAddresses[indexFrom],
             });
           },
-          (balance) => balance.toString().slice(0, 2) === '94',
+          (balance) => {
+            return balance.toString().slice(0, 2) === '94';
+          },
         );
 
         const otherAccountBalance = await core.token.getBalance(
@@ -238,109 +231,6 @@ describe('Token', () => {
             value: web3.utils.toBN('1'),
           }),
         ).rejects.toThrow();
-      });
-
-      describe('getNetwork', () => {
-        it('should return the correct trust network', async () => {
-          const connection = await loop(async () => {
-            const network = await getNetwork(web3, utils, {
-              from: safeAddresses[0],
-              to: safeAddresses[4],
-              networkHops: 3,
-            });
-
-            return network.find(({ from, to }) => {
-              return from === safeAddresses[2] && to === safeAddresses[1];
-            });
-          }, isReady);
-
-          expect(connection.tokenOwnerAddress).toBe(safeAddresses[2]);
-        });
-      });
-
-      describe('findTransitiveTransactions', () => {
-        const NUM_NODES = 8;
-        const INDEX_SENDER = 0;
-        const INDEX_RECEIVER = 7;
-
-        let nodes;
-        let network;
-
-        beforeEach(() => {
-          nodes = new Array(NUM_NODES).fill('').map(() => {
-            return web3.utils.toChecksumAddress(web3.utils.randomHex(20));
-          });
-
-          network = [
-            { from: nodes[0], to: nodes[1], capacity: 10 },
-            { from: nodes[0], to: nodes[2], capacity: 5 },
-            { from: nodes[0], to: nodes[3], capacity: 15 },
-            { from: nodes[1], to: nodes[4], capacity: 9 },
-            { from: nodes[1], to: nodes[5], capacity: 15 },
-            { from: nodes[1], to: nodes[2], capacity: 4 },
-            { from: nodes[2], to: nodes[5], capacity: 8 },
-            { from: nodes[2], to: nodes[3], capacity: 4 },
-            { from: nodes[3], to: nodes[6], capacity: 16 },
-            { from: nodes[4], to: nodes[5], capacity: 15 },
-            { from: nodes[4], to: nodes[7], capacity: 10 },
-            { from: nodes[5], to: nodes[7], capacity: 10 },
-            { from: nodes[5], to: nodes[6], capacity: 15 },
-            { from: nodes[6], to: nodes[2], capacity: 6 },
-            { from: nodes[6], to: nodes[7], capacity: 10 },
-          ];
-
-          network.map((connection) => {
-            connection.capacity = web3.utils.toBN(
-              core.utils.toFreckles(connection.capacity),
-            );
-
-            connection.tokenOwnerAddress = web3.utils.toChecksumAddress(
-              web3.utils.randomHex(20),
-            );
-
-            return connection;
-          });
-        });
-
-        it('should fail when max-flow is too small', () => {
-          const value = new web3.utils.BN(core.utils.toFreckles(100));
-
-          expect(() => {
-            findTransitiveTransactions(web3, utils, {
-              from: nodes[INDEX_SENDER],
-              to: nodes[INDEX_RECEIVER],
-              value,
-              network,
-            });
-          }).toThrow();
-        });
-
-        it('should successfully find a path', () => {
-          for (let i = 0; i < 10; i += 1) {
-            const value = 1 + Math.round(Math.random() * 27);
-
-            const path = findTransitiveTransactions(web3, utils, {
-              from: nodes[INDEX_SENDER],
-              to: nodes[INDEX_RECEIVER],
-              value: new web3.utils.BN(core.utils.toFreckles(value)),
-              network,
-            });
-
-            // Simulate transaction
-            const balances = new Array(NUM_NODES).fill(0);
-            balances[INDEX_SENDER] = value;
-
-            path.forEach((transaction) => {
-              const indexFrom = nodes.indexOf(transaction.from);
-              const indexTo = nodes.indexOf(transaction.to);
-
-              balances[indexFrom] -= core.utils.fromFreckles(transaction.value);
-              balances[indexTo] += core.utils.fromFreckles(transaction.value);
-            });
-
-            expect(balances[INDEX_RECEIVER]).toBe(value);
-          }
-        });
       });
 
       describe('requestUBIPayout', () => {
