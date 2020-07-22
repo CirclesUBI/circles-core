@@ -157,7 +157,7 @@ export default function createSafeModule(web3, contracts, utils) {
       });
 
       if (!response.user) {
-        return null;
+        return [];
       }
 
       return response.user.safeAddresses.map((address) => {
