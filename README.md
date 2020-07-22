@@ -192,7 +192,7 @@ await core.safe.getOwners(account, {
 });
 
 // .. or get the Safe connected to an owner
-const safeAddress = await core.safe.getAddress(account, {
+const [safeAddress] = await core.safe.getAddresses(account, {
   ownerAddress: '0x123...',
 });
 

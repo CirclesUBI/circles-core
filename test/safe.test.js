@@ -167,16 +167,14 @@ describe('Safe', () => {
       expect(owners[1]).toBe(accounts[0].address);
       expect(owners.length).toBe(2);
 
-      const ownedSafeAddress = await loop(
+      await loop(
         () => {
-          return core.safe.getAddress(accounts[0], {
+          return core.safe.getAddresses(accounts[0], {
             ownerAddress: accounts[1].address,
           });
         },
-        (address) => address === safeAddress,
+        (addresses) => addresses.includes(safeAddress),
       );
-
-      expect(ownedSafeAddress).toBe(safeAddress);
     });
 
     it('should remove an owner from the Safe', async () => {

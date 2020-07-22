@@ -131,7 +131,7 @@ export default function createSafeModule(web3, contracts, utils) {
     },
 
     /**
-     * Finds the Safe address of an owner.
+     * Finds the Safe addresses of an owner.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -139,7 +139,7 @@ export default function createSafeModule(web3, contracts, utils) {
      *
      * @return {string} - Safe address
      */
-    getAddress: async (account, userOptions) => {
+    getAddresses: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
@@ -151,7 +151,7 @@ export default function createSafeModule(web3, contracts, utils) {
       const response = await utils.requestGraph({
         query: `{
           user(id: "${options.ownerAddress.toLowerCase()}") {
-            safeAddress,
+            safeAddresses,
           }
         }`,
       });
@@ -160,7 +160,9 @@ export default function createSafeModule(web3, contracts, utils) {
         return null;
       }
 
-      return web3.utils.toChecksumAddress(response.user.safeAddress);
+      return response.user.safeAddresses.map((address) => {
+        return web3.utils.toChecksumAddress(address);
+      });
     },
 
     /**
