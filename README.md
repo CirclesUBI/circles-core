@@ -1,13 +1,10 @@
 # Circles Core
 
 <p>
-  <a href="https://opencollective.com/circles">
-    <img src="https://opencollective.com/circles/supporters/badge.svg" alt="Backers">
-  </a>
   <a href="https://github.com/CirclesUBI/circles-core/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/license-APGLv3-orange.svg" alt="License">
   </a>
-  <a href="https://travis-ci.org/CirclesUBI/circles-core">
+  <a href="https://travis-ci.com/CirclesUBI/circles-core">
     <img src="https://api.travis-ci.com/CirclesUBI/circles-core.svg?branch=master" alt="Build Status">
   </a>
   <a href="https://twitter.com/CirclesUBI">
@@ -28,6 +25,8 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 ```
 npm i @circles/core
 ```
+
+Make sure you have all peer dependencies (`isomorphic-fetch` and `web3`) installed as well.
 
 ## Usage
 
