@@ -14,6 +14,49 @@ import checkOptions from '~/common/checkOptions';
 export default function createUserModule(web3, contracts, utils) {
   return {
     /**
+     * Makes a dry-run registration to check if the username and email are valid.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.username - alphanumerical username
+     * @param {string} userOptions.email - email address
+     *
+     * @return {boolean} - Returns true when successful, otherwise throws error
+     */
+    dryRegister: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        username: {
+          type: 'string',
+          default: '',
+        },
+        email: {
+          type: 'string',
+          default: '',
+        },
+        avatarUrl: {
+          type: 'string',
+          default: '',
+        },
+      });
+
+      const { avatarUrl, username, email } = options;
+
+      await utils.requestAPI({
+        path: ['users'],
+        method: 'POST',
+        data: {
+          email,
+          username,
+          avatarUrl,
+        },
+      });
+
+      return true;
+    },
+
+    /**
      * Register a new username and email address and connect it to a Safe address.
      *
      * @param {Object} account - web3 account instance
@@ -46,10 +89,14 @@ export default function createUserModule(web3, contracts, utils) {
             return /^\S+@\S+\.\S+/.test(value);
           },
         },
+        avatarUrl: {
+          type: 'string',
+          default: '',
+        },
       });
 
       const { address } = account;
-      const { nonce, safeAddress, username, email } = options;
+      const { nonce, avatarUrl, safeAddress, username, email } = options;
 
       const { signature } = web3.eth.accounts.sign(
         `${address}${nonce}${safeAddress}${username}`,
@@ -67,6 +114,7 @@ export default function createUserModule(web3, contracts, utils) {
             email,
             safeAddress,
             username,
+            avatarUrl,
           },
         },
       });
