@@ -44,10 +44,10 @@ async function request(endpoint, userOptions) {
   if (data) {
     if (options.method === 'GET') {
       paramsStr = parameterize(data);
-    } else if (data instanceof FormData) {
-      options.body = data;
+    } else if (typeof window !== 'undefined' && data instanceof FormData) {
+      request.body = data;
     } else {
-      options.body = JSON.stringify(data);
+      request.body = JSON.stringify(data);
     }
   }
 
