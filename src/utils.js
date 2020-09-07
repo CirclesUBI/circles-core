@@ -41,10 +41,14 @@ async function request(endpoint, userOptions) {
   };
 
   let paramsStr = '';
-  if (method === 'GET') {
-    paramsStr = parameterize(data);
-  } else {
-    request.body = JSON.stringify(data);
+  if (data) {
+    if (options.method === 'GET') {
+      paramsStr = parameterize(data);
+    } else if (data instanceof FormData) {
+      options.body = data;
+    } else {
+      options.body = JSON.stringify(data);
+    }
   }
 
   const slash = options.isTrailingSlash ? '/' : '';
