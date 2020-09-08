@@ -35,9 +35,6 @@ async function request(endpoint, userOptions) {
 
   const request = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
   };
 
   let paramsStr = '';
@@ -48,11 +45,13 @@ async function request(endpoint, userOptions) {
       request.body = data;
     } else {
       request.body = JSON.stringify(data);
+      request.headers = {
+        'Content-Type': 'application/json',
+      };
     }
   }
 
   const slash = options.isTrailingSlash ? '/' : '';
-
   const url = `${endpoint}/${path.join('/')}${slash}${paramsStr}`;
 
   try {
