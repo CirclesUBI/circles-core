@@ -1,5 +1,6 @@
 import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
 
+import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeContract } from '~/common/getContracts';
@@ -32,12 +33,14 @@ async function getOwners(web3, safeAddress) {
 export default function createSafeModule(web3, contracts, utils) {
   return {
     /**
-     * Register a to-be-created Safe in the Relayer and receive
-     * a predicted Safe address.
+     * Register a to-be-created Safe in the Relayer and receive a predicted
+     * Safe address.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.nonce - nonce to predict address
+     * @param {number} userOptions.nonce - nonce to predict address, by default
+     * it will use the public address of the account (converted to decimal
+     * number) to stay deterministic and therefore easily recoverable
      *
      * @return {string} - Predicted Gnosis Safe address
      */
@@ -50,18 +53,40 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      const response = await utils.requestRelayer({
-        path: ['safes'],
-        version: 2,
-        method: 'POST',
-        data: {
-          saltNonce: options.nonce,
-          owners: [account.address],
-          threshold: SAFE_THRESHOLD,
-        },
-      });
+      let safeAddress;
 
-      return response.safe;
+      try {
+        const { safe } = await utils.requestRelayer({
+          path: ['safes'],
+          version: 2,
+          method: 'POST',
+          data: {
+            saltNonce: options.nonce,
+            owners: [account.address],
+            threshold: SAFE_THRESHOLD,
+          },
+        });
+
+        safeAddress = safe;
+      } catch (error) {
+        // Hacky attempt to recover safeAddress from the relayer. It throws an
+        // 422 error code when the Safe already exists return its address in
+        // the error message.
+        if (error.request && error.request.status === 422) {
+          safeAddress = utils.matchAddress(error.request.body.exception);
+
+          if (!safeAddress) {
+            throw new CoreError(
+              'No Safe address received',
+              ErrorCodes.SAFE_NOT_FOUND,
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
+
+      return safeAddress;
     },
 
     /**

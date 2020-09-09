@@ -22,17 +22,25 @@ describe('Safe', () => {
 
   describe('when a new Safe gets manually created', () => {
     let safeAddress;
+    let nonce;
 
     beforeAll(async () => {
-      const safeCreationNonce = new Date().getTime();
-
+      nonce = Date.now();
       safeAddress = await core.safe.prepareDeploy(accounts[0], {
-        nonce: safeCreationNonce,
+        nonce,
       });
     });
 
     it('should have predicted its future Safe address', () => {
       expect(web3.utils.isAddress(safeAddress)).toBe(true);
+    });
+
+    it('should recover the same Safe address when doing it again', async () => {
+      const safeAddressAgain = await core.safe.prepareDeploy(accounts[0], {
+        nonce,
+      });
+
+      expect(safeAddressAgain).toBe(safeAddress);
     });
 
     it('should be able to manually fund it for deployment', async () => {

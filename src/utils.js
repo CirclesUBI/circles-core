@@ -276,6 +276,23 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   return {
     /**
+     * Detect an Ethereum address in any string.
+     *
+     * @param {string} str - string
+     *
+     * @return {string} - Ethereum address or null
+     */
+    matchAddress: (str) => {
+      const results = str.match(/0x[a-fA-F0-9]{40}/);
+
+      if (results && results.length > 0) {
+        return results[0];
+      } else {
+        return null;
+      }
+    },
+
+    /**
      * Convert to fractional monetary unit of Circles
      * named Freckles.
      *
