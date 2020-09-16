@@ -1,6 +1,9 @@
 # Circles Core
 
 <p>
+  <a href="https://badge.fury.io/js/%40circles%2Fcore">
+    <img src="https://badge.fury.io/js/%40circles%2Fcore.svg" alt="npm Version" height="18">
+  </a>
   <a href="https://github.com/CirclesUBI/circles-core/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/license-APGLv3-orange.svg" alt="License">
   </a>
