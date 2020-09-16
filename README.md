@@ -5,13 +5,13 @@
     <img src="https://badge.fury.io/js/%40circles%2Fcore.svg" alt="npm Version" height="18">
   </a>
   <a href="https://github.com/CirclesUBI/circles-core/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-APGLv3-orange.svg" alt="License">
+    <img src="https://img.shields.io/badge/license-APGLv3-orange.svg" alt="License" height="18">
   </a>
   <a href="https://travis-ci.com/CirclesUBI/circles-core">
-    <img src="https://api.travis-ci.com/CirclesUBI/circles-core.svg?branch=master" alt="Build Status">
+    <img src="https://api.travis-ci.com/CirclesUBI/circles-core.svg?branch=master" alt="Build Status" height="18">
   </a>
   <a href="https://twitter.com/CirclesUBI">
-    <img src="https://img.shields.io/twitter/follow/circlesubi.svg?label=follow+circles" alt="Follow Circles">
+    <img src="https://img.shields.io/twitter/follow/circlesubi.svg?label=follow+circles" alt="Follow Circles" height="18">
   </a>
 </p>
 
