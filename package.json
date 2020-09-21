@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.11.2",
-    "@circles/safe-contracts": "^1.0.7",
-    "circles-contracts": "^1.0.19"
+    "@circles/safe-contracts": "^1.0.14",
+    "circles-contracts": "^2.1.3"
   }
 }

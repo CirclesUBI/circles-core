@@ -5,7 +5,6 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
 
-const DEFAULT_TOKEN_NAME = 'Circles';
 const MAX_TRANSFER_STEPS = 5; // The contracts have a complexity limit due to block gas limits
 
 /**
@@ -90,7 +89,7 @@ export default function createTokenModule(web3, contracts, utils) {
         return false;
       }
 
-      const txData = await hub.methods.signup(DEFAULT_TOKEN_NAME).encodeABI();
+      const txData = await hub.methods.signup().encodeABI();
 
       try {
         const costs = await utils.estimateTransactionCosts(account, {
@@ -124,13 +123,9 @@ export default function createTokenModule(web3, contracts, utils) {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
-        tokenName: {
-          type: 'string',
-          default: DEFAULT_TOKEN_NAME,
-        },
       });
 
-      const txData = await hub.methods.signup(options.tokenName).encodeABI();
+      const txData = await hub.methods.signup().encodeABI();
 
       // Call method and return result
       return await utils.executeSafeTx(account, {
