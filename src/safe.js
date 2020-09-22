@@ -58,7 +58,7 @@ export default function createSafeModule(web3, contracts, utils) {
       try {
         const { safe } = await utils.requestRelayer({
           path: ['safes'],
-          version: 2,
+          version: 3,
           method: 'POST',
           data: {
             saltNonce: options.nonce,
@@ -114,7 +114,7 @@ export default function createSafeModule(web3, contracts, utils) {
           data: {
             numberOwners: 1,
           },
-          version: 2,
+          version: 3,
           method: 'POST',
         });
 
