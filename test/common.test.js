@@ -189,8 +189,6 @@ describe('Common', () => {
     it('should be able to interact with contract methods', () => {
       const { hub } = contracts;
       const data = hub.methods.signup().encodeABI();
-      console.log(data)
-
       expect(data).toContain('0x');
     });
   });

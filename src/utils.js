@@ -503,7 +503,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
 
-      let { dataGas, gasPrice, safeTxGas } = await estimateTransactionCosts(
+      const { dataGas, gasPrice, safeTxGas } = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
           gasToken,
@@ -514,11 +514,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
-
-      // console
-      // safeTxGas = Math.floor(
-      //   Math.max((safeTxGas * 64) / 63, safeTxGas + 2500) + 500,
-      // );
 
       // Register transaction in waiting queue
       const ticketId = transactionQueue.queue(safeAddress);
