@@ -10,7 +10,7 @@ services:
   - docker
 
 node_js:
-  - '11'
+  - '12'
 
 env:
   - CIRCLES_DOCKER=$HOME/CirclesUBI/circles-docker
