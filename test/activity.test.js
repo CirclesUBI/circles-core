@@ -101,6 +101,22 @@ describe('Activity', () => {
     });
   });
 
+  it('filters them by type', async () => {
+    const result = await core.activity.getLatest(account, {
+      safeAddress,
+      filter: core.activity.ActivityFilterTypes.TRANSFERS,
+    });
+
+    const wrongResult = result.activities.find(({ type }) => {
+      return (
+        type !== core.activity.ActivityTypes.HUB_TRANSFER &&
+        type !== core.activity.ActivityTypes.TRANSFER
+      );
+    });
+
+    expect(wrongResult).toBeUndefined();
+  });
+
   it('returns activities based on pagination arguments', async () => {
     const transactionHash = await addSafeOwner(core, account, {
       safeAddress,
