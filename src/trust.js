@@ -96,6 +96,11 @@ export default function createTrustModule(web3, contracts, utils) {
             incoming {
               limitPercentage
               userAddress
+              user {
+                outgoing {
+                  canSendToAddress
+                }
+              }
               canSendToAddress
             }
           }
@@ -103,10 +108,39 @@ export default function createTrustModule(web3, contracts, utils) {
       });
 
       if (!response || response.safe === null) {
-        // Fail silently with empty response / no trust connections
-        // when Safe does not exist yet
+        // Fail silently with empty response / no trust connections when Safe
+        // does not exist yet
         return [];
       }
+
+      // Find mutual trust connections by comparing incoming addresses with
+      // outgoing ones of other users
+      const incomingAddresses = response.safe.incoming.map(
+        ({ userAddress }) => {
+          return userAddress;
+        },
+      );
+
+      const mutualFriendsMap = response.safe.incoming.reduce(
+        (acc, { userAddress, outgoing }) => {
+          if (!(userAddress in acc)) {
+            acc[userAddress] = [];
+          }
+
+          if (!outgoing) {
+            return acc;
+          }
+
+          outgoing.forEach(({ canSendToAddress }) => {
+            if (incomingAddresses.includes(canSendToAddress)) {
+              acc.push(canSendToAddress);
+            }
+          });
+
+          return acc;
+        },
+        {},
+      );
 
       return []
         .concat(response.safe.incoming)
@@ -139,6 +173,7 @@ export default function createTrustModule(web3, contracts, utils) {
               limitPercentageIn: NO_LIMIT_PERCENTAGE,
               limitPercentageOut: limitPercentage,
               safeAddress: canSendToAddress,
+              mututalConnections: mutualFriendsMap[canSendToAddress],
             });
           } else if (canSendToAddress === options.safeAddress) {
             acc.push({
@@ -147,6 +182,7 @@ export default function createTrustModule(web3, contracts, utils) {
               limitPercentageIn: limitPercentage,
               limitPercentageOut: NO_LIMIT_PERCENTAGE,
               safeAddress: userAddress,
+              mututalConnections: mutualFriendsMap[userAddress],
             });
           }
 
