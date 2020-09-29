@@ -99,6 +99,7 @@ export default function createTrustModule(web3, contracts, utils) {
               user {
                 outgoing {
                   canSendToAddress
+                  limitPercentage
                 }
               }
               canSendToAddress
@@ -137,10 +138,13 @@ export default function createTrustModule(web3, contracts, utils) {
             outgoingItem.canSendToAddress,
           );
 
+          const limitPercentage = parseInt(outgoingItem.limitPercentage, 10);
+
           if (
-            incomingAddresses.includes(canSendToAddress) &&
-            canSendToAddress !== userAddress && // User trusts itself
-            canSendToAddress !== options.safeAddress // User trusted by us
+            incomingAddresses.includes(canSendToAddress) && // Is trusted by us
+            limitPercentage !== NO_LIMIT_PERCENTAGE && // Has trust
+            canSendToAddress !== userAddress && // Filter user trusting itself
+            canSendToAddress !== options.safeAddress // Filter user trusted by us
           ) {
             acc[userAddress].push(canSendToAddress);
           }
