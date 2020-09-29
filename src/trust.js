@@ -117,30 +117,37 @@ export default function createTrustModule(web3, contracts, utils) {
       // outgoing ones of other users
       const incomingAddresses = response.safe.incoming.map(
         ({ userAddress }) => {
-          return userAddress;
+          return web3.utils.toChecksumAddress(userAddress);
         },
       );
 
-      const mutualFriendsMap = response.safe.incoming.reduce(
-        (acc, { userAddress, outgoing }) => {
-          if (!(userAddress in acc)) {
-            acc[userAddress] = [];
-          }
+      const mutualFriendsMap = response.safe.incoming.reduce((acc, item) => {
+        const userAddress = web3.utils.toChecksumAddress(item.userAddress);
 
-          if (!outgoing) {
-            return acc;
-          }
+        if (!(userAddress in acc)) {
+          acc[userAddress] = [];
+        }
 
-          outgoing.forEach(({ canSendToAddress }) => {
-            if (incomingAddresses.includes(canSendToAddress)) {
-              acc.push(canSendToAddress);
-            }
-          });
-
+        if (!item.user) {
           return acc;
-        },
-        {},
-      );
+        }
+
+        item.user.outgoing.forEach((outgoingItem) => {
+          const canSendToAddress = web3.utils.toChecksumAddress(
+            outgoingItem.canSendToAddress,
+          );
+
+          if (
+            incomingAddresses.includes(canSendToAddress) &&
+            canSendToAddress !== userAddress && // User trusts itself
+            canSendToAddress !== options.safeAddress // User trusted by us
+          ) {
+            acc[userAddress].push(canSendToAddress);
+          }
+        });
+
+        return acc;
+      }, {});
 
       return []
         .concat(response.safe.incoming)
@@ -172,8 +179,8 @@ export default function createTrustModule(web3, contracts, utils) {
               isOutgoing: true,
               limitPercentageIn: NO_LIMIT_PERCENTAGE,
               limitPercentageOut: limitPercentage,
+              mutualConnections: mutualFriendsMap[canSendToAddress] || [],
               safeAddress: canSendToAddress,
-              mututalConnections: mutualFriendsMap[canSendToAddress],
             });
           } else if (canSendToAddress === options.safeAddress) {
             acc.push({
@@ -181,8 +188,8 @@ export default function createTrustModule(web3, contracts, utils) {
               isOutgoing: false,
               limitPercentageIn: limitPercentage,
               limitPercentageOut: NO_LIMIT_PERCENTAGE,
+              mutualConnections: mutualFriendsMap[userAddress] || [],
               safeAddress: userAddress,
-              mututalConnections: mutualFriendsMap[userAddress],
             });
           }
 
@@ -201,6 +208,7 @@ export default function createTrustModule(web3, contracts, utils) {
               isOutgoing,
               limitPercentageIn,
               limitPercentageOut,
+              mutualConnections,
               safeAddress,
             } = acc[index];
 
@@ -211,6 +219,11 @@ export default function createTrustModule(web3, contracts, utils) {
                 connection.limitPercentageIn + limitPercentageIn,
               limitPercentageOut:
                 connection.limitPercentageOut + limitPercentageOut,
+              mutualConnections: mutualConnections.concat(
+                connection.mutualConnections.filter((item) => {
+                  return !mutualConnections.includes(item);
+                }),
+              ),
               safeAddress,
             };
           } else {
