@@ -31,8 +31,17 @@ describe('Safe', () => {
       });
     });
 
-    it('should have predicted its future Safe address', () => {
+    it('should be a valid address', () => {
       expect(web3.utils.isAddress(safeAddress)).toBe(true);
+    });
+
+    it('should have predicted its future Safe address', async () => {
+      const predictedSafeAddress = await core.safe.predictAddress(accounts[0], {
+        nonce,
+      });
+
+      expect(web3.utils.isAddress(predictedSafeAddress)).toBe(true);
+      expect(predictedSafeAddress).toBe(safeAddress);
     });
 
     it('should recover the same Safe address when doing it again', async () => {
