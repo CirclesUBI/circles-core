@@ -181,7 +181,7 @@ export default function createSafeModule(web3, contracts, utils) {
         }`,
       });
 
-      if (!response.user) {
+      if (!response || !response.user) {
         return [];
       }
 

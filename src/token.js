@@ -195,7 +195,7 @@ export default function createTokenModule(web3, contracts, utils) {
         }`,
       });
 
-      if (!response.safe) {
+      if (!response || !response.safe) {
         throw new CoreError(
           `Could not find Safe with address ${safeAddress}`,
           ErrorCodes.SAFE_NOT_FOUND,

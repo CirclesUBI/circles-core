@@ -135,7 +135,11 @@ export default function createActivityModule(web3, contracts, utils) {
           }`,
         });
 
-        if (!response.notifications || response.notifications.length === 0) {
+        if (
+          !response ||
+          !response.notifications ||
+          response.notifications.length === 0
+        ) {
           return [];
         }
 
