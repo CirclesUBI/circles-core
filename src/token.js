@@ -277,6 +277,10 @@ export default function createTokenModule(web3, contracts, utils) {
           throw new TransferError(
             'No possible transfer found',
             ErrorCodes.TRANSFER_NOT_FOUND,
+            {
+              ...options,
+              response,
+            },
           );
         }
 
@@ -284,6 +288,10 @@ export default function createTokenModule(web3, contracts, utils) {
           throw new TransferError(
             'Too many transfer steps',
             ErrorCodes.TOO_COMPLEX_TRANSFER,
+            {
+              ...options,
+              response,
+            },
           );
         }
       } catch (error) {
