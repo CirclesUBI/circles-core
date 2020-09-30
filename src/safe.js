@@ -1,6 +1,5 @@
 import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
 
-import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeContract } from '~/common/getContracts';
@@ -22,6 +21,31 @@ async function getOwners(web3, safeAddress) {
 }
 
 /**
+ * Predict Safe address
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - utils module instance
+ * @param {number} nonce - Safe creation salt nonce
+ * @param {string} address - Safe owner address
+ *
+ * @return {string} - predicted Safe address
+ */
+async function predictSafeAddress(web3, utils, nonce, address) {
+  const { safe } = await utils.requestRelayer({
+    path: ['safes', 'predict'],
+    version: 3,
+    method: 'POST',
+    data: {
+      saltNonce: nonce,
+      owners: [address],
+      threshold: SAFE_THRESHOLD,
+    },
+  });
+
+  return web3.utils.toChecksumAddress(safe);
+}
+
+/**
  * Safe submodule to deploy and interact with the Gnosis Safe.
  *
  * @param {Web3} web3 - Web3 instance
@@ -33,14 +57,38 @@ async function getOwners(web3, safeAddress) {
 export default function createSafeModule(web3, contracts, utils) {
   return {
     /**
+     * Predict Safe address.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.nonce - nonce to predict address
+     *
+     * @return {string} - Predicted Gnosis Safe address
+     */
+    predictAddress: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        nonce: {
+          type: 'number',
+        },
+      });
+
+      return await predictSafeAddress(
+        web3,
+        utils,
+        options.nonce,
+        account.address,
+      );
+    },
+
+    /**
      * Register a to-be-created Safe in the Relayer and receive a predicted
      * Safe address.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {number} userOptions.nonce - nonce to predict address, by default
-     * it will use the public address of the account (converted to decimal
-     * number) to stay deterministic and therefore easily recoverable
+     * @param {number} userOptions.nonce - nonce to predict address
      *
      * @return {string} - Predicted Gnosis Safe address
      */
@@ -53,40 +101,48 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      let safeAddress;
+      // Check if Safe already exists
+      const predictedSafeAddress = await predictSafeAddress(
+        web3,
+        utils,
+        options.nonce,
+        account.address,
+      );
+
+      let isAlreadyExisting = false;
 
       try {
-        const { safe } = await utils.requestRelayer({
-          path: ['safes'],
-          version: 3,
-          method: 'POST',
-          data: {
-            saltNonce: options.nonce,
-            owners: [account.address],
-            threshold: SAFE_THRESHOLD,
-          },
+        await utils.requestRelayer({
+          path: ['safes', predictedSafeAddress, 'funded'],
+          version: 2,
         });
 
-        safeAddress = safe;
+        isAlreadyExisting = true;
       } catch (error) {
-        // Hacky attempt to recover safeAddress from the relayer. It throws an
-        // 422 error code when the Safe already exists return its address in
-        // the error message.
-        if (error.request && error.request.status === 422) {
-          safeAddress = utils.matchAddress(error.request.body.exception);
-
-          if (!safeAddress) {
-            throw new CoreError(
-              'No Safe address received',
-              ErrorCodes.SAFE_NOT_FOUND,
-            );
-          }
-        } else {
+        // Ignore Not Found errors
+        if (!error.request || error.request.status !== 404) {
           throw error;
         }
       }
 
-      return safeAddress;
+      // Return predicted Safe address when Safe is already in the system
+      if (isAlreadyExisting) {
+        return predictedSafeAddress;
+      }
+
+      // .. otherwise start creation of Safe
+      const { safe } = await utils.requestRelayer({
+        path: ['safes'],
+        version: 3,
+        method: 'POST',
+        data: {
+          saltNonce: options.nonce,
+          owners: [account.address],
+          threshold: SAFE_THRESHOLD,
+        },
+      });
+
+      return web3.utils.toChecksumAddress(safe);
     },
 
     /**
