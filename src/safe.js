@@ -30,7 +30,7 @@ async function getOwners(web3, safeAddress) {
  *
  * @return {string} - predicted Safe address
  */
-async function predictSafeAddress(web3, utils, nonce, address) {
+async function predictAddress(web3, utils, nonce, address) {
   const { safe } = await utils.requestRelayer({
     path: ['safes', 'predict'],
     version: 3,
@@ -43,6 +43,38 @@ async function predictSafeAddress(web3, utils, nonce, address) {
   });
 
   return web3.utils.toChecksumAddress(safe);
+}
+
+/**
+ * Returns if the Safe is created and / or deployed.
+ *
+ * @param {Object} utils - utils module instance
+ * @param {string} safeAddress - Safe address
+ *
+ * @return {Object} - Safe status
+ */
+async function getSafeStatus(utils, safeAddress) {
+  let isCreated = false;
+  let isDeployed = false;
+
+  try {
+    const { txHash } = await utils.requestRelayer({
+      path: ['safes', safeAddress, 'funded'],
+      version: 2,
+    });
+    isCreated = true;
+    isDeployed = txHash !== null;
+  } catch (error) {
+    // Ignore Not Found errors
+    if (!error.request || error.request.status !== 404) {
+      throw error;
+    }
+  }
+
+  return {
+    isCreated,
+    isDeployed,
+  };
 }
 
 /**
@@ -74,12 +106,29 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      return await predictSafeAddress(
-        web3,
-        utils,
-        options.nonce,
-        account.address,
-      );
+      return await predictAddress(web3, utils, options.nonce, account.address);
+    },
+
+    /**
+     * Returns status of a Safe in the system. Is it created or already
+     * deployed?
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.safeAddress - Safe address
+     *
+     * @return {Object} - Safe status
+     */
+    getSafeStatus: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      return await getSafeStatus(utils, options.safeAddress);
     },
 
     /**
@@ -102,31 +151,16 @@ export default function createSafeModule(web3, contracts, utils) {
       });
 
       // Check if Safe already exists
-      const predictedSafeAddress = await predictSafeAddress(
+      const predictedSafeAddress = await predictAddress(
         web3,
         utils,
         options.nonce,
         account.address,
       );
 
-      let isAlreadyExisting = false;
-
-      try {
-        await utils.requestRelayer({
-          path: ['safes', predictedSafeAddress, 'funded'],
-          version: 2,
-        });
-
-        isAlreadyExisting = true;
-      } catch (error) {
-        // Ignore Not Found errors
-        if (!error.request || error.request.status !== 404) {
-          throw error;
-        }
-      }
-
       // Return predicted Safe address when Safe is already in the system
-      if (isAlreadyExisting) {
+      const status = await getSafeStatus(utils, predictedSafeAddress);
+      if (status.isCreated) {
         return predictedSafeAddress;
       }
 

@@ -44,6 +44,15 @@ describe('Safe', () => {
       expect(predictedSafeAddress).toBe(safeAddress);
     });
 
+    it('should return the correct status', async () => {
+      const status = await core.safe.getSafeStatus(accounts[0], {
+        safeAddress,
+      });
+
+      expect(status.isCreated).toBe(true);
+      expect(status.isDeployed).toBe(false);
+    });
+
     it('should recover the same Safe address when doing it again', async () => {
       const safeAddressAgain = await core.safe.prepareDeploy(accounts[0], {
         nonce,
@@ -80,6 +89,14 @@ describe('Safe', () => {
       });
 
       expect(result).toBe(true);
+
+      // Check if the status is correct
+      const status = await core.safe.getSafeStatus(accounts[0], {
+        safeAddress,
+      });
+
+      expect(status.isCreated).toBe(true);
+      expect(status.isDeployed).toBe(true);
     });
   });
 
