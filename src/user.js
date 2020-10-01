@@ -99,7 +99,7 @@ export default function createUserModule(web3, contracts, utils) {
       const { nonce, avatarUrl, safeAddress, username, email } = options;
 
       const { signature } = web3.eth.accounts.sign(
-        `${address}${nonce}${safeAddress}${username}`,
+        [address, nonce, safeAddress, username].join(''),
         account.privateKey,
       );
 
