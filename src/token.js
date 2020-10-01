@@ -250,6 +250,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.from - sender address
      * @param {string} userOptions.to - receiver address
      * @param {BN} userOptions.value - value
+     * @param {string} userOptions.paymentNote - optional payment note stored in API
      *
      * @return {string} - transaction hash
      */
@@ -265,6 +266,10 @@ export default function createTokenModule(web3, contracts, utils) {
         },
         value: {
           type: web3.utils.isBN,
+        },
+        paymentNote: {
+          type: 'string',
+          default: '',
         },
       });
 
@@ -331,11 +336,90 @@ export default function createTokenModule(web3, contracts, utils) {
         )
         .encodeABI();
 
-      return await utils.executeTokenSafeTx(account, {
+      const txHash = await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
         to: hub.options.address,
         txData,
       });
+
+      // Do not store the transfer in the API when there is no paymentNote
+      if (options.paymentNote.length === 0) {
+        return txHash;
+      }
+
+      // If everything went well so far we can store the paymentNote in the API
+      const { signature } = web3.eth.accounts.sign(
+        [options.from, options.to, txHash].join(''),
+        account.privateKey,
+      );
+
+      await utils.requestAPI({
+        path: ['transfers'],
+        method: 'PUT',
+        data: {
+          address: account.address,
+          signature,
+          data: {
+            from: options.from,
+            to: options.to,
+            transactionHash: txHash,
+            paymentNote: options.paymentNote,
+          },
+        },
+      });
+
+      return txHash;
+    },
+
+    /**
+     * Return the payment Note of an transaction from or to the user.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {string} userOptions.transactionHash - hash of transfer transaction
+     *
+     * @return {string} - Payment note, null when not given or not allowed
+     */
+    getPaymentNote: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        transactionHash: {
+          type: (value) => {
+            return /^0x([A-Fa-f0-9]{64})$/.test(value);
+          },
+        },
+      });
+
+      // Sign this request as we have to claim our wallet address
+      const { signature } = web3.eth.accounts.sign(
+        [options.transactionHash].join(''),
+        account.privateKey,
+      );
+
+      try {
+        const response = await utils.requestAPI({
+          path: ['transfers', options.transactionHash],
+          method: 'POST',
+          data: {
+            address: account.address,
+            signature,
+          },
+        });
+
+        if (response && response.data && response.data.paymentNote) {
+          return response.data.paymentNote;
+        }
+      } catch (error) {
+        // Do nothing when not found or denied access ...
+        if (
+          !error.request ||
+          (error.request.status !== 404 && error.request.status !== 403)
+        ) {
+          throw error;
+        }
+      }
+
+      return null;
     },
 
     /**

@@ -182,10 +182,16 @@ if (!payout.isZero()) {
 }
 
 // Transfer Circles to users (directly or transitively)
-await core.token.transfer(account, {
+const txHash = await core.token.transfer(account, {
   from: safeAddress,
   to: users[0].safeAddress,
   value: 350,
+  paymentNote: 'Thank you for the fish!',
+});
+
+// Get the payment note of that transfer
+const paymentNote = await core.token.getPaymentNote(account, {
+  transactionHash: txHash,
 });
 
 // Get current Safe owners
