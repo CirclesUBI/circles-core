@@ -112,7 +112,6 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - owner of the Token
-     * @param {string} userOptions.tokenName - Optional token name
      *
      * @return {string} - transaction hash
      */
@@ -136,7 +135,7 @@ export default function createTokenModule(web3, contracts, utils) {
     },
 
     /**
-     * Get Token address by passing on owner address.
+     * Get Token address by passing owner address.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -157,8 +156,7 @@ export default function createTokenModule(web3, contracts, utils) {
     },
 
     /**
-     * Get summarized balance of all or one Token
-     * owned by a user.
+     * Get summarized balance of all or one Token owned by a user.
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
