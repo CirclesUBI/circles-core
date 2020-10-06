@@ -21,7 +21,6 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 
 - NodeJS
 - web3.js
-- Python 2.7
 
 ## Installation
 
