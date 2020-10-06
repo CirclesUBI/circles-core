@@ -8,6 +8,7 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
+import createOrganizationModule from '~/organization';
 import createSafeModule from '~/safe';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
@@ -86,6 +87,12 @@ export default class CirclesCore {
     // Create submodules and pass utils and options to them
     /** @type {Object} - activity module */
     this.activity = createActivityModule(web3, this.contracts, this.utils);
+    /** @type {Object} - organization module */
+    this.organization = createOrganizationModule(
+      web3,
+      this.contracts,
+      this.utils,
+    );
     /** @type {Object} - safe module */
     this.safe = createSafeModule(web3, this.contracts, this.utils);
     /** @type {Object} - token module */
