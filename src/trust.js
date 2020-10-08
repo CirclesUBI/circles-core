@@ -47,6 +47,7 @@ export default function createTrustModule(web3, contracts, utils) {
         query: `{
           trusts(where: { userAddress: "${safeAddress}" }) {
             id
+            limitPercentage
           }
         }`,
       });
@@ -58,9 +59,13 @@ export default function createTrustModule(web3, contracts, utils) {
         };
       }
 
+      const trustConnections = response.trusts.filter((connection) => {
+        return parseInt(connection.limitPercentage, 10) !== NO_LIMIT_PERCENTAGE;
+      });
+
       return {
-        trustConnections: response.trusts.length,
-        isTrusted: response.trusts.length >= options.limit,
+        trustConnections: trustConnections.length,
+        isTrusted: trustConnections.length >= options.limit,
       };
     },
 
