@@ -12,7 +12,20 @@ describe('Organization', () => {
   beforeAll(async () => {
     account = getAccount(0);
     core = createCore();
-    safeAddress = await deploySafe(core, account);
+
+    // First deploy users Safe ..
+    await deploySafe(core, account);
+
+    // .. to then deploy the second Safe for the organization
+    safeAddress = await core.safe.prepareDeploy(account, {
+      nonce: Date.now(),
+    });
+
+    await core.safe.deployForOrganization(account, {
+      safeAddress,
+    });
+
+    await loop(() => web3.eth.getCode(safeAddress));
   });
 
   it('should check if safe has enough funds for organization to be created', async () => {
@@ -35,9 +48,6 @@ describe('Organization', () => {
       safeAddress,
     });
     expect(web3.utils.isHexStrict(txHash)).toBe(true);
-
-    // Wait until it exists ..
-    await loop(() => web3.eth.getCode(safeAddress));
 
     // isOrganization should be true now
     isOrganization = await core.organization.isOrganization(account, {

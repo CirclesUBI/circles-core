@@ -246,6 +246,35 @@ export default function createSafeModule(web3, contracts, utils) {
     },
 
     /**
+     * Requests the relayer to deploy a Safe for an organization. The relayer
+     * funds the deployment of this Safe when the account is already known and
+     * verified / already has a deployed Safe from before.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.safeAddress - to-be-deployed Safe address
+     *
+     * @return {boolean} - returns true when successful
+     */
+    deployForOrganization: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      await utils.requestRelayer({
+        path: ['safes', options.safeAddress, 'organization'],
+        version: 2,
+        method: 'PUT',
+      });
+
+      return true;
+    },
+
+    /**
      * Finds the Safe addresses of an owner.
      *
      * @param {Object} account - web3 account instance
