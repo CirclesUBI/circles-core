@@ -298,10 +298,14 @@ export default function createTokenModule(web3, contracts, utils) {
           );
         }
       } catch (error) {
-        throw new TransferError(error.message, ErrorCodes.INVALID_TRANSFER, {
-          ...options,
-          response,
-        });
+        if (!error.code) {
+          throw new TransferError(error.message, ErrorCodes.INVALID_TRANSFER, {
+            ...options,
+            response,
+          });
+        } else {
+          throw error;
+        }
       }
 
       // Convert connections to contract argument format
