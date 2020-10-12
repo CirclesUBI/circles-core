@@ -80,14 +80,12 @@ export default function createUserModule(web3, contracts, utils) {
           type: web3.utils.checkAddressChecksum,
         },
         username: {
-          type: (value) => {
-            return /^[a-zA-Z0-9]+$/.test(value);
-          },
+          type: 'string',
+          default: '',
         },
         email: {
-          type: (value) => {
-            return /^\S+@\S+\.\S+/.test(value);
-          },
+          type: 'string',
+          default: '',
         },
         avatarUrl: {
           type: 'string',
