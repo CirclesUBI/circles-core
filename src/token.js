@@ -349,6 +349,11 @@ export default function createTokenModule(web3, contracts, utils) {
         return txHash;
       }
 
+      // Something went wrong
+      if (!txHash) {
+        return null;
+      }
+
       // If everything went well so far we can store the paymentNote in the API
       const { signature } = web3.eth.accounts.sign(
         [options.from, options.to, txHash].join(''),
