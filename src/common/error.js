@@ -2,6 +2,7 @@ import createSymbolObject from '~/common/createSymbolObject';
 
 export const ErrorCodes = createSymbolObject([
   'FAILED_REQUEST',
+  'INSUFFICIENT_FUNDS',
   'INVALID_OPTIONS',
   'INVALID_TRANSFER',
   'SAFE_NOT_FOUND',

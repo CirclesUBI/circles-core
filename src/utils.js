@@ -8,7 +8,7 @@ import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
-import { getSafeContract } from '~/common/getContracts';
+import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
 const transactionQueue = new TransactionQueue();
 
@@ -369,23 +369,71 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
 
-      // Get Circles Token of this Safe / User
-      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+      // Get a list of all Circles Token owned by this address to find out with
+      // which we can pay this transaction
+      const balances = [];
 
-      if (tokenAddress === ZERO_ADDRESS) {
+      // Fetch token balance directly from Ethereum node if we can't find
+      // anything through the graph
+      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+      if (tokenAddress !== ZERO_ADDRESS) {
+        const tokenContract = getTokenContract(web3, tokenAddress);
+        const amount = await tokenContract.methods
+          .balanceOf(safeAddress)
+          .call();
+
+        balances.push({
+          amount: web3.utils.toBN(amount.toString()),
+          address: web3.utils.toChecksumAddress(tokenAddress),
+        });
+      }
+
+      // Additionally get all other tokens from the Graph
+      const tokensResponse = await requestGraph(
+        graphNodeEndpoint,
+        subgraphName,
+        {
+          query: `{
+            safe(id: "${safeAddress.toLowerCase()}") {
+              balances {
+                token {
+                  id
+                }
+                amount
+              }
+            }
+          }`,
+        },
+      );
+
+      if (tokensResponse && tokensResponse.safe) {
+        tokensResponse.safe.balances.forEach((balance) => {
+          const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
+
+          if (balances.find(({ address }) => address === tokenAddress)) {
+            return;
+          }
+
+          balances.push({
+            amount: web3.utils.toBN(balance.amount),
+            address: tokenAddress,
+          });
+        });
+      }
+
+      if (balances.length === 0) {
         throw new CoreError(
-          'Invalid Token address. Did you forget to deploy the Token?',
-          ErrorCodes.TOKEN_NOT_FOUND,
+          'No tokens given to pay transaction.',
+          ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
 
-      // Use Circles Token to pay for transaction fees
-      const gasToken = tokenAddress;
-
+      // Estimate gas costs and find out if we have a token with enough balance
+      // to pay them
       const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
-          gasToken,
+          gasToken: ZERO_ADDRESS,
           operation,
           safeAddress,
           to,
@@ -393,6 +441,29 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
+
+      const totalGasEstimate = web3.utils
+        .toBN(dataGas)
+        .add(new web3.utils.BN(safeTxGas))
+        .mul(new web3.utils.BN(gasPrice));
+
+      const foundToken = balances
+        .sort(({ amount: amountA }, { amount: amountB }) => {
+          // Sort balances by amount to prefer larger ones
+          return web3.utils.toBN(amountA).cmp(web3.utils.toBN(amountB));
+        })
+        .find(({ amount }) => {
+          return web3.utils.toBN(amount).gte(totalGasEstimate);
+        });
+
+      if (!foundToken) {
+        throw new CoreError(
+          'No token found with sufficient funds to pay transaction.',
+          ErrorCodes.INSUFFICIENT_FUNDS,
+        );
+      }
+
+      const gasToken = foundToken.address;
 
       // Register transaction in waiting queue
       const ticketId = transactionQueue.queue(safeAddress);
