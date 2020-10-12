@@ -75,7 +75,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
 
       const txData = await hub.methods.organizationSignup().encodeABI();
 
-      return await utils.executeSafeTx(account, {
+      return await utils.executeTokenSafeTx(account, {
         safeAddress: options.safeAddress,
         to: hub.options.address,
         txData,
