@@ -8,7 +8,7 @@ import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
-import { getSafeContract } from '~/common/getContracts';
+import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
 const transactionQueue = new TransactionQueue();
 
@@ -274,6 +274,73 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   const { hub } = contracts;
 
+  // Get a list of all Circles Token owned by this address to find out with
+  // which we can pay this transaction
+  async function listAllTokens(safeAddress) {
+    const tokens = [];
+
+    // Fetch token balance directly from Ethereum node to start with
+    const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+    if (tokenAddress !== ZERO_ADDRESS) {
+      const tokenContract = getTokenContract(web3, tokenAddress);
+      const amount = await tokenContract.methods.balanceOf(safeAddress).call();
+
+      tokens.push({
+        amount: web3.utils.toBN(amount.toString()),
+        address: web3.utils.toChecksumAddress(tokenAddress),
+        ownerAddress: safeAddress,
+      });
+    }
+
+    // Additionally get all other tokens from the Graph
+    try {
+      const tokensResponse = await requestGraph(
+        graphNodeEndpoint,
+        subgraphName,
+        {
+          query: `{
+            safe(id: "${safeAddress.toLowerCase()}") {
+              balances {
+                token {
+                  id
+                  owner {
+                    id
+                  }
+                }
+                amount
+              }
+            }
+          }`,
+        },
+      );
+
+      if (tokensResponse && tokensResponse.safe) {
+        tokensResponse.safe.balances.forEach((balance) => {
+          const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
+          const ownerAddress = web3.utils.toChecksumAddress(
+            balance.token.owner.id,
+          );
+
+          if (tokens.find(({ address }) => address === tokenAddress)) {
+            return;
+          }
+
+          tokens.push({
+            amount: web3.utils.toBN(balance.amount),
+            address: tokenAddress,
+            ownerAddress,
+          });
+        });
+      }
+    } catch {
+      // Do nothing ..
+    }
+
+    return tokens.sort(({ amount: amountA }, { amount: amountB }) => {
+      return web3.utils.toBN(amountA).cmp(web3.utils.toBN(amountB));
+    });
+  }
+
   return {
     /**
      * Detect an Ethereum address in any string.
@@ -340,6 +407,25 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     },
 
     /**
+     * Get a list of all tokens and their current balance a user owns. This can
+     * be used to find the right token for a transaction.
+     *
+     * @param {Object} userOptions - query options
+     * @param {string} userOptions.safeAddress - address of Safe
+     *
+     * @return {array} - List of tokens with current balance and address
+     */
+    listAllTokens: async (userOptions) => {
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      return await listAllTokens(options.safeAddress);
+    },
+
+    /**
      * Send Transaction to Relayer and pay with Circles Token.
      *
      * @param {Object} account - web3 account instance
@@ -369,23 +455,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
 
-      // Get Circles Token of this Safe / User
-      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
-
-      if (tokenAddress === ZERO_ADDRESS) {
-        throw new CoreError(
-          'Invalid Token address. Did you forget to deploy the Token?',
-          ErrorCodes.TOKEN_NOT_FOUND,
-        );
-      }
-
-      // Use Circles Token to pay for transaction fees
-      const gasToken = tokenAddress;
-
-      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+      // Estimate gas costs and find out if we have a token with enough balance
+      // to pay them. We use the ZERO_ADDRESS as a gasToken for now as we
+      // didn't select the actual Circles Token yet to pay the transaction for
+      // the relayer
+      const preEstimation = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
-          gasToken,
+          gasToken: ZERO_ADDRESS,
           operation,
           safeAddress,
           to,
@@ -393,6 +470,49 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
         },
       );
+
+      const totalGasEstimate = web3.utils
+        .toBN(preEstimation.dataGas)
+        .add(new web3.utils.BN(preEstimation.safeTxGas))
+        .mul(new web3.utils.BN(preEstimation.gasPrice));
+
+      const tokens = await listAllTokens(safeAddress);
+
+      if (tokens.length === 0) {
+        throw new CoreError(
+          'No tokens given to pay transaction',
+          ErrorCodes.INSUFFICIENT_FUNDS,
+        );
+      }
+
+      const foundToken = tokens.find(({ amount }) => {
+        return web3.utils.toBN(amount).gte(totalGasEstimate);
+      });
+
+      if (!foundToken) {
+        throw new CoreError(
+          'No token found with sufficient funds to pay transaction',
+          ErrorCodes.INSUFFICIENT_FUNDS,
+        );
+      }
+
+      // Estimate the costs again, this time with the actual token we will use
+      // in the Relayer. This is a little bit cumbersome, but the relayer will
+      // throw an exception otherwise, as gas estimations might diverge a
+      // little when using different tokens
+      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+        relayServiceEndpoint,
+        {
+          gasToken: foundToken.address,
+          operation,
+          safeAddress,
+          to,
+          txData,
+          value,
+        },
+      );
+
+      const gasToken = foundToken.address;
 
       // Register transaction in waiting queue
       const ticketId = transactionQueue.queue(safeAddress);
