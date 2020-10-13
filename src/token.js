@@ -156,6 +156,20 @@ export default function createTokenModule(web3, contracts, utils) {
     },
 
     /**
+     * List all available tokens of this user.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - safe address
+     *
+     * @return {array} - list of all tokens with ownerAddress, address and amount
+     */
+    listAllTokens: async (account, userOptions) => {
+      checkAccount(web3, account);
+      return await utils.listAllTokens(userOptions);
+    },
+
+    /**
      * Get summarized balance of all or one Token owned by a user.
      *
      * @param {Object} account - web3 account instance
