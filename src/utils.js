@@ -274,6 +274,72 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   const { hub } = contracts;
 
+  // Get a list of all Circles Token owned by this address to find out with
+  // which we can pay this transaction
+  async function findTokens(safeAddress) {
+    const tokens = [];
+
+    // Fetch token balance directly from Ethereum node to start with
+    const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+    if (tokenAddress !== ZERO_ADDRESS) {
+      const tokenContract = getTokenContract(web3, tokenAddress);
+      const amount = await tokenContract.methods.balanceOf(safeAddress).call();
+
+      tokens.push({
+        amount: web3.utils.toBN(amount.toString()),
+        address: web3.utils.toChecksumAddress(tokenAddress),
+      });
+    }
+
+    // Additionally get all other tokens from the Graph
+    try {
+      const tokensResponse = await requestGraph(
+        graphNodeEndpoint,
+        subgraphName,
+        {
+          query: `{
+            safe(id: "${safeAddress.toLowerCase()}") {
+              balances {
+                token {
+                  id
+                }
+                amount
+              }
+            }
+          }`,
+        },
+      );
+
+      if (tokensResponse && tokensResponse.safe) {
+        tokensResponse.safe.balances.forEach((balance) => {
+          const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
+
+          if (tokens.find(({ address }) => address === tokenAddress)) {
+            return;
+          }
+
+          tokens.push({
+            amount: web3.utils.toBN(balance.amount),
+            address: tokenAddress,
+          });
+        });
+      }
+    } catch {
+      // Do nothing ..
+    }
+
+    if (tokens.length === 0) {
+      throw new CoreError(
+        'No tokens given to pay transaction.',
+        ErrorCodes.INSUFFICIENT_FUNDS,
+      );
+    }
+
+    return tokens.sort(({ amount: amountA }, { amount: amountB }) => {
+      return web3.utils.toBN(amountA).cmp(web3.utils.toBN(amountB));
+    });
+  }
+
   return {
     /**
      * Detect an Ethereum address in any string.
@@ -340,6 +406,25 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     },
 
     /**
+     * Get a list of all tokens and their current balance a user owns. This can
+     * be used to find the right token for a transaction.
+     *
+     * @param {Object} userOptions - query options
+     * @param {string} userOptions.safeAddress - address of Safe
+     *
+     * @return {array} - List of tokens with current balance and address
+     */
+    findTokens: async (userOptions) => {
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      return await findTokens(options.safeAddress);
+    },
+
+    /**
      * Send Transaction to Relayer and pay with Circles Token.
      *
      * @param {Object} account - web3 account instance
@@ -369,65 +454,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
 
-      // Get a list of all Circles Token owned by this address to find out with
-      // which we can pay this transaction
-      const balances = [];
-
-      // Fetch token balance directly from Ethereum node if we can't find
-      // anything through the graph
-      const tokenAddress = await hub.methods.userToToken(safeAddress).call();
-      if (tokenAddress !== ZERO_ADDRESS) {
-        const tokenContract = getTokenContract(web3, tokenAddress);
-        const amount = await tokenContract.methods
-          .balanceOf(safeAddress)
-          .call();
-
-        balances.push({
-          amount: web3.utils.toBN(amount.toString()),
-          address: web3.utils.toChecksumAddress(tokenAddress),
-        });
-      }
-
-      // Additionally get all other tokens from the Graph
-      const tokensResponse = await requestGraph(
-        graphNodeEndpoint,
-        subgraphName,
-        {
-          query: `{
-            safe(id: "${safeAddress.toLowerCase()}") {
-              balances {
-                token {
-                  id
-                }
-                amount
-              }
-            }
-          }`,
-        },
-      );
-
-      if (tokensResponse && tokensResponse.safe) {
-        tokensResponse.safe.balances.forEach((balance) => {
-          const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
-
-          if (balances.find(({ address }) => address === tokenAddress)) {
-            return;
-          }
-
-          balances.push({
-            amount: web3.utils.toBN(balance.amount),
-            address: tokenAddress,
-          });
-        });
-      }
-
-      if (balances.length === 0) {
-        throw new CoreError(
-          'No tokens given to pay transaction.',
-          ErrorCodes.INSUFFICIENT_FUNDS,
-        );
-      }
-
       // Estimate gas costs and find out if we have a token with enough balance
       // to pay them
       const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
@@ -447,14 +473,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         .add(new web3.utils.BN(safeTxGas))
         .mul(new web3.utils.BN(gasPrice));
 
-      const foundToken = balances
-        .sort(({ amount: amountA }, { amount: amountB }) => {
-          // Sort balances by amount to prefer larger ones
-          return web3.utils.toBN(amountA).cmp(web3.utils.toBN(amountB));
-        })
-        .find(({ amount }) => {
-          return web3.utils.toBN(amount).gte(totalGasEstimate);
-        });
+      const tokens = findTokens(safeAddress);
+      const foundToken = tokens.find(({ amount }) => {
+        return web3.utils.toBN(amount).gte(totalGasEstimate);
+      });
 
       if (!foundToken) {
         throw new CoreError(
