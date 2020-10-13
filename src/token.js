@@ -285,63 +285,79 @@ export default function createTokenModule(web3, contracts, utils) {
         },
       });
 
-      // Request API to find transitive transfer path
-      let response;
-      try {
-        response = await findTransitiveTransfer(web3, utils, options);
+      const transfer = {
+        tokenOwners: [],
+        sources: [],
+        destinations: [],
+        values: [],
+      };
 
-        if (response.transferSteps.length === 0) {
-          throw new TransferError(
-            'No possible transfer found',
-            ErrorCodes.TRANSFER_NOT_FOUND,
-            {
-              ...options,
-              response,
-            },
-          );
-        }
+      // Try first to send the transaction directly, this saves us the
+      // roundtrip through the api
+      const sendLimit = await hub.methods
+        .checkSendLimit(options.from, options.from, options.to)
+        .call();
+      const value = web3.utils.toWei(options.value.toString(), 'ether');
 
-        if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
-          throw new TransferError(
-            'Too many transfer steps',
-            ErrorCodes.TOO_COMPLEX_TRANSFER,
-            {
-              ...options,
-              response,
-            },
-          );
-        }
-      } catch (error) {
-        if (!error.code) {
-          throw new TransferError(error.message, ErrorCodes.INVALID_TRANSFER, {
-            ...options,
-            response,
+      if (web3.utils.toBN(sendLimit).gte(value)) {
+        // Direct transfer is possible, fill in the required transaction data
+        transfer.tokenOwners.push(options.from);
+        transfer.sources.push(options.from);
+        transfer.destinations.push(options.to);
+        transfer.values.push(value.toString());
+      } else {
+        // This seems to be a little bit more complicated ..., request API to
+        // find transitive transfer path
+        let response;
+        try {
+          response = await findTransitiveTransfer(web3, utils, options);
+
+          if (response.transferSteps.length === 0) {
+            throw new TransferError(
+              'No possible transfer found',
+              ErrorCodes.TRANSFER_NOT_FOUND,
+              {
+                ...options,
+                response,
+              },
+            );
+          }
+
+          if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
+            throw new TransferError(
+              'Too many transfer steps',
+              ErrorCodes.TOO_COMPLEX_TRANSFER,
+              {
+                ...options,
+                response,
+              },
+            );
+          }
+
+          // Convert connections to contract argument format
+          response.transferSteps.forEach((transaction) => {
+            transfer.tokenOwners.push(transaction.tokenOwnerAddress);
+            transfer.sources.push(transaction.from);
+            transfer.destinations.push(transaction.to);
+            transfer.values.push(
+              web3.utils.toWei(transaction.value.toString(), 'ether'),
+            );
           });
-        } else {
-          throw error;
+        } catch (error) {
+          if (!error.code) {
+            throw new TransferError(
+              error.message,
+              ErrorCodes.INVALID_TRANSFER,
+              {
+                ...options,
+                response,
+              },
+            );
+          } else {
+            throw error;
+          }
         }
       }
-
-      // Convert connections to contract argument format
-      const transfer = response.transferSteps.reduce(
-        (acc, transaction) => {
-          // Convert to Smart Contract method format
-          acc.tokenOwners.push(transaction.tokenOwnerAddress);
-          acc.sources.push(transaction.from);
-          acc.destinations.push(transaction.to);
-          acc.values.push(
-            web3.utils.toWei(transaction.value.toString(), 'ether'),
-          );
-
-          return acc;
-        },
-        {
-          tokenOwners: [],
-          sources: [],
-          destinations: [],
-          values: [],
-        },
-      );
 
       const txData = await hub.methods
         .transferThrough(

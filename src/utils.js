@@ -555,7 +555,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         });
 
         return txHash;
-      } catch {
+      } catch (error) {
         transactionQueue.unlockTransaction(safeAddress, ticketId);
         transactionQueue.unqueue(safeAddress, ticketId);
 

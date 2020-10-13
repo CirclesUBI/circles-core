@@ -42,9 +42,6 @@ export default function createOrganizationModule(web3, contracts, utils) {
       }
 
       const txData = await hub.methods.organizationSignup().encodeABI();
-      const txDataAddConnection = await hub.methods
-        .trust(options.safeAddress, 100)
-        .encodeABI();
 
       try {
         const signupCosts = await utils.estimateTransactionCosts(account, {
@@ -53,14 +50,8 @@ export default function createOrganizationModule(web3, contracts, utils) {
           txData,
         });
 
-        const trustCosts = await utils.estimateTransactionCosts(account, {
-          safeAddress: options.safeAddress,
-          to: hub.options.address,
-          txData: txDataAddConnection,
-        });
-
         const balance = await web3.eth.getBalance(options.safeAddress);
-        return web3.utils.toBN(balance).gte(signupCosts.add(trustCosts));
+        return web3.utils.toBN(balance).gte(signupCosts);
       } catch {
         return false;
       }
@@ -156,7 +147,6 @@ export default function createOrganizationModule(web3, contracts, utils) {
       // Check if the users token exists and has sufficient funds to transfer
       // the amount to the organization
       const tokenAddress = await hub.methods.userToToken(options.from).call();
-      console.log(tokenAddress, options.from);
       if (tokenAddress === ZERO_ADDRESS) {
         throw new CoreError(
           'No token given to pay transaction.',
@@ -183,18 +173,20 @@ export default function createOrganizationModule(web3, contracts, utils) {
         .trust(options.from, 100)
         .encodeABI();
 
-      console.log(txDataAddConnection);
-
       // This first trust transaction is paid by the relayer
-      await utils.executeSafeTx(account, {
+      const txHashAddConnection = await utils.executeSafeTx(account, {
         safeAddress: options.to,
         to: hub.options.address,
         txData: txDataAddConnection,
       });
 
+      if (!txHashAddConnection) {
+        throw new CoreError('Organization failed to trust safe');
+      }
+
       // Prepare the transfer for the `transferThrough` Hub method, we don't go
-      // through the transfer steps api as we know there is a 100% trust
-      // connection between the sender and receiver
+      // through the api to get the transfer steps as we know there is a 100%
+      // trust connection between the sender and receiver
       const transfer = {
         tokenOwners: [options.from],
         sources: [options.from],
@@ -211,11 +203,17 @@ export default function createOrganizationModule(web3, contracts, utils) {
         )
         .encodeABI();
 
-      return await utils.executeTokenSafeTx(account, {
+      const txHash = await utils.executeTokenSafeTx(account, {
         safeAddress: options.from,
         to: hub.options.address,
         txData,
       });
+
+      if (!txHash) {
+        throw new CoreError('Failed transfer to fund organization');
+      }
+
+      return txHash;
     },
   };
 }
