@@ -456,8 +456,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const value = 0;
 
       // Estimate gas costs and find out if we have a token with enough balance
-      // to pay them
-      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+      // to pay them. We use the ZERO_ADDRESS as a gasToken for now as we
+      // didn't select the actual Circles Token yet to pay the transaction for
+      // the relayer
+      const preEstimation = await estimateTransactionCosts(
         relayServiceEndpoint,
         {
           gasToken: ZERO_ADDRESS,
@@ -470,9 +472,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       );
 
       const totalGasEstimate = web3.utils
-        .toBN(dataGas)
-        .add(new web3.utils.BN(safeTxGas))
-        .mul(new web3.utils.BN(gasPrice));
+        .toBN(preEstimation.dataGas)
+        .add(new web3.utils.BN(preEstimation.safeTxGas))
+        .mul(new web3.utils.BN(preEstimation.gasPrice));
 
       const tokens = await listAllTokens(safeAddress);
 
@@ -493,6 +495,22 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
+
+      // Estimate the costs again, this time with the actual token we will use
+      // in the Relayer. This is a little bit cumbersome, but the relayer will
+      // throw an exception otherwise, as gas estimations might diverge a
+      // little when using different tokens
+      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
+        relayServiceEndpoint,
+        {
+          gasToken: foundToken.address,
+          operation,
+          safeAddress,
+          to,
+          txData,
+          value,
+        },
+      );
 
       const gasToken = foundToken.address;
 
