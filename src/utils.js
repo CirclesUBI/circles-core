@@ -480,7 +480,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       if (tokens.length === 0) {
         throw new CoreError(
-          'No tokens given to pay transaction.',
+          'No tokens given to pay transaction',
           ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
@@ -491,7 +491,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       if (!foundToken) {
         throw new CoreError(
-          'No token found with sufficient funds to pay transaction.',
+          'No token found with sufficient funds to pay transaction',
           ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
@@ -573,7 +573,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         });
 
         return txHash;
-      } catch (error) {
+      } catch {
         transactionQueue.unlockTransaction(safeAddress, ticketId);
         transactionQueue.unqueue(safeAddress, ticketId);
 

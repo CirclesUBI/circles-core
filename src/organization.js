@@ -149,7 +149,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
       const tokenAddress = await hub.methods.userToToken(options.from).call();
       if (tokenAddress === ZERO_ADDRESS) {
         throw new CoreError(
-          'No token given to pay transaction.',
+          'No token given to pay transaction',
           ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
@@ -162,7 +162,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
 
       if (!web3.utils.toBN(balance).gte(web3.utils.toBN(value))) {
         throw new CoreError(
-          'No sufficient funds to pay transaction.',
+          'No sufficient funds to pay transaction',
           ErrorCodes.INSUFFICIENT_FUNDS,
         );
       }
