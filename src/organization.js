@@ -158,7 +158,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
       const balance = await tokenContract.methods
         .balanceOf(options.from)
         .call();
-      const value = web3.utils.toWei(options.value.toString(), 'ether');
+      const value = options.value.toString();
 
       if (!web3.utils.toBN(balance).gte(web3.utils.toBN(value))) {
         throw new CoreError(

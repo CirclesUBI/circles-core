@@ -71,7 +71,7 @@ describe('Organization', () => {
     await core.organization.prefund(account, {
       from: userSafeAddress,
       to: safeAddress,
-      value: web3.utils.toBN(value.toString()),
+      value: web3.utils.toBN(web3.utils.toWei(value.toString(), 'ether')),
     });
 
     const expectedValue = web3.utils.toBN(

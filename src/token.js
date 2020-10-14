@@ -297,14 +297,13 @@ export default function createTokenModule(web3, contracts, utils) {
       const sendLimit = await hub.methods
         .checkSendLimit(options.from, options.from, options.to)
         .call();
-      const value = web3.utils.toWei(options.value.toString(), 'ether');
 
-      if (web3.utils.toBN(sendLimit).gte(value)) {
+      if (web3.utils.toBN(sendLimit).gte(options.value.toString())) {
         // Direct transfer is possible, fill in the required transaction data
         transfer.tokenOwners.push(options.from);
         transfer.sources.push(options.from);
         transfer.destinations.push(options.to);
-        transfer.values.push(value.toString());
+        transfer.values.push(options.value.toString());
       } else {
         // This seems to be a little bit more complicated ..., request API to
         // find transitive transfer path
