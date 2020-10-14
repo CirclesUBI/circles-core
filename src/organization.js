@@ -2,6 +2,7 @@ import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { ZERO_ADDRESS } from '~/common/constants';
+import { getOwners } from '~/safe';
 import { getTokenContract } from '~/common/getContracts';
 
 /**
@@ -214,6 +215,62 @@ export default function createOrganizationModule(web3, contracts, utils) {
       }
 
       return txHash;
+    },
+
+    /**
+     * Returns a list of organization members.
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user arguments
+     * @param {string} userOptions.safeAddress - address of the organization
+     *
+     * @return {array} - list of members with connected safes and owner address
+     */
+    getMembers: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const owners = await getOwners(web3, options.safeAddress);
+
+      const promises = owners.map((ownerAddress) => {
+        return utils.requestGraph({
+          query: `{
+            user(id: "${ownerAddress.toLowerCase()}") {
+              id,
+              safes {
+                id
+                organization
+              }
+            }
+          }`,
+        });
+      });
+
+      const results = await Promise.all(promises);
+
+      return results.reduce((acc, result) => {
+        if (!result || !result.user) {
+          return;
+        }
+
+        acc.push({
+          ownerAddress: web3.utils.toChecksumAddress(result.user.id),
+          safeAddresses: result.user.safes.reduce((acc, safe) => {
+            // Only add safes which are not organizations
+            if (!safe.organization) {
+              acc.push(web3.utils.toChecksumAddress(safe.id));
+            }
+            return acc;
+          }, []),
+        });
+
+        return acc;
+      }, []);
     },
   };
 }

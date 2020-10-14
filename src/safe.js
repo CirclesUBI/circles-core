@@ -12,7 +12,7 @@ import { getSafeContract } from '~/common/getContracts';
  *
  * @return {string[]} - array of owner addresses
  */
-async function getOwners(web3, safeAddress) {
+export async function getOwners(web3, safeAddress) {
   // Get Safe at given address
   const safe = getSafeContract(web3, safeAddress);
 
