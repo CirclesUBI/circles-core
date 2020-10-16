@@ -301,7 +301,7 @@ export default function createTokenModule(web3, contracts, utils) {
       if (
         web3.utils
           .toBN(sendLimit)
-          .gte(web3.utils.toBN(options.value.toString()))
+          .gte(web3.utils.toBN(web3.utils.toBN(options.value.toString())))
       ) {
         // Direct transfer is possible, fill in the required transaction data
         transfer.tokenOwners.push(options.from);
