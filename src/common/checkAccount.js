@@ -4,6 +4,8 @@ import checkOptions from '~/common/checkOptions';
  * Convenience wrapper function around checkOptions to check
  * for a valid web3 account.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} account - web3 account instance
  *

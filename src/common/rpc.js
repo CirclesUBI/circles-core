@@ -1,6 +1,8 @@
 /**
  * Make an RPC call to the blockchain.
  *
+ * @access private
+ *
  * @param {Web3} web3 - web3 instance
  * @param {string} method - RPC method name
  * @param {any[]} params - RPC params

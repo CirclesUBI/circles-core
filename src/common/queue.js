@@ -1,7 +1,5 @@
-/**
- * Handles a queue of pending transactions scoped via a key and locks the
- * current one with additional data.
- */
+// Handles a queue of pending transactions scoped via a key and locks the
+// current one with additional data.
 export default class TransactionQueue {
   constructor() {
     this.nextTicketId = 0;

@@ -38,6 +38,8 @@ function safelyValidate(validatorFn, value) {
  * Check for required option fields, validate them and use fallback value when
  * default is given.
  *
+ * @access private
+ *
  * @param {Object} options - given user options
  * @param {Object} fields - defined option types and default values
  *

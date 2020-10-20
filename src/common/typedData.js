@@ -1,8 +1,6 @@
 import * as EthLibAccount from 'eth-lib/lib/account';
 
-/**
- * Format transaction hash data for signing.
- */
+// Format transaction hash data for signing.
 export function formatTypedData(
   to,
   value,
@@ -125,9 +123,7 @@ function structHash(web3, typedData, primaryType, data) {
   return web3.utils.keccak256(hash).slice(2);
 }
 
-/**
- * Hash and sign EIP 712 transaction for relayer.
- */
+// Hash and sign EIP 712 transaction for relayer.
 export function signTypedData(web3, privateKey, typedData) {
   const typedDataHash = web3.utils.keccak256(
     [

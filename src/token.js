@@ -11,6 +11,8 @@ const MAX_TRANSFER_STEPS = 5; // The contracts have a complexity limit due to bl
  * Find maximumFlow and transfer steps through a trust graph from someone to
  * someone else to transitively send an amount of Circles.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} utils - core utils
  * @param {Object} userOptions - search arguments
@@ -55,6 +57,8 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
 /**
  * UBI submodule to get current Token balance and send Circles to other users.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -68,6 +72,8 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
      * a Token contract.
+     *
+     * @namespace core.token.isFunded
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - user arguments
@@ -109,6 +115,8 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Deploy new Circles Token for a user.
      *
+     * @namespace core.token.deploy
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - owner of the Token
@@ -137,6 +145,8 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Get Token address by passing owner address.
      *
+     * @namespace core.token.getAddress
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - address of Token owner
@@ -158,11 +168,13 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * List all available tokens of this user.
      *
+     * @namespace core.token.listAllTokens
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - safe address
      *
-     * @return {array} - list of all tokens with ownerAddress, address and amount
+     * @return {Array} - list of all tokens with ownerAddress, address and amount
      */
     listAllTokens: async (account, userOptions) => {
       checkAccount(web3, account);
@@ -171,6 +183,8 @@ export default function createTokenModule(web3, contracts, utils) {
 
     /**
      * Get summarized balance of all or one Token owned by a user.
+     *
+     * @namespace core.token.getBalance
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -241,6 +255,8 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * This method does not execute any real transactions.
      *
+     * @namespace core.token.findTransitiveTransfer
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - search arguments
      * @param {string} userOptions.from - sender Safe address
@@ -256,6 +272,8 @@ export default function createTokenModule(web3, contracts, utils) {
 
     /**
      * Transfer Circles from one user to another.
+     *
+     * @namespace core.token.transfer
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -414,7 +432,10 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Return the payment Note of an transaction from or to the user.
      *
+     * @namespace core.token.getPaymentNote
+     *
      * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user options
      * @param {string} userOptions.transactionHash - hash of transfer transaction
      *
      * @return {string} - Payment note, null when not given or not allowed
@@ -465,7 +486,10 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Return the current value of the pending UBI payout.
      *
+     * @namespace core.token.checkUBIPayout
+     *
      * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user options
      * @param {string} userOptions.safeAddress - address of Token owner
      *
      * @return {BN} - payout value
@@ -499,7 +523,10 @@ export default function createTokenModule(web3, contracts, utils) {
     /**
      * Request a UBI payout.
      *
+     * @namespace core.token.requestUBIPayout
+     *
      * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - address of Token owner
      *
      * @return {string} - Transaction hash

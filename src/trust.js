@@ -8,6 +8,8 @@ const NO_LIMIT_PERCENTAGE = 0;
 /**
  * Trust submodule to add and remove trust connections.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -20,6 +22,8 @@ export default function createTrustModule(web3, contracts, utils) {
   return {
     /**
      * Find out if safe address has enough incoming trust connections.
+     *
+     * @namespace core.trust.isTrusted
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -72,6 +76,8 @@ export default function createTrustModule(web3, contracts, utils) {
     /**
      * Get the current state of a users trust network, containing
      * data to find transfer path between users.
+     *
+     * @namespace core.trust.getNetwork
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -247,6 +253,8 @@ export default function createTrustModule(web3, contracts, utils) {
      * Give other users possibility to send their Circles to you by
      * giving them your trust.
      *
+     * @namespace core.trust.addConnection
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.user - trust receiver / sender
@@ -286,6 +294,8 @@ export default function createTrustModule(web3, contracts, utils) {
     /**
      * Revoke a trust connection with a user. You don't allow this
      * user to transfer their Token to or through you.
+     *
+     * @namespace core.trust.removeConnection
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options

@@ -5,6 +5,8 @@ import checkOptions from '~/common/checkOptions';
 /**
  * Username resolver submodule to register and find usernames.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -15,6 +17,8 @@ export default function createUserModule(web3, contracts, utils) {
   return {
     /**
      * Makes a dry-run registration to check if the username and email are valid.
+     *
+     * @namespace core.user.dryRegister
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -58,6 +62,8 @@ export default function createUserModule(web3, contracts, utils) {
 
     /**
      * Register a new username and email address and connect it to a Safe address.
+     *
+     * @namespace core.user.register
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -123,6 +129,8 @@ export default function createUserModule(web3, contracts, utils) {
     /**
      * Find multiple user entries by Safe address and username.
      *
+     * @namespace core.user.resolve
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string[]} userOptions.addresses - Array of safe addresses
@@ -161,6 +169,8 @@ export default function createUserModule(web3, contracts, utils) {
 
     /**
      * Search for users by username.
+     *
+     * @namespace core.user.search
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options

@@ -7,6 +7,8 @@ import { getSafeContract } from '~/common/getContracts';
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {string} safeAddress
  *
@@ -22,6 +24,8 @@ export async function getOwners(web3, safeAddress) {
 
 /**
  * Predict Safe address
+ *
+ * @access private
  *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} utils - utils module instance
@@ -47,6 +51,8 @@ async function predictAddress(web3, utils, nonce, address) {
 
 /**
  * Returns if the Safe is created and / or deployed.
+ *
+ * @access private
  *
  * @param {Object} utils - utils module instance
  * @param {string} safeAddress - Safe address
@@ -80,6 +86,8 @@ async function getSafeStatus(utils, safeAddress) {
 /**
  * Safe submodule to deploy and interact with the Gnosis Safe.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -90,6 +98,8 @@ export default function createSafeModule(web3, contracts, utils) {
   return {
     /**
      * Predict Safe address.
+     *
+     * @namespace core.safe.predictAddress
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -113,6 +123,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * Returns status of a Safe in the system. Is it created or already
      * deployed?
      *
+     * @namespace core.safe.getSafeStatus
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - Safe address
@@ -134,6 +146,8 @@ export default function createSafeModule(web3, contracts, utils) {
     /**
      * Register a to-be-created Safe in the Relayer and receive a predicted
      * Safe address.
+     *
+     * @namespace core.safe.prepareDeploy
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -183,6 +197,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * Returns true if there are enough balance on this address to deploy
      * a Safe.
      *
+     * @namespace core.safe.isFunded
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - user arguments
      * @param {string} userOptions.safeAddress - safe address to check
@@ -221,6 +237,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * This might still fail when the Safe is not funded or does not
      * have enough trust connections yet.
      *
+     * @namespace core.safe.deploy
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - to-be-deployed Safe address
@@ -250,6 +268,8 @@ export default function createSafeModule(web3, contracts, utils) {
      * funds the deployment of this Safe when the account is already known and
      * verified / already has a deployed Safe from before.
      *
+     * @namespace core.safe.deployForOrganization
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - to-be-deployed Safe address
@@ -276,6 +296,8 @@ export default function createSafeModule(web3, contracts, utils) {
 
     /**
      * Finds the Safe addresses of an owner.
+     *
+     * @namespace core.safe.getAddresses
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -312,6 +334,8 @@ export default function createSafeModule(web3, contracts, utils) {
     /**
      * Returns a list of all owners of the given Gnosis Safe.
      *
+     * @namespace core.safe.getOwners
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - address of the Gnosis Safe
@@ -332,6 +356,8 @@ export default function createSafeModule(web3, contracts, utils) {
 
     /**
      * Add an address as an owner of a given Gnosis Safe.
+     *
+     * @namespace core.safe.addOwner
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -370,6 +396,8 @@ export default function createSafeModule(web3, contracts, utils) {
 
     /**
      * Remove owner of a given Gnosis Safe.
+     *
+     * @namespace core.safe.removeOwner
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
