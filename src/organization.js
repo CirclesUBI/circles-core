@@ -8,6 +8,8 @@ import { getTokenContract } from '~/common/getContracts';
 /**
  * Organization submodule to deploy and check organization accounts.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -21,6 +23,8 @@ export default function createOrganizationModule(web3, contracts, utils) {
     /**
      * Returns true if there are enough balance on this Safe address to create
      * an organization account.
+     *
+     * @namespace core.organization.isFunded
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - user arguments
@@ -61,6 +65,8 @@ export default function createOrganizationModule(web3, contracts, utils) {
     /**
      * Create a new organization account
      *
+     * @namespace core.organization.deploy
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - owner of the organization
@@ -87,6 +93,8 @@ export default function createOrganizationModule(web3, contracts, utils) {
 
     /**
      * Find out if address is an organization
+     *
+     * @namespace core.organization.isOrganization
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
@@ -115,6 +123,8 @@ export default function createOrganizationModule(web3, contracts, utils) {
      *
      * This method only works if the user and the organization owner are the
      * same as transactions are signed with the same private key.
+     *
+     * @namespace core.organization.prefund
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - user arguments
@@ -220,11 +230,13 @@ export default function createOrganizationModule(web3, contracts, utils) {
     /**
      * Returns a list of organization members.
      *
+     * @namespace core.organization.getMembers
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - user arguments
      * @param {string} userOptions.safeAddress - address of the organization
      *
-     * @return {array} - list of members with connected safes and owner address
+     * @return {Array} - list of members with connected safes and owner address
      */
     getMembers: async (account, userOptions) => {
       checkAccount(web3, account);

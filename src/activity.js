@@ -31,6 +31,8 @@ const TYPE_TRUST = 'TRUST';
 /**
  * Activity submodule to get latest log events.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
@@ -41,16 +43,22 @@ export default function createActivityModule(web3, contracts, utils) {
   return {
     /**
      * Activity type constants.
+     *
+     * @access private
      */
     ActivityTypes,
 
     /**
      * Activity filter type constants.
+     *
+     * @access private
      */
     ActivityFilterTypes,
 
     /**
      * Get the last activities of a user.
+     *
+     * @namespace core.activity.getLatest
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options

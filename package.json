@@ -14,6 +14,9 @@
   "scripts": {
     "build": "npm run clear && rollup -c",
     "clear": "rimraf ./lib",
+    "docs:build": "documentation build ./src/** -f html -o docs",
+    "docs:serve": "documentation serve --watch ./src/**",
+    "docs:lint": "documentation lint ./src/**",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
     "test": "jest",
     "test:debugger": "node --inspect-brk node_modules/.bin/jest --runInBand",
@@ -30,6 +33,7 @@
     "babel-plugin-add-module-exports": "^1.0.4",
     "babel-plugin-module-resolver": "^4.0.0",
     "cross-env": "^7.0.2",
+    "documentation": "^13.0.2",
     "dotenv": "^8.2.0",
     "eslint": "^7.11.0",
     "eslint-config-prettier": "^6.12.0",

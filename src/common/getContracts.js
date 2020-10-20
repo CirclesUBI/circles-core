@@ -6,6 +6,8 @@ import TokenContract from 'circles-contracts/build/contracts/Token.json';
 /**
  * Helper method to get a deployed smart contract instance.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} abi - contract abi
  * @param {Object} address - contract address
@@ -19,6 +21,8 @@ function getContract(web3, abi, address) {
 /**
  * Returns deployed Gnosis Safe smart contract instance.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} address - contract address
  *
@@ -31,6 +35,8 @@ export function getSafeContract(web3, address) {
 /**
  * Returns deployed Circles Token smart contract instance.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} address - contract address
  *
@@ -42,6 +48,8 @@ export function getTokenContract(web3, address) {
 
 /**
  * Helper method to get all required deployed contract instances.
+ *
+ * @access private
  *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} options - contract addresses

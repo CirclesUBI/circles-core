@@ -10,6 +10,7 @@ import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
+/** @access private */
 const transactionQueue = new TransactionQueue();
 
 async function request(endpoint, userOptions) {
@@ -166,6 +167,8 @@ async function estimateTransactionCosts(
  * Manages transaction queue to finalize currently running tasks and starts the
  * next one when ready.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {string} endpoint - URL of relayer Service
  * @param {string} safeAddress - address of Safe
@@ -225,6 +228,8 @@ async function waitForPendingTransactions(
  * Retreive an nonce and make sure it does not collide with currently
  * pending transactions already using it.
  *
+ * @access private
+ *
  * @param {Web3} web3 - Web3 instance
  * @param {string} endpoint - URL of Relayer Service
  * @param {string} safeAddress - address of Safe
@@ -257,6 +262,8 @@ async function requestNonce(web3, endpoint, safeAddress) {
 
 /**
  * Utils submodule for common transaction and relayer methods.
+ *
+ * @access private
  *
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
@@ -345,6 +352,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Detect an Ethereum address in any string.
      *
+     * @namespace core.utils.matchAddress
+     *
      * @param {string} str - string
      *
      * @return {string} - Ethereum address or null
@@ -363,6 +372,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * Convert to fractional monetary unit of Circles
      * named Freckles.
      *
+     * @namespace core.utils.toFreckles
+     *
      * @param {string|number} value - value in Circles
      *
      * @return {string} - value in Freckles
@@ -374,6 +385,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Convert from Freckles to Circles number.
      *
+     * @namespace core.utils.fromFreckles
+     *
      * @param {string|number} value - value in Freckles
      *
      * @return {number} - value in Circles
@@ -384,6 +397,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
     /**
      * Send an API request to the Gnosis Relayer.
+     *
+     * @namespace core.utils.requestRelayer
      *
      * @param {Object} userOptions - request options
      * @param {string[]} userOptions.path - API path as array
@@ -398,6 +413,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Query the Graph Node with GraphQL.
      *
+     * @namespace core.utils.requestGraph
+     *
      * @param {Object} userOptions - query options
      * @param {string} userOptions.query - GraphQL query
      * @param {Object} userOptions.variables - GraphQL variables
@@ -410,10 +427,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * Get a list of all tokens and their current balance a user owns. This can
      * be used to find the right token for a transaction.
      *
+     * @namespace core.utils.listAllTokens
+     *
      * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
      *
-     * @return {array} - List of tokens with current balance and address
+     * @return {Array} - List of tokens with current balance and address
      */
     listAllTokens: async (userOptions) => {
       const options = checkOptions(userOptions, {
@@ -428,10 +447,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Send Transaction to Relayer and pay with Circles Token.
      *
+     * @namespace core.utils.executeTokenSafeTx
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
-     * @param {object} userOptions.txData - encoded transaction data
+     * @param {Object} userOptions.txData - encoded transaction data
      *
      * @return {string} - transaction hash
      */
@@ -585,12 +606,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * Send a transaction to the relayer which will be executed by it.
      * The gas costs will be estimated by the relayer before.
      *
+     * @namespace core.utils.executeSafeTx
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {string} userOptions.to - forwarded address (from is the relayer)
      * @param {string} userOptions.gasToken - address of ERC20 token
-     * @param {object} userOptions.txData - encoded transaction data
+     * @param {Object} userOptions.txData - encoded transaction data
      * @param {number} userOptions.value - value in Wei
      *
      * @return {string} - transaction hash
@@ -720,10 +743,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Make a request to the Circles server API.
      *
+     * @namespace core.utils.requestAPI
+     *
      * @param {Object} userOptions - API query options
      * @param {string} userOptions.path - API route
      * @param {string} userOptions.method - HTTP method
-     * @param {object} userOptions.data - Request body (JSON)
+     * @param {Object} userOptions.data - Request body (JSON)
      *
      * @return {Object} - API response
      */
@@ -752,12 +777,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     /**
      * Estimates the total gas fees for a relayer transaction.
      *
+     * @namespace core.utils.estimateTransactionCosts
+     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - transaction options
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {string} userOptions.to - forwarded address (from is the relayer)
      * @param {string} userOptions.gasToken - address of ERC20 token
-     * @param {object} userOptions.txData - encoded transaction data
+     * @param {Object} userOptions.txData - encoded transaction data
      * @param {number} userOptions.value - value in Wei
      *
      * @return {BN} - estimated gas fees
