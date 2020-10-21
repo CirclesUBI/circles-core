@@ -113,6 +113,37 @@ export default function createTokenModule(web3, contracts, utils) {
     },
 
     /**
+     * Returns the direct send limit to a user.
+     *
+     * @namespace core.token.checkSendLimit
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - user arguments
+     * @param {string} userOptions.from - send token from this address
+     * @param {string} userOptions.to - to this address
+     *
+     * @return {BN} - send limit
+     */
+    checkSendLimit: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        from: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        to: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const sendLimit = await hub.methods
+        .checkSendLimit(options.from, options.from, options.to)
+        .call();
+
+      return web3.utils.toBN(sendLimit);
+    },
+
+    /**
      * Deploy new Circles Token for a user.
      *
      * @namespace core.token.deploy
