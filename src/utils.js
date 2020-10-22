@@ -245,7 +245,15 @@ async function requestNonce(web3, endpoint, safeAddress) {
       },
     });
 
-    return response.results.length > 0 ? response.results[0].nonce : null;
+    const nonce =
+      response.results.length > 0 ? response.results[0].nonce : null;
+
+    if (nonce === null) {
+      throw new Error('Invalid nonce');
+    }
+
+    // Manually increment the next safe nonce as the relayer is not doing it for us
+    return `${parseInt(nonce, 10) + 1}`;
   } catch {
     // Do nothing!
   }
