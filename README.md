@@ -19,7 +19,7 @@ Common methods (sign up, transfer Circles, trust users, revoke trust) for client
 
 ## Documentation
 
-Read the API specification and documentation here: https://circlesubi.github.io/circles-core/
+Read the API specification and documentation here: https://circlesubi.github.io/circles-core
 
 ## Requirements
 
@@ -221,7 +221,7 @@ await core.safe.addOwner(account, {
 
 ## Development
 
-`circles-core` is a JavaScript module written in JavaScript, tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
+`circles-core` is a JavaScript module, tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
 
 ```
 // Install dependencies
