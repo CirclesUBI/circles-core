@@ -17,6 +17,10 @@
 
 Common methods (sign up, transfer Circles, trust users, revoke trust) for clients & wallets to interact with the Circles ecosystem (Smart Contracts, Relay Service, Trust Graph API, etc.).
 
+## Documentation
+
+Read the API specification and documentation here: https://circlesubi.github.io/circles-core/
+
 ## Requirements
 
 - NodeJS
