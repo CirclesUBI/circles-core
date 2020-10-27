@@ -391,9 +391,7 @@ export default function createTokenModule(web3, contracts, utils) {
             transfer.tokenOwners.push(transaction.tokenOwnerAddress);
             transfer.sources.push(transaction.from);
             transfer.destinations.push(transaction.to);
-            transfer.values.push(
-              web3.utils.toWei(transaction.value.toString(), 'ether'),
-            );
+            transfer.values.push(transaction.value);
           });
         } catch (error) {
           if (!error.code) {
