@@ -345,11 +345,7 @@ export default function createTokenModule(web3, contracts, utils) {
         .checkSendLimit(options.from, options.from, options.to)
         .call();
 
-      if (
-        web3.utils
-          .toBN(sendLimit)
-          .gte(web3.utils.toBN(web3.utils.toBN(options.value.toString())))
-      ) {
+      if (web3.utils.toBN(sendLimit).gte(options.value)) {
         // Direct transfer is possible, fill in the required transaction data
         transfer.tokenOwners.push(options.from);
         transfer.sources.push(options.from);
@@ -362,7 +358,7 @@ export default function createTokenModule(web3, contracts, utils) {
         try {
           response = await findTransitiveTransfer(web3, utils, options);
 
-          if (response.transferSteps.length === 0) {
+          if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
             throw new TransferError(
               'No possible transfer found',
               ErrorCodes.TRANSFER_NOT_FOUND,
