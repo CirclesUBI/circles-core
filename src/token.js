@@ -42,9 +42,7 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
       data: {
         from: options.from,
         to: options.to,
-        value: parseFloat(
-          web3.utils.fromWei(options.value.toString(), 'ether'),
-        ),
+        value: options.value.toString(),
       },
     });
 
