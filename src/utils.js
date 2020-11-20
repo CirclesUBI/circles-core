@@ -248,7 +248,7 @@ async function requestNonce(web3, endpoint, safeAddress) {
     });
 
     nonce = response.nonce || null;
-  } catch {
+  } catch (err) {
     // Do nothing!
   }
 
@@ -257,7 +257,7 @@ async function requestNonce(web3, endpoint, safeAddress) {
     return await getSafeContract(web3, safeAddress).methods.nonce().call();
   }
 
-  return `${parseInt(nonce, 10) + 1}`;
+  return `${parseInt(nonce, 10)}`;
 }
 
 /**
