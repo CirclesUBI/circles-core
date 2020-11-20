@@ -235,9 +235,11 @@ async function waitForPendingTransactions(
  * @param {string} safeAddress - address of Safe
  */
 async function requestNonce(web3, endpoint, safeAddress) {
+  let nonce = null;
+
   try {
     const response = await requestRelayer(endpoint, {
-      path: ['safes', safeAddress, 'transactions'],
+      path: ['safes', safeAddress],
       method: 'GET',
       version: 1,
       data: {
@@ -245,21 +247,17 @@ async function requestNonce(web3, endpoint, safeAddress) {
       },
     });
 
-    const nonce =
-      response.results.length > 0 ? response.results[0].nonce : null;
-
-    if (nonce === null) {
-      throw new Error('Invalid nonce');
-    }
-
-    // Manually increment the next safe nonce as the relayer is not doing it for us
-    return `${parseInt(nonce, 10) + 1}`;
-  } catch {
+    nonce = response.nonce || null;
+  } catch (err) {
     // Do nothing!
   }
 
   // Fallback to retreive nonce from Safe contract method (already incremented)
-  return await getSafeContract(web3, safeAddress).methods.nonce().call();
+  if (nonce === null) {
+    return await getSafeContract(web3, safeAddress).methods.nonce().call();
+  }
+
+  return `${parseInt(nonce, 10)}`;
 }
 
 /**
