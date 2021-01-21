@@ -190,8 +190,8 @@ describe('Token', () => {
         safeAddress: safeAddresses[5],
       });
 
-      // It should be equals the initial UBI payout
-      // which was set during Hub contract deployment:
+      // It should be equals the initial UBI payout which was set during Hub
+      // contract deployment:
       expect(balance).toMatchObject(
         new web3.utils.BN(core.utils.toFreckles(100)),
       );
@@ -250,7 +250,7 @@ describe('Token', () => {
     });
 
     it('should fail sending Circles when there is no path', async () => {
-      // Max flow is smaller than the given transfer value.
+      // Max flow is smaller than the given transfer value
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
@@ -259,8 +259,7 @@ describe('Token', () => {
         }),
       ).rejects.toThrow();
 
-      // Trust connection does not exist between
-      // node 0 and 5
+      // Trust connection does not exist between node 0 and 5
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
