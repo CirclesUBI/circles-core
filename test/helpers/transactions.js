@@ -29,7 +29,9 @@ export async function deploySafe(core, account) {
     safeAddress,
   });
 
-  await loop(() => web3.eth.getCode(safeAddress));
+  await loop(`Wait until Safe ${safeAddress} got deployed`, () =>
+    web3.eth.getCode(safeAddress),
+  );
 
   return safeAddress;
 }
@@ -55,14 +57,18 @@ export async function deploySafeAndToken(core, account) {
 export async function addTrustConnection(core, account, userOptions) {
   const transactionHash = await core.trust.addConnection(account, userOptions);
 
-  await loop(() => {
-    return getTrustConnection(
-      core,
-      account,
-      userOptions.canSendTo,
-      userOptions.user,
-    );
-  }, isReady);
+  await loop(
+    `Wait for trust connection between ${userOptions.canSendTo} and ${userOptions.user} to show up in the Graph`,
+    () => {
+      return getTrustConnection(
+        core,
+        account,
+        userOptions.canSendTo,
+        userOptions.user,
+      );
+    },
+    isReady,
+  );
 
   return transactionHash;
 }
@@ -71,6 +77,7 @@ export async function addSafeOwner(core, account, userOptions) {
   const transactionHash = await core.safe.addOwner(account, userOptions);
 
   await loop(
+    'Wait for newly added address to be listed as Safe owner',
     () => {
       return core.safe.getOwners(account, {
         safeAddress: userOptions.safeAddress,

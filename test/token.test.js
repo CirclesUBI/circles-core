@@ -197,9 +197,7 @@ describe('Token', () => {
 
       // It should be equals the initial UBI payout (called signupBonus) which was set during Hub
       // contract deployment:
-      expect(balance).toMatchObject(
-        new web3.utils.BN(signupBonus),
-      );
+      expect(balance).toMatchObject(new web3.utils.BN(signupBonus));
     });
 
     it('should send Circles to someone directly', async () => {
@@ -233,6 +231,7 @@ describe('Token', () => {
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
       const accountBalance = await loop(
+        'Wait for balance to be lower after user transferred Circles',
         () => {
           return core.token.getBalance(accounts[indexFrom], {
             safeAddress: safeAddresses[indexFrom],
