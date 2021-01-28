@@ -1,4 +1,6 @@
 import { getTokenContract } from '~/common/getContracts';
+import getContracts from '~/common/getContracts';
+import { ZERO_ADDRESS } from '~/common/constants';
 
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
@@ -65,6 +67,9 @@ async function deployTestNetwork(
 describe('Token', () => {
   let core;
   let accounts;
+  let signupBonus;
+  let contracts;
+  let hubAddress;
 
   beforeAll(async () => {
     accounts = new Array(6).fill({}).map((item, index) => {
@@ -72,6 +77,16 @@ describe('Token', () => {
     });
 
     core = createCore();
+
+    // Retrieve the value of the initial UBI payout (called signupBonus) from the deployed Hub contract
+    hubAddress = core.options.hubAddress;
+    contracts = await getContracts(web3, {
+      hubAddress: hubAddress,
+      proxyFactoryAddress: ZERO_ADDRESS,
+      safeMasterAddress: ZERO_ADDRESS,
+    });
+    const { hub } = contracts;
+    signupBonus = await hub.methods.signupBonus().call();
   });
 
   it('should check if safe has enough funds for token to be deployed', async () => {
@@ -180,10 +195,10 @@ describe('Token', () => {
         safeAddress: safeAddresses[5],
       });
 
-      // It should be equals the initial UBI payout which was set during Hub
+      // It should be equals the initial UBI payout (called signupBonus) which was set during Hub
       // contract deployment:
       expect(balance).toMatchObject(
-        new web3.utils.BN(core.utils.toFreckles(100)),
+        new web3.utils.BN(signupBonus),
       );
     });
 
