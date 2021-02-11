@@ -1,0 +1,57 @@
+name: Run tests on push and pull request
+
+on: [push, pull-request]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+        steps:
+      - name: Add hosts to /etc/hosts
+        run: |
+          sudo echo "api.circles.local" | sudo tee -a /etc/hosts
+          sudo echo "graph.circles.local" | sudo tee -a /etc/hosts
+          sudo echo "relay.circles.local" | sudo tee -a /etc/hosts
+
+      - name: Disable postgres
+        run: sudo /etc/init.d/postgresql stop
+
+      - name: Get circles-docker repository and copy configs
+        env:
+          CIRCLES_DOCKER: $HOME/CirclesUBI/circles-docker
+        run: |
+          git clone https://github.com/CirclesUBI/circles-docker.git $CIRCLES_DOCKER 
+          cd $CIRCLES_DOCKER 
+          cp .env.example .env
+
+      - name: Container setup via docker-compose and migrate contracts
+        uses: docker
+        run: |
+          make build
+          make up
+          make contracts
+          make subgraph
+
+      - name: Try starting failed services
+        run: make up
+
+      #- name: Copy core configs
+      # run: |
+      #  cd $TRAVIS_BUILD_DIR
+      # cp .env.example .env
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v2.1.0
+        with:
+          node-version: '12.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
+        run: npm run test
