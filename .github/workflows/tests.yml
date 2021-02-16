@@ -1,14 +1,19 @@
-name: Run tests on push and pull request
+name: Run tests
 
 on: [push, pull_request]
 
 jobs:
-  setup:
+  tests:
     runs-on: ubuntu-latest
+    env:
+      CIRCLES_DOCKER: $HOME/CirclesUBI/circles-docker
+      CIRCLES_CORE: $HOME/CirclesUBI/circles-core
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+
     steps:
       - name: Add hosts to /etc/hosts
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+        #env:
+        # ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
         run: |
           sudo echo "api.circles.local" | sudo tee -a /etc/hosts
           sudo echo "graph.circles.local" | sudo tee -a /etc/hosts
@@ -35,14 +40,11 @@ jobs:
       - name: Try starting failed services
         run: make up
 
-      #- name: Copy core configs
-      #  run: |
-      #    cd $TRAVIS_BUILD_DIR
-      #    cp .env.example .env
+      - name: Copy core configs
+        run: |
+          cd $CIRCLES_CORE
+          cp .env.example .env
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
       - name: Setup Node
         uses: actions/setup-node@v2.1.0
         with:
