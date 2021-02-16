@@ -1,14 +1,15 @@
 name: Run tests
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   tests:
     runs-on: ubuntu-latest
     env:
-      CIRCLES_DOCKER: $HOME/CirclesUBI/circles-docker
-      CIRCLES_CORE: $HOME/CirclesUBI/circles-core
+      CIRCLES_DOCKER: $/home/runner/work/circles-docker/circles-docker #$HOME/CirclesUBI/circles-docker
+      CIRCLES_CORE: $/home/runner/work/circles-core/circles-core
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+      DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
 
     steps:
       - name: Add hosts to /etc/hosts
@@ -22,33 +23,48 @@ jobs:
       - name: Disable postgres
         run: sudo /etc/init.d/postgresql stop
 
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Copy core configs
+        run: cp .env.example .env
+
       - name: Get circles-docker repository and copy configs
-        env:
-          CIRCLES_DOCKER: $HOME/CirclesUBI/circles-docker
-        run: |
-          git clone https://github.com/CirclesUBI/circles-docker.git $CIRCLES_DOCKER 
-          cd $CIRCLES_DOCKER 
-          cp .env.example .env
+        uses: actions/checkout@v2
+        with:
+          repository: CirclesUBI/circles-docker.git
+          ref: main
+
+      - name: Setup docker repo
+        run: cp .env.example .env
 
       - name: Container setup via docker-compose and migrate contracts
         run: |
-          make build
-          make up
-          make contracts
-          make subgraph
+          $DOCKER_COMPOSE build
+          $DOCKER_COMPOSE up
+          $DOCKER_COMPOSE contracts
+          $DOCKER_COMPOSE subgraph
 
       - name: Try starting failed services
         run: make up
 
-      - name: Copy core configs
-        run: |
-          cd $CIRCLES_CORE
-          cp .env.example .env
+      - name: Switch to circles-core
+        run: cd $CIRCLES_CORE
 
       - name: Setup Node
         uses: actions/setup-node@v2.1.0
         with:
           node-version: '12.x'
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
 
       - name: Install dependencies
         run: npm install
