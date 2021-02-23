@@ -96,7 +96,7 @@ const core = new CirclesCore(web3, {
 });
 
 // Create existing account from private key which owns a Safe
-const account = web3.eth.accounts.privateKeyToAccount(SECRET_KEY);
+const account = web3.eth.accounts.privateKeyToAccount('0x...');
 
 // Find out the address of the owned Safe
 const [safeAddress] = await core.safe.getAddresses(account, {
