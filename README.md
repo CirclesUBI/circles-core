@@ -118,20 +118,20 @@ Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] insta
 `circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`].
 
 ```bash
-// Install dependencies
+# Install dependencies
 npm install
 
-// Copy config file and edit it
+# Copy config file and edit it
 cp .env.example .env
 
-// Run test suite
+# Run test suite
 npm run test
 npm run test:watch
 
-// Check code formatting
+# Check code formatting
 npm run lint
 
-// Build it!
+# Build it!
 npm run build
 ```
 
