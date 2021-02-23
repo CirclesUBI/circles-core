@@ -13,8 +13,6 @@ jobs:
 
     steps:
       - name: Add hosts to /etc/hosts
-        #env:
-        # ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
         run: |
           sudo echo "api.circles.local" | sudo tee -a /etc/hosts
           sudo echo "graph.circles.local" | sudo tee -a /etc/hosts
@@ -41,7 +39,7 @@ jobs:
       - name: Container setup via docker-compose and migrate contracts
         run: |
           $DOCKER_COMPOSE build
-          $DOCKER_COMPOSE up
+          $DOCKER_COMPOSE up -d
           $DOCKER_COMPOSE contracts
           $DOCKER_COMPOSE subgraph
 
