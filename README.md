@@ -84,18 +84,18 @@ import Web3 from 'web3';
 // Initialize web3
 const web3 = new Web3();
 
-// Initialize core
+// Initialize core with default configs when running against local `circles-docker` setup
 const core = new CirclesCore(web3, {
-  hubAddress: '0x..',
-  proxyFactoryAddress: '0x..',
-  safeMasterAddress: '0x..',
-  apiServiceEndpoint: 'https://..',
-  graphNodeEndpoint: 'https://..',
-  relayServiceEndpoint: 'https://..',
-  subgraphName: '...',
+  hubAddress: '0xCfEB869F69431e42cdB54A4F4f105C19C080A601',
+  proxyFactoryAddress: '0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb',
+  safeMasterAddress: '0xC89Ce4735882C9F0f0FE26686c53074E09B0D550',
+  apiServiceEndpoint: 'http://api.circles.local',
+  graphNodeEndpoint: 'http://graph.circles.local',
+  relayServiceEndpoint: 'http://relay.circles.local',
+  subgraphName: 'CirclesUBI/circles-subgraph',
 });
 
-// Create account which owns Safe
+// Create existing account from private key which owns a Safe
 const account = web3.eth.accounts.privateKeyToAccount(SECRET_KEY);
 
 // Find out the address of the owned Safe
@@ -103,7 +103,7 @@ const [safeAddress] = await core.safe.getAddresses(account, {
   ownerAddress: account.address,
 });
 
-// Request UBI payout
+// Request Circles UBI payout
 await core.token.requestUBIPayout(account, {
   safeAddress,
 });
@@ -115,24 +115,28 @@ await core.token.requestUBIPayout(account, {
 npm i @circles/core
 ```
 
-Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] installed as well.
+Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] installed as well. Check out the [`circles-docker`] repository for running your code locally against Circles services during development.
 
 [`isomorphic-fetch`]: https://www.npmjs.com/package/isomorphic-fetch
 [`web3`]: https://www.npmjs.com/package/web3
 
 ## Development
 
-`circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`].
+`circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`]. Most of the tests are designed to test end-to-end against all external services and require a running [`circles-docker`] environment to work in your development setup.
 
 ```bash
-# Install dependencies
+# Install NodeJS dependencies
 npm install
 
-# Copy config file and edit it
+# Copy config file and edit variables according to your needs.
+# When running against the default docker setup no changes are required here
 cp .env.example .env
 
-# Run test suite
+# Run e2e test suite. Make sure services are running in the background
+# via `circles-docker` repository
 npm run test
+
+# Run tests automatically during development when changes have been made
 npm run test:watch
 
 # Check code formatting
@@ -145,6 +149,7 @@ npm run build
 [`Jest`]: https://jestjs.io
 [`Babel`]: https://babeljs.io
 [`Rollup`]: https://rollupjs.org
+[`circles-docker`]: https://github.com/CirclesUBI/circles-docker
 
 ## License
 
