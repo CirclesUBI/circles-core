@@ -70,7 +70,7 @@ This library provides common methods for JavaScript clients and wallets to inter
 
 ## Example
 
-```javascript=
+```js
 import CirclesCore from '@circles/core';
 import Web3 from 'web3';
 
@@ -117,7 +117,7 @@ Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] insta
 
 `circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`].
 
-```
+```bash
 // Install dependencies
 npm install
 
