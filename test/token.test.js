@@ -32,11 +32,10 @@ async function deployTestNetwork(
   connections = TEST_TRUST_NETWORK,
 ) {
   // Deploy Safe and Token for each test account
-  const tasks = accounts.map((account) => {
-    return deploySafeAndToken(core, account);
-  });
-
-  const results = await Promise.all(tasks);
+  let results = [];
+  for (const account of accounts) {
+    results.push(await deploySafeAndToken(core, account));
+  }
 
   const safeAddresses = [];
   const tokenAddresses = [];
