@@ -1,45 +1,80 @@
-# Circles Core
+<div align="center">
+	<img width="80" src="https://raw.githubusercontent.com/CirclesUBI/.github/main/assets/logo.svg" />
+</div>
 
-<p>
-  <a href="https://badge.fury.io/js/%40circles%2Fcore">
-    <img src="https://badge.fury.io/js/%40circles%2Fcore.svg" alt="npm Version" height="18">
+<h1 align="center">circles-core</h1>
+
+<div align="center">
+ <strong>
+   Common methods to interact with the Circles ecosystem
+ </strong>
+</div>
+
+<br />
+
+<div align="center">
+  <!-- npm -->
+  <a href="https://www.npmjs.com/package/@circles/core">
+    <img src="https://img.shields.io/npm/v/@circles/core?style=flat-square" height="18">
   </a>
+  <!-- Licence -->
   <a href="https://github.com/CirclesUBI/circles-core/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-APGLv3-orange.svg" alt="License" height="18">
+    <img src="https://img.shields.io/github/license/CirclesUBI/circles-core?style=flat-square" alt="License" height="18">
   </a>
-  <a href="https://travis-ci.com/CirclesUBI/circles-core">
-    <img src="https://api.travis-ci.com/CirclesUBI/circles-core.svg?branch=main" alt="Build Status" height="18">
+  <!-- CI status -->
+  <a href="https://github.com/CirclesUBI/circles-core/actions/workflows/tests.yml">
+    <img src="https://img.shields.io/github/workflow/status/CirclesUBI/circles-core/Run%20tests?label=tests&style=flat-square" alt="CI Status" height="18">
   </a>
+  <!-- Discourse -->
+  <a href="https://aboutcircles.com/">
+    <img src="https://img.shields.io/discourse/topics?server=https%3A%2F%2Faboutcircles.com%2F&style=flat-square" alt="chat" height="18"/>
+  </a>
+  <!-- Twitter -->
   <a href="https://twitter.com/CirclesUBI">
-    <img src="https://img.shields.io/twitter/follow/circlesubi.svg?label=follow+circles" alt="Follow Circles" height="18">
+    <img src="https://img.shields.io/twitter/follow/circlesubi.svg?label=twitter&style=flat-square" alt="Follow Circles" height="18">
   </a>
-</p>
+</div>
 
-Common methods (sign up, transfer Circles, trust users, revoke trust) for clients & wallets to interact with the Circles ecosystem (Smart Contracts, Relay Service, Trust Graph API, etc.).
+<div align="center">
+  <h3>
+    <a href="https://circlesubi.github.io/circles-core/">
+      API Docs
+    </a>
+    <span> | </span>
+    <a href="https://handbook.joincircles.net">
+      Handbook
+    </a>
+    <span> | </span>
+    <a href="https://github.com/CirclesUBI/circles-core/releases">
+      Releases
+    </a>
+    <span> | </span>
+    <a href="https://github.com/CirclesUBI/.github/blob/main/CONTRIBUTING.md">
+      Contributing
+    </a>
+  </h3>
+</div>
 
-## Documentation
+<br/>
 
-Read the API specification and documentation here: https://circlesubi.github.io/circles-core
+This library provides common methods for JavaScript clients and wallets to interact with the Circles smart-contracts and off-chain services.
 
-## Requirements
+## Features
 
-- NodeJS
-- web3.js
+- Interact with Circles smart-contracts and off-chain services like the Transaction Relayer, Graph Node and Circles API.
+- Register and maintain Circles user accounts and organizations.
+- Create and search off-chain data like usernames and profile pictures.
+- Trust other users in the network.
+- Lists owned Circles tokens and their current balance.
+- Calculates transitive transfer steps to send Circles.
 
-## Installation
+## Example
 
-```
-npm i @circles/core
-```
-
-Make sure you have all peer dependencies (`isomorphic-fetch` and `web3`) installed as well.
-
-## Usage
-
-```js
+```javascript=
 import CirclesCore from '@circles/core';
 import Web3 from 'web3';
 
+// Initialize web3
 const web3 = new Web3();
 
 // Initialize core
@@ -53,175 +88,34 @@ const core = new CirclesCore(web3, {
   subgraphName: '...',
 });
 
-// Create account
-const account = web3.eth.accounts.create();
+// Create account which owns Safe
+const account = web3.eth.accounts.privateKeyToAccount(SECRET_KEY);
 
-// Define nice username for us
-const username = 'margareth';
-const email = 'mgh@mail.org';
-
-// Generate a nonce to predict Safe address
-const nonce = new Date().getTime();
-
-// Prepare Safe deployment and receive a predicted safeAddress
-const safeAddress = await core.safe.prepareDeploy(account, { nonce });
-
-// Register username and connect it to Safe address
-await core.user.register(account, {
-  nonce,
-  email,
-  safeAddress,
-  username,
-});
-
-// Get our current trust network
-const network = await core.trust.getNetwork(account, { safeAddress });
-
-// Resolve public addresses to user profiles
-const users = await core.user.resolve(account, {
-  addresses: network.map((connection) => connection.safeAddress),
-});
-
-// Search for a user via username
-const users = await core.user.search(account, {
-  query: 'pand',
-});
-
-// Example: Display our trust network
-network.forEach((connection) => {
-  const user = users.find(
-    (item) => item.safeAddress === connection.safeAddress,
-  );
-
-  if (connection.isOutgoing) {
-    console.log(`${user.username} accepts your Circles.`);
-  }
-
-  if (connection.isIncoming) {
-    console.log(`You accept Circles of ${user.username}.`);
-  }
-});
-
-// Check if we have enough trust connections
-const { isTrusted } = await core.trust.isTrusted({
-  safeAddress,
-});
-
-if (!isTrusted) {
-  console.log('Not enough trust connections yet ..');
-} else {
-  // Deploy Safe
-  await core.safe.deploy(account, { safeAddress });
-
-  // Deploy Circles Token
-  await core.token.deploy(account, { safeAddress });
-}
-
-// Change trust state with users
-await core.trust.removeConnection(account, {
-  user: users[0].safeAddress,
-  canSendTo: safeAddress,
-});
-
-// .. give user the permission to send their Token to you
-await core.trust.addConnection(account, {
-  user: users[0].safeAddress,
-  canSendTo: safeAddress,
-  limitPercentage: 20,
-});
-
-// Get list of my activities
-const { activities } = await core.activity.getLatest(account, {
-  safeAddress,
-});
-
-// Example: Display activities
-const { ActivityTypes } = core.activity;
-
-activities.forEach((activity) => {
-  const { timestamp, type, data } = activity;
-
-  if (type === ActivityTypes.HUB_TRANSFER) {
-    console.log(
-      `${timestamp} - ${
-        data.from
-      } transferred ${data.value.toString()} Circles to ${data.to}`,
-    );
-  } else if (type === ActivityTypes.ADD_CONNECTION) {
-    console.log(
-      `${timestamp} - ${data.limitPercentage} ${data.canSendTo} allowed ${data.send} to transfer Circles`,
-    );
-  } else if (type === ActivityTypes.REMOVE_CONNECTION) {
-    console.log(`${timestamp} - ${data.canSendTo} untrusted ${data.user}`);
-  } else if (type === ActivityTypes.ADD_OWNER) {
-    console.log(
-      `${timestamp} - added ${data.ownerAddress} to ${data.safeAddress}`,
-    );
-  } else if (type === ActivityTypes.REMOVE_OWNER) {
-    console.log(
-      `${timestamp} - removed ${data.ownerAddress} from ${data.safeAddress}`,
-    );
-  }
-});
-
-// Get current balance of all owned Circles Tokens
-const tokenAddress = core.token.getAddress(account, {
-  safeAddress,
-});
-
-const balance = await core.token.getBalance(account, {
-  safeAddress,
-});
-
-// Request my UBI
-const payout = await core.token.checkUBIPayout(account, {
-  safeAddress,
-});
-
-if (!payout.isZero()) {
-  await core.token.requestUBIPayout(account, {
-    safeAddress,
-  });
-}
-
-// Transfer Circles to users (directly or transitively)
-const txHash = await core.token.transfer(account, {
-  from: safeAddress,
-  to: users[0].safeAddress,
-  value: 350,
-  paymentNote: 'Thank you for the fish!',
-});
-
-// Get the payment note of that transfer
-const paymentNote = await core.token.getPaymentNote(account, {
-  transactionHash: txHash,
-});
-
-// Get current Safe owners
-await core.safe.getOwners(account, {
-  safeAddress,
-});
-
-// .. or get the Safe connected to an owner
+// Find out the address of the owned Safe
 const [safeAddress] = await core.safe.getAddresses(account, {
-  ownerAddress: '0x123...',
+  ownerAddress: account.address,
 });
 
-// Manage owners of my Safe
-await core.safe.removeOwner(account, {
+// Request UBI payout
+await core.token.requestUBIPayout(account, {
   safeAddress,
-  ownerAddress: '0x123...',
-});
-
-await core.safe.addOwner(account, {
-  safeAddress,
-  ownerAddress: '0x123...',
 });
 ```
 
+## Installation
+
+```bash
+npm i @circles/core
+```
+
+Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] installed as well.
+
+[`isomorphic-fetch`]: https://www.npmjs.com/package/isomorphic-fetch
+[`web3`]: https://www.npmjs.com/package/web3
+
 ## Development
 
-`circles-core` is a JavaScript module, tested with [Jest](https://jestjs.io/), transpiled with [Babel](https://babeljs.io/) and bundled with [Rollup](https://rollupjs.org).
+`circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`].
 
 ```
 // Install dependencies
@@ -240,6 +134,10 @@ npm run lint
 // Build it!
 npm run build
 ```
+
+[`Jest`]: https://jestjs.io/
+[`Babel`]: https://babeljs.io/
+[`Rollup`]: https://rollupjs.org
 
 ## License
 
