@@ -57,16 +57,23 @@
 
 <br/>
 
-This library provides common methods for JavaScript clients and wallets to interact with the Circles smart-contracts and off-chain services.
+This library provides common methods for JavaScript clients and wallets to interact with the [`circles-contracts`] and off-chain services.
+
+[`circles-contracts`]: https://github.com/CirclesUBI/circles-contracts
 
 ## Features
 
-- Interact with Circles smart-contracts and off-chain services like the Transaction Relayer, Graph Node and Circles API.
-- Register and maintain Circles user accounts and organizations.
-- Create and search off-chain data like usernames and profile pictures.
-- Trust other users in the network.
-- Lists owned Circles tokens and their current balance.
-- Calculates transitive transfer steps to send Circles.
+- Interact with [`circles-contracts`] and off-chain services like [`safe-relay-service`], [`graph`] and [`circles-api`].
+- Register and maintain user accounts and organizations.
+- Create and search off-chain data like transfer descriptions, usernames and profile pictures.
+- Trust other users in the network and retreive trust network.
+- List owned Circles tokens and their current balance.
+- Show last activities like transfers, trusts and Safe ownership changes.
+- Calculate transitive transfer steps to send Circles.
+
+[`safe-relay-service`]: https://github.com/CirclesUBI/safe-relay-service
+[`graph`]: https://thegraph.com/explorer/subgraph/circlesubi/circles
+[`circles-api`]: https://github.com/CirclesUBI/circles-api
 
 ## Example
 
@@ -135,10 +142,12 @@ npm run lint
 npm run build
 ```
 
-[`Jest`]: https://jestjs.io/
-[`Babel`]: https://babeljs.io/
+[`Jest`]: https://jestjs.io
+[`Babel`]: https://babeljs.io
 [`Rollup`]: https://rollupjs.org
 
 ## License
 
-GNU Affero General Public License v3.0 `AGPL-3.0`
+GNU Affero General Public License v3.0 [`AGPL-3.0`]
+
+[`AGPL-3.0`]: https://github.com/CirclesUBI/circles-core/blob/main/LICENSE
