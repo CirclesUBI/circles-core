@@ -40,11 +40,15 @@ jobs:
         run: |
           $DOCKER_COMPOSE build
           $DOCKER_COMPOSE up -d
-          ./scripts/migrate-contracts.sh
-          ./scripts/deploy-subgraph.sh
+
+      - name: Download and migrate contracts
+        run: ./scripts/migrate-contracts.sh
+
+      - name: Create and deploy subgraph
+        run: ./scripts/deploy-subgraph.sh
 
       - name: Try starting failed services
-        run: make up
+        run: $DOCKER_COMPOSE up -d
 
       - name: Switch to circles-core
         run: cd $CIRCLES_CORE
