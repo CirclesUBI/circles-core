@@ -27,13 +27,13 @@ jobs:
       - name: Copy core configs
         run: cp .env.example .env
 
-      - name: Get circles-docker repository and copy configs
+      - name: Get circles-contracts repository and copy configs
         uses: actions/checkout@v2
         with:
           repository: CirclesUBI/circles-contracts.git
-          ref: main
+          ref: master
 
-      - name: Get circles-docker repository and copy configs
+      - name: Get circles-subgraph repository and copy configs
         uses: actions/checkout@v2
         with:
           repository: CirclesUBI/circles-subgraph.git
