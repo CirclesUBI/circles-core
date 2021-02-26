@@ -30,6 +30,18 @@ jobs:
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v2
         with:
+          repository: CirclesUBI/circles-contracts.git
+          ref: main
+
+      - name: Get circles-docker repository and copy configs
+        uses: actions/checkout@v2
+        with:
+          repository: CirclesUBI/circles-subgraph.git
+          ref: main
+
+      - name: Get circles-docker repository and copy configs
+        uses: actions/checkout@v2
+        with:
           repository: CirclesUBI/circles-docker.git
           ref: main
 
