@@ -27,18 +27,6 @@ jobs:
       - name: Copy core configs
         run: cp .env.example .env
 
-      - name: Get circles-contracts repository and copy configs
-        uses: actions/checkout@v2
-        with:
-          repository: CirclesUBI/circles-contracts.git
-          ref: master
-
-      - name: Get circles-subgraph repository and copy configs
-        uses: actions/checkout@v2
-        with:
-          repository: CirclesUBI/circles-subgraph.git
-          ref: main
-
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v2
         with:
@@ -52,8 +40,8 @@ jobs:
         run: |
           $DOCKER_COMPOSE build
           $DOCKER_COMPOSE up -d
-          $DOCKER_COMPOSE contracts
-          $DOCKER_COMPOSE subgraph
+          ./scripts/migrate-contracts.sh
+          ./scripts/deploy-subgraph.sh
 
       - name: Try starting failed services
         run: make up
