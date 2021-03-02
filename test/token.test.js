@@ -187,6 +187,7 @@ describe('Token', () => {
       const result = await deployTestNetwork(core, accounts);
       safeAddresses = result.safeAddresses;
       tokenAddresses = result.tokenAddresses;
+
     });
 
     it('should get the current balance', async () => {
@@ -217,7 +218,8 @@ describe('Token', () => {
     });
 
     it('should send Circles to someone transitively', async () => {
-      const value = web3.utils.toBN(core.utils.toFreckles(5));
+      const sentCircles = 5;
+      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
       const indexFrom = 0;
       const indexTo = 4;
 
@@ -237,7 +239,10 @@ describe('Token', () => {
           });
         },
         (balance) => {
-          return balance.toString().slice(0, 2) === '94';
+          return (
+            (core.utils.fromFreckles(balance) + 1).toString() ===
+            (core.utils.fromFreckles(signupBonus) - sentCircles).toString()
+          );
         },
       );
 
@@ -248,8 +253,12 @@ describe('Token', () => {
         },
       );
 
-      expect(otherAccountBalance.toString().slice(0, 3)).toBe('104');
-      expect(accountBalance.toString().slice(0, 2)).toBe('94');
+      expect(
+        (core.utils.fromFreckles(otherAccountBalance) + 1).toString()
+      ).toBe((core.utils.fromFreckles(signupBonus) + sentCircles).toString());
+      expect((core.utils.fromFreckles(accountBalance) + 1).toString()).toBe(
+        (core.utils.fromFreckles(signupBonus) - sentCircles).toString(),
+      );
     });
 
     it('should fail sending Circles when there is no path', async () => {
