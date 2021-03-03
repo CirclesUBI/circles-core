@@ -187,7 +187,6 @@ describe('Token', () => {
       const result = await deployTestNetwork(core, accounts);
       safeAddresses = result.safeAddresses;
       tokenAddresses = result.tokenAddresses;
-
     });
 
     it('should get the current balance', async () => {
@@ -254,7 +253,7 @@ describe('Token', () => {
       );
 
       expect(
-        (core.utils.fromFreckles(otherAccountBalance) + 1).toString()
+        (core.utils.fromFreckles(otherAccountBalance) + 1).toString(),
       ).toBe((core.utils.fromFreckles(signupBonus) + sentCircles).toString());
       expect((core.utils.fromFreckles(accountBalance) + 1).toString()).toBe(
         (core.utils.fromFreckles(signupBonus) - sentCircles).toString(),
