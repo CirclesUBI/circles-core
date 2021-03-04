@@ -63,13 +63,13 @@ This library provides common methods for JavaScript clients and wallets to inter
 
 ## Features
 
-- Interact with [`circles-contracts`] and off-chain services like [`safe-relay-service`], [`graph`] and [`circles-api`].
-- Register and maintain user accounts and organizations.
-- Create and search off-chain data like transfer descriptions, usernames and profile pictures.
-- Trust other users in the network and retreive trust network.
-- List owned Circles tokens and their current balance.
-- Show last activities like transfers, trusts and Safe ownership changes.
-- Calculate transitive transfer steps to send Circles.
+- Interact with [`circles-contracts`] and off-chain services like [`safe-relay-service`], [`graph`] and [`circles-api`]
+- Register and maintain user accounts and organizations
+- Create and search off-chain data like transfer descriptions, usernames and profile pictures
+- Trust other users in the network and retreive trust network
+- List owned Circles tokens and their current balance
+- Show last activities like transfers, trusts and Safe ownership changes
+- Calculate transitive transfer steps to send Circles
 
 [`safe-relay-service`]: https://github.com/CirclesUBI/safe-relay-service
 [`graph`]: https://thegraph.com/explorer/subgraph/circlesubi/circles
