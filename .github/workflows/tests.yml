@@ -27,10 +27,14 @@ jobs:
       - name: Copy core configs
         run: cp .env.example .env
 
-      - name: Setup Node
-        uses: actions/setup-node@v2.1.0
+      - name: Read node version from .nvmrc
+        id: nvmrc
+        run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
+
+      - name: Setup node
+        uses: actions/setup-node@v2
         with:
-          node-version: '12.x'
+          node-version: '${{ steps.nvmrc.outputs.NODE_VERSION }}'
 
       - name: Cache Node.js modules
         uses: actions/cache@v2
