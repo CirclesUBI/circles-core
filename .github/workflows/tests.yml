@@ -18,9 +18,6 @@ jobs:
           sudo echo "graph.circles.local" | sudo tee -a /etc/hosts
           sudo echo "relay.circles.local" | sudo tee -a /etc/hosts
 
-      - name: Disable postgres
-        run: sudo /etc/init.d/postgresql stop
-
       - name: Check out repository code
         uses: actions/checkout@v2
 
