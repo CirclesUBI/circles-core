@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Copy core configs
-        run: cp $CIRCLES_CORE/.env.example $CIRCLES_CORE/.env
+        run: cp .env.example .env
 
       - name: Read node version from .nvmrc
         id: nvmrc
@@ -50,7 +50,7 @@ jobs:
           ref: main
 
       - name: Setup docker repo
-        run: cp $CIRCLES_DOCKER/.env.example $CIRCLES_DOCKER/.env
+        run: cp .env.example .env
 
       - name: Container setup via docker-compose
         run: |
