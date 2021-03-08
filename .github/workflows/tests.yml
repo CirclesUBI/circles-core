@@ -48,6 +48,7 @@ jobs:
         with:
           repository: CirclesUBI/circles-docker.git
           ref: main
+          path: $CIRCLES_DOCKER
 
       - name: Setup docker repo
         run: cp .env.example .env
