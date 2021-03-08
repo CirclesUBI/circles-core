@@ -19,13 +19,10 @@ jobs:
           sudo echo "relay.circles.local" | sudo tee -a /etc/hosts
 
       - name: Print workspace path
-        run: echo $GITHUB_WORKSPACE
+        run: echo $GITHUB_WORKSPACE # /home/runner/work/circles-core/circles-core
 
       - name: Check out repository code
         uses: actions/checkout@v2
-
-      - name: Print workspace path
-        run: echo $GITHUB_WORKSPACE
 
       - name: Copy core configs
         run: cp .env.example .env
@@ -54,7 +51,7 @@ jobs:
         with:
           repository: CirclesUBI/circles-docker.git
           ref: main
-          path: circles-docker
+          path: ../circles-docker
 
       - name: Setup docker repo
         run: cp .env.example .env
