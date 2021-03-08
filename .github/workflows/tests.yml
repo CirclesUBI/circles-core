@@ -23,7 +23,6 @@ jobs:
 
       - name: Check out repository code
         uses: actions/checkout@v2
-        path: circles-core
 
       - name: Print workspace path
         run: echo $GITHUB_WORKSPACE
