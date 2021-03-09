@@ -31,7 +31,7 @@ jobs:
 
       - name: Print path
         working-directory: $CIRCLES_CORE
-        run: cd $CIRCLES_CORE && ls -a
+        run: ls -a
 
       - name: Copy core configs
         working-directory: $CIRCLES_CORE
