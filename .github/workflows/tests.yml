@@ -21,8 +21,13 @@ jobs:
       - name: Print workspace path
         run: echo $GITHUB_WORKSPACE # /home/runner/work/circles-core/circles-core
 
-      - name: Check out repository code
+      - name: Make directories circles-core and circles-docker
+        run: mkdir circles-core && mkdir circles-docker
+
+      - name: Check out circles-core repository code
         uses: actions/checkout@v2
+        with:
+          path: circles-core
 
       - name: Copy core configs
         run: cp .env.example .env
@@ -51,7 +56,7 @@ jobs:
         with:
           repository: CirclesUBI/circles-docker.git
           ref: main
-          path: ../circles-docker
+          path: circles-docker
 
       - name: Setup docker repo
         run: cp .env.example .env
