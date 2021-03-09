@@ -6,8 +6,8 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     env:
-      CIRCLES_DOCKER: $/home/runner/work/circles-core/circles-docker #$HOME/CirclesUBI/circles-docker
-      CIRCLES_CORE: $/home/runner/work/circles-core/circles-core
+      CIRCLES_DOCKER: $/home/runner/work/circles-core/circles-core/circles-docker #$HOME/CirclesUBI/circles-docker
+      CIRCLES_CORE: $/home/runner/work/circles-core/circles-core/circles-core
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
 
@@ -30,6 +30,7 @@ jobs:
           path: circles-core
 
       - name: Copy core configs
+        working-directory: $CIRCLES_CORE
         run: cp .env.example .env
 
       - name: Read node version from .nvmrc
