@@ -37,6 +37,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Read node version from .nvmrc
+        working-directory: circles-core
         id: nvmrc
         run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
 
