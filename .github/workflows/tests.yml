@@ -21,8 +21,8 @@ jobs:
       - name: Print workspace path
         run: echo $GITHUB_WORKSPACE # /home/runner/work/circles-core/circles-core
 
-      - name: Make directories circles-core and circles-docker
-        run: mkdir circles-core && mkdir circles-docker # Try to remove later
+      #- name: Make directories circles-core and circles-docker
+      #  run: mkdir circles-core && mkdir circles-docker # Try to remove later
 
       - name: Check out circles-core repository code
         uses: actions/checkout@v2
@@ -30,11 +30,10 @@ jobs:
           path: circles-core
 
       - name: Print path
-        working-directory: $CIRCLES_CORE
         run: ls -a
 
       - name: Copy core configs
-        working-directory: $CIRCLES_CORE
+        working-directory: circles-core
         run: cp .env.example .env
 
       - name: Read node version from .nvmrc
