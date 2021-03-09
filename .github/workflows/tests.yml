@@ -6,31 +6,20 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     env:
-      #CIRCLES_DOCKER: $/home/runner/work/circles-core/circles-core/circles-docker #$HOME/CirclesUBI/circles-docker
-      #CIRCLES_CORE: $/home/runner/work/circles-core/circles-core/circles-core
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
 
     steps:
       - name: Add hosts to /etc/hosts
         run: |
-          sudo echo "api.circles.local" | sudo tee -a /etc/hosts
-          sudo echo "graph.circles.local" | sudo tee -a /etc/hosts
-          sudo echo "relay.circles.local" | sudo tee -a /etc/hosts
-
-      - name: Print workspace path
-        run: echo $GITHUB_WORKSPACE # /home/runner/work/circles-core/circles-core
-
-      #- name: Make directories circles-core and circles-docker
-      #  run: mkdir circles-core && mkdir circles-docker # Try to remove later
+          sudo echo "127.0.1.1 api.circles.local" | sudo tee -a /etc/hosts
+          sudo echo "127.0.1.1 graph.circles.local" | sudo tee -a /etc/hosts
+          sudo echo "127.0.1.1 relay.circles.local" | sudo tee -a /etc/hosts
 
       - name: Check out circles-core repository code
         uses: actions/checkout@v2
         with:
           path: circles-core
-
-      - name: Print path
-        run: ls -a
 
       - name: Copy core configs
         working-directory: circles-core
