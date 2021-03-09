@@ -29,11 +29,11 @@ jobs:
         with:
           path: circles-core
 
+      - run: ls -al
+
       - name: Copy core configs
         working-directory: $CIRCLES_CORE
-        run: |
-          pwd
-          cp .env.example .env
+        run: cp .env.example .env
 
       - name: Read node version from .nvmrc
         id: nvmrc
