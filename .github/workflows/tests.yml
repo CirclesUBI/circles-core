@@ -63,6 +63,7 @@ jobs:
           path: circles-docker
 
       - name: Setup docker repo
+        working-directory: circles-docker
         run: cp .env.example .env
 
       - name: Container setup via docker-compose
