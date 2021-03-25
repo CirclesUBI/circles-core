@@ -65,8 +65,9 @@ jobs:
       - name: Container setup via docker-compose
         working-directory: circles-docker
         run: |
-          $DOCKER_COMPOSE build
-          $DOCKER_COMPOSE up -d
+          docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+          # $DOCKER_COMPOSE build
+          # $DOCKER_COMPOSE up -d
 
       - name: Download and migrate contracts
         working-directory: circles-docker
