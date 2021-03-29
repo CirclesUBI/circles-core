@@ -58,16 +58,11 @@ jobs:
         
       - name: Setup tmate session 
         uses: mxschmitt/action-tmate@v3
-        #  with:
-        #    sudo: false
         timeout-minutes: 80
 
       - name: Container setup via docker-compose
         working-directory: circles-docker
-        run: |
-          docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
-          # $DOCKER_COMPOSE build
-          # $DOCKER_COMPOSE up -d
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
@@ -79,7 +74,8 @@ jobs:
 
       - name: Try starting failed services
         working-directory: circles-docker
-        run: $DOCKER_COMPOSE up -d
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+
 
       - name: Install dependencies
         working-directory: circles-core
