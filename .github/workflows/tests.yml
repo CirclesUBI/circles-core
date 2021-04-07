@@ -55,10 +55,6 @@ jobs:
       - name: Setup docker repo
         working-directory: circles-docker
         run: cp .env.example .env
-        
-      - name: Setup tmate session 
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 80
 
       - name: Container setup via docker-compose
         working-directory: circles-docker
