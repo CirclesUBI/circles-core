@@ -202,11 +202,11 @@ describe('Token', () => {
     it('should send Circles to someone directly', async () => {
       const value = web3.utils.toBN(core.utils.toFreckles(5));
 
-      // Unidirectional trust relationship from 2 to 5
-      const indexFrom = 5;
+      // Unidirectional trust relationship from 1 to 2
+      const indexFrom = 1;
       const indexTo = 2;
 
-      // Transfer from 5 to 2
+      // Transfer from 1 to 2
       const response = await core.token.transfer(accounts[indexFrom], {
         from: safeAddresses[indexFrom],
         to: safeAddresses[indexTo],
