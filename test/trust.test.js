@@ -36,9 +36,13 @@ describe('Trust', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const connection = await loop(() => {
-      return getTrustConnection(core, account, safeAddress, otherSafeAddress);
-    }, isReady);
+    const connection = await loop(
+      'Wait for the graph to index newly added trust connection',
+      () => {
+        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
+      },
+      isReady,
+    );
 
     expect(connection.safeAddress).toBe(otherSafeAddress);
     expect(connection.isIncoming).toBe(true);
@@ -46,14 +50,18 @@ describe('Trust', () => {
     expect(connection.limitPercentageIn).toBe(44);
     expect(connection.limitPercentageOut).toBe(0);
 
-    let otherConnection = await loop(() => {
-      return getTrustConnection(
-        core,
-        otherAccount,
-        otherSafeAddress,
-        safeAddress,
-      );
-    }, isReady);
+    let otherConnection = await loop(
+      'Wait for trust connection to be indexed by the graph',
+      () => {
+        return getTrustConnection(
+          core,
+          otherAccount,
+          otherSafeAddress,
+          safeAddress,
+        );
+      },
+      isReady,
+    );
 
     expect(otherConnection.safeAddress).toBe(safeAddress);
     expect(otherConnection.isIncoming).toBe(false);
@@ -69,6 +77,7 @@ describe('Trust', () => {
     });
 
     otherConnection = await loop(
+      'Wait for trust connection to be indexed by the Graph',
       () => {
         return getTrustConnection(
           core,
@@ -122,6 +131,7 @@ describe('Trust', () => {
     });
 
     const network = await loop(
+      'Wait for trust network to be empty after untrusting user',
       async () => {
         return await core.trust.getNetwork(account, {
           safeAddress,

@@ -67,6 +67,7 @@ describe('Activity', () => {
     });
 
     await loop(
+      'Wait for graph to index latest activities',
       () => {
         return core.activity.getLatest(account, {
           safeAddress,
@@ -126,6 +127,7 @@ describe('Activity', () => {
     let activity;
 
     const latest = await loop(
+      'Wait for the graph to index activity of newly added Safe owner',
       () => {
         return core.activity.getLatest(account, {
           safeAddress,

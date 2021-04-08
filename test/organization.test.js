@@ -27,11 +27,14 @@ describe('Organization', () => {
       safeAddress,
     });
 
-    await loop(() => web3.eth.getCode(safeAddress));
+    await loop('Wait until Safe for organization got deployed', () =>
+      web3.eth.getCode(safeAddress),
+    );
   });
 
   it('should check if safe has enough funds for organization to be created', async () => {
     const value = await loop(
+      'Wait for organization to be funded',
       async () => {
         return await core.organization.isFunded(account, {
           safeAddress,
@@ -79,6 +82,7 @@ describe('Organization', () => {
     );
 
     const result = await loop(
+      'Wait for organization to own some ether',
       async () => {
         return await core.token.listAllTokens(account, {
           safeAddress,

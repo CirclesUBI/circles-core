@@ -19,7 +19,6 @@
     "docs:lint": "documentation lint ./src/**",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
     "test": "jest",
-    "test:debugger": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {

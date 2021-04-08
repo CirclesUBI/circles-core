@@ -1,4 +1,6 @@
 import { getTokenContract } from '~/common/getContracts';
+import getContracts from '~/common/getContracts';
+import { ZERO_ADDRESS } from '~/common/constants';
 
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
@@ -30,11 +32,10 @@ async function deployTestNetwork(
   connections = TEST_TRUST_NETWORK,
 ) {
   // Deploy Safe and Token for each test account
-  const tasks = accounts.map((account) => {
-    return deploySafeAndToken(core, account);
-  });
-
-  const results = await Promise.all(tasks);
+  let results = [];
+  for (const account of accounts) {
+    results.push(await deploySafeAndToken(core, account));
+  }
 
   const safeAddresses = [];
   const tokenAddresses = [];
@@ -65,6 +66,9 @@ async function deployTestNetwork(
 describe('Token', () => {
   let core;
   let accounts;
+  let signupBonus;
+  let contracts;
+  let hubAddress;
 
   beforeAll(async () => {
     accounts = new Array(6).fill({}).map((item, index) => {
@@ -72,6 +76,16 @@ describe('Token', () => {
     });
 
     core = createCore();
+
+    // Retrieve the value of the initial UBI payout (called signupBonus) from the deployed Hub contract
+    hubAddress = core.options.hubAddress;
+    contracts = await getContracts(web3, {
+      hubAddress: hubAddress,
+      proxyFactoryAddress: ZERO_ADDRESS,
+      safeMasterAddress: ZERO_ADDRESS,
+    });
+    const { hub } = contracts;
+    signupBonus = await hub.methods.signupBonus().call();
   });
 
   it('should check if safe has enough funds for token to be deployed', async () => {
@@ -138,19 +152,6 @@ describe('Token', () => {
       safeAddresses = result.safeAddresses;
     });
 
-    it('should return empty path when no transfer is possible', async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(100));
-
-      const result = await core.token.findTransitiveTransfer(accounts[0], {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        value,
-      });
-
-      expect(result.transferSteps.length).toBe(0);
-      expect(result.maxFlowValue).toBe(25);
-    });
-
     it('should return max flow and possible path', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
 
@@ -163,15 +164,18 @@ describe('Token', () => {
       expect(result.transferSteps.length).toBe(2);
 
       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-      expect(result.transferSteps[0].value).toBe(1);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[1]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
       expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[1]);
       expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-      expect(result.transferSteps[1].value).toBe(1);
-      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[1]);
 
-      expect(result.maxFlowValue).toBe(25);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
     });
   });
 
@@ -190,21 +194,19 @@ describe('Token', () => {
         safeAddress: safeAddresses[5],
       });
 
-      // It should be equals the initial UBI payout
-      // which was set during Hub contract deployment:
-      expect(balance).toMatchObject(
-        new web3.utils.BN(core.utils.toFreckles(100)),
-      );
+      // It should be equals the initial UBI payout (called signupBonus) which was set during Hub
+      // contract deployment:
+      expect(balance).toMatchObject(new web3.utils.BN(signupBonus));
     });
 
     it('should send Circles to someone directly', async () => {
       const value = web3.utils.toBN(core.utils.toFreckles(5));
 
-      // Unidirectional trust relationship from 2 to 5
-      const indexFrom = 5;
+      // Unidirectional trust relationship from 1 to 2
+      const indexFrom = 1;
       const indexTo = 2;
 
-      // Transfer from 5 to 2
+      // Transfer from 1 to 2
       const response = await core.token.transfer(accounts[indexFrom], {
         from: safeAddresses[indexFrom],
         to: safeAddresses[indexTo],
@@ -215,7 +217,8 @@ describe('Token', () => {
     });
 
     it('should send Circles to someone transitively', async () => {
-      const value = web3.utils.toBN(core.utils.toFreckles(5));
+      const sentCircles = 5;
+      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
       const indexFrom = 0;
       const indexTo = 4;
 
@@ -228,13 +231,17 @@ describe('Token', () => {
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
       const accountBalance = await loop(
+        'Wait for balance to be lower after user transferred Circles',
         () => {
           return core.token.getBalance(accounts[indexFrom], {
             safeAddress: safeAddresses[indexFrom],
           });
         },
         (balance) => {
-          return balance.toString().slice(0, 2) === '94';
+          return (
+            (core.utils.fromFreckles(balance) + 1).toString() ===
+            (core.utils.fromFreckles(signupBonus) - sentCircles).toString()
+          );
         },
       );
 
@@ -245,12 +252,16 @@ describe('Token', () => {
         },
       );
 
-      expect(otherAccountBalance.toString().slice(0, 3)).toBe('104');
-      expect(accountBalance.toString().slice(0, 2)).toBe('94');
+      expect(
+        (core.utils.fromFreckles(otherAccountBalance) + 1).toString(),
+      ).toBe((core.utils.fromFreckles(signupBonus) + sentCircles).toString());
+      expect((core.utils.fromFreckles(accountBalance) + 1).toString()).toBe(
+        (core.utils.fromFreckles(signupBonus) - sentCircles).toString(),
+      );
     });
 
     it('should fail sending Circles when there is no path', async () => {
-      // Max flow is smaller than the given transfer value.
+      // Max flow is smaller than the given transfer value
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
@@ -259,8 +270,7 @@ describe('Token', () => {
         }),
       ).rejects.toThrow();
 
-      // Trust connection does not exist between
-      // node 0 and 5
+      // Trust connection does not exist between node 0 and 5
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
