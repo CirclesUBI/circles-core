@@ -81,7 +81,9 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await loop(() => web3.eth.getCode(safeAddress));
+      await loop('Wait until Safe got deployed', () =>
+        web3.eth.getCode(safeAddress),
+      );
 
       // Deploy Token as well to pay our fees later
       await core.token.deploy(accounts[0], {
@@ -151,7 +153,9 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await loop(() => web3.eth.getCode(safeAddress));
+      await loop('Wait until Safe got deployed', () =>
+        web3.eth.getCode(safeAddress),
+      );
 
       // Deploy Token
       await core.token.deploy(accounts[0], {
@@ -202,6 +206,7 @@ describe('Safe', () => {
       expect(owners.length).toBe(2);
 
       await loop(
+        'Wait for newly added address to show up as Safe owner',
         () => {
           return core.safe.getAddresses(accounts[0], {
             ownerAddress: accounts[1].address,
