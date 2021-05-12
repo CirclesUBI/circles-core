@@ -5,7 +5,12 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
 
-const MAX_TRANSFER_STEPS = 50; // The contracts have a complexity limit due to block gas limits
+/* Due to block gas limit of 12.500.000 a transitive transaction can have a 
+* limited number of steps. The limit below gives a 50% buffer between the 
+* gas estimate and the block gas limit. 
+* For more information, see the Circles handbook.
+*/
+const MAX_TRANSFER_STEPS = 52; 
 
 /**
  * Find maximumFlow and transfer steps through a trust graph from someone to
