@@ -76,10 +76,15 @@ jobs:
         working-directory: circles-core
         run: npm install
 
+      - name: Check code formatting
+        working-directory: circles-core
+        run: npm run lint
+        
       - name: Run tests
         working-directory: circles-core
         run: npm run test
 
       - name: Build
         working-directory: circles-core
-        run: npm run test
+        run: npm run build
+        
