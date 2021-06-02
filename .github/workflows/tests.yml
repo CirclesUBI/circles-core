@@ -68,10 +68,6 @@ jobs:
         working-directory: circles-docker
         run: ./scripts/deploy-subgraph.sh
 
-      - name: Try starting failed services
-        working-directory: circles-docker
-        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
-
       - name: Install dependencies
         working-directory: circles-core
         run: npm install
@@ -79,7 +75,7 @@ jobs:
       - name: Check code formatting
         working-directory: circles-core
         run: npm run lint
-        
+
       - name: Run tests
         working-directory: circles-core
         run: npm run test
@@ -87,4 +83,3 @@ jobs:
       - name: Build
         working-directory: circles-core
         run: npm run build
-        
