@@ -1,7 +1,9 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
-const DEFAULT_LIMIT_PERCENTAGE = 50;
+const DEFAULT_USER_LIMIT_PERCENTAGE = 50;
+const DEFAULT_ORG_LIMIT_PERCENTAGE = 100;
+
 const DEFAULT_TRUST_LIMIT = 3;
 const NO_LIMIT_PERCENTAGE = 0;
 
@@ -275,9 +277,17 @@ export default function createTrustModule(web3, contracts, utils) {
         },
         limitPercentage: {
           type: 'number',
-          default: DEFAULT_LIMIT_PERCENTAGE,
+          default: DEFAULT_USER_LIMIT_PERCENTAGE,
         },
       });
+
+      const isOrgSignedup = await hub.methods
+        .organizations(options.canSendTo)
+        .call();
+
+      if (isOrgSignedup) {
+        options.limitPercentage = DEFAULT_ORG_LIMIT_PERCENTAGE;
+      }
 
       const txData = await hub.methods
         .trust(options.user, options.limitPercentage)
