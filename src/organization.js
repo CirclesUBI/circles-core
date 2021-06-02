@@ -4,6 +4,7 @@ import checkOptions from '~/common/checkOptions';
 import { ZERO_ADDRESS } from '~/common/constants';
 import { getOwners } from '~/safe';
 import { getTokenContract } from '~/common/getContracts';
+import loop from '~/common/loop';
 
 /**
  * Organization submodule to deploy and check organization accounts.
@@ -194,6 +195,16 @@ export default function createOrganizationModule(web3, contracts, utils) {
       if (!txHashAddConnection) {
         throw new CoreError('Organization failed to trust safe');
       }
+
+      // Wait for the trust connection to be effective
+      await loop(
+        () => {
+          return hub.methods.limits(options.to, options.from).call();
+        },
+        (trustLimit) => {
+          return trustLimit > 0;
+        },
+      );
 
       // Prepare the transfer for the `transferThrough` Hub method, we don't go
       // through the api to get the transfer steps as we know there is a 100%
