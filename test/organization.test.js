@@ -6,12 +6,15 @@ import { deploySafeAndToken } from './helpers/transactions';
 
 describe('Organization', () => {
   let account;
+  let otherAccount;
   let core;
   let safeAddress;
   let userSafeAddress;
+  let otherUserSafeAddress;
 
   beforeAll(async () => {
     account = getAccount(0);
+    otherAccount = getAccount(1);
     core = createCore();
 
     // First deploy users Safe ..
@@ -30,6 +33,10 @@ describe('Organization', () => {
     await loop('Wait until Safe for organization got deployed', () =>
       web3.eth.getCode(safeAddress),
     );
+
+    // Then deploy other users Safe .. to test trust connections
+    const otherUser = await deploySafeAndToken(core, otherAccount);
+    otherUserSafeAddress = otherUser.safeAddress;
   });
 
   it('should check if safe has enough funds for organization to be created', async () => {
@@ -100,6 +107,16 @@ describe('Organization', () => {
     const txHash = await core.safe.addOwner(account, {
       safeAddress,
       ownerAddress: web3.utils.toChecksumAddress(web3.utils.randomHex(20)),
+    });
+
+    expect(web3.utils.isHexStrict(txHash)).toBe(true);
+  });
+
+  it('should be able to trust a user as an organization', async () => {
+    const txHash = await core.trust.addConnection(account, {
+      user: otherUserSafeAddress,
+      canSendTo: safeAddress,
+      limitPercentage: 44,
     });
 
     expect(web3.utils.isHexStrict(txHash)).toBe(true);
