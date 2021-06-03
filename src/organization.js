@@ -202,7 +202,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
           return hub.methods.limits(options.to, options.from).call();
         },
         (trustLimit) => {
-          return trustLimit > 0;
+          return trustLimit === '100';
         },
       );
 
