@@ -67,6 +67,10 @@ jobs:
       - name: Create and deploy subgraph
         working-directory: circles-docker
         run: ./scripts/deploy-subgraph.sh
+        
+      - name: Try starting failed services
+        working-directory: circles-docker
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Install dependencies
         working-directory: circles-core
