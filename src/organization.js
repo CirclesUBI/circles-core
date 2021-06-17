@@ -118,7 +118,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
     /**
      * Organizations do not hold their own Token and need to be prefunded with
      * a Circles Token to be functional from the beginning (in case
-     * transactions are going through the relayer. This method is a special
+     * transactions are going through the relayer). This method is a special
      * workaround to create a trust connection to a regular user to then
      * transfer Tokens from that user to the organization.
      *
