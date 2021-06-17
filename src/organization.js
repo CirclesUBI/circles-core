@@ -70,7 +70,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
      *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
-     * @param {string} userOptions.safeAddress - owner of the organization
+     * @param {string} userOptions.safeAddress - safe address of the organization
      *
      * @return {string} - transaction hash
      */
