@@ -129,12 +129,15 @@ describe('Activity', () => {
     const latest = await loop(
       'Wait for the graph to index activity of newly added Safe owner',
       () => {
+        // The last two activities have the same timestamp, but one is filtered out
+        // because it's a transfer (actually the payment to the relayer)
         return core.activity.getLatest(account, {
           safeAddress,
-          limit: 1,
+          limit: 2,
         });
       },
       (result) => {
+        expect(result.activities.length).toBe(1);
         return findOwnerActivity(thirdOwnerAccount.address, result.activities);
       },
     );
