@@ -11,5 +11,6 @@ export default function createCore() {
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
     safeMasterAddress: process.env.SAFE_ADDRESS,
     subgraphName: process.env.SUBGRAPH_NAME,
+    databaseSource: process.env.DATABASE_SOURCE,
   });
 }

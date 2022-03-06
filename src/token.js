@@ -242,18 +242,7 @@ export default function createTokenModule(web3, contracts, utils) {
 
       const { safeAddress, tokenAddress } = options;
 
-      const response = await utils.requestGraph({
-        query: `{
-          safe(id: "${safeAddress.toLowerCase()}") {
-            balances {
-              token {
-                id
-              }
-              amount
-            }
-          }
-        }`,
-      });
+      const response = await utils.requestIndexedDB('balances', safeAddress);
 
       if (!response || !response.safe) {
         throw new CoreError(

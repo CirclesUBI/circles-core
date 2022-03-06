@@ -91,6 +91,7 @@ const core = new CirclesCore(web3, {
   safeMasterAddress: '0xC89Ce4735882C9F0f0FE26686c53074E09B0D550',
   apiServiceEndpoint: 'http://api.circles.local',
   graphNodeEndpoint: 'http://graph.circles.local',
+  databaseSource: 'graph',
   relayServiceEndpoint: 'http://relay.circles.local',
   subgraphName: 'CirclesUBI/circles-subgraph',
 });
@@ -146,13 +147,13 @@ npm run lint
 npm run build
 ```
 
-[`Jest`]: https://jestjs.io
-[`Babel`]: https://babeljs.io
-[`Rollup`]: https://rollupjs.org
+[`jest`]: https://jestjs.io
+[`babel`]: https://babeljs.io
+[`rollup`]: https://rollupjs.org
 [`circles-docker`]: https://github.com/CirclesUBI/circles-docker
 
 ## License
 
 GNU Affero General Public License v3.0 [`AGPL-3.0`]
 
-[`AGPL-3.0`]: https://github.com/CirclesUBI/circles-core/blob/main/LICENSE
+[`agpl-3.0`]: https://github.com/CirclesUBI/circles-core/blob/main/LICENSE

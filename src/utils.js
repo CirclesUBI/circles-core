@@ -137,6 +137,252 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
   return response.data;
 }
 
+async function requestIndexedDB(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  data,
+  parameters,
+) {
+  let response;
+
+  switch (data) {
+    case 'activity_stream':
+      response = getNotificationsStatus(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+    case 'organization_status':
+      response = getOrganizationStatus(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+    case 'safe_addresses':
+      response = getSafeAddresses(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+    case 'balances':
+      response = getBalancesStatus(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+    case 'trust_network':
+      response = getTrustNetworkStatus(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+    case 'trust_limits':
+      response = getTrustLimitsStatus(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        parameters,
+      );
+      break;
+  }
+  return response;
+}
+
+function getNotificationsStatus(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  parameters,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          notifications(${parameters}) {
+            id
+            transactionHash
+            safeAddress
+            type
+            time
+            trust {
+              user
+              canSendTo
+              limitPercentage
+            }
+            transfer {
+              from
+              to
+              amount
+            }
+            hubTransfer {
+              from
+              to
+              amount
+            }
+            ownership {
+              adds
+              removes
+            }
+          }
+        }`,
+      };
+      break;
+  }
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
+function getOrganizationStatus(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  ownerAddress,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          user(id: "${ownerAddress.toLowerCase()}") {
+            id,
+            safes {
+              id
+              organization
+            }
+          }
+        }`,
+      };
+      break;
+  }
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
+function getSafeAddresses(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  parameters,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          user(id: "${parameters.ownerAddress.toLowerCase()}") {
+            safeAddresses,
+          }
+        }`,
+      };
+      break;
+  }
+
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
+function getBalancesStatus(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  safeAddress,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          safe(id: "${safeAddress.toLowerCase()}") {
+            balances {
+              token {
+                id
+              }
+              amount
+            }
+          }
+        }`,
+      };
+      break;
+  }
+
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
+function getTrustNetworkStatus(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  safeAddress,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          trusts(where: { userAddress: "${safeAddress}" }) {
+            id
+            limitPercentage
+          }
+        }`,
+      };
+      break;
+  }
+
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
+function getTrustLimitsStatus(
+  graphNodeEndpoint,
+  subgraphName,
+  databaseSource,
+  safeAddress,
+) {
+  let query;
+  switch (databaseSource) {
+    case 'graph':
+    default:
+      query = {
+        query: `{
+          safe(id: "${safeAddress}") {
+            outgoing {
+              limitPercentage
+              userAddress
+              canSendToAddress
+            }
+            incoming {
+              limitPercentage
+              userAddress
+              user {
+                outgoing {
+                  canSendToAddress
+                  limitPercentage
+                }
+              }
+              canSendToAddress
+            }
+          }
+        }`,
+      };
+      break;
+  }
+
+  return requestGraph(graphNodeEndpoint, subgraphName, query);
+}
+
 async function estimateTransactionCosts(
   endpoint,
   {
@@ -274,6 +520,7 @@ async function requestNonce(web3, endpoint, safeAddress) {
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const {
     apiServiceEndpoint,
+    databaseSource,
     graphNodeEndpoint,
     relayServiceEndpoint,
     subgraphName,
@@ -421,6 +668,24 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      */
     requestGraph: async (userOptions) => {
       return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
+    },
+
+    /**
+     * Query the Graph Node or Land Graph Node with GraphQL.
+     *
+     * @namespace core.utils.requestIndexedDB
+     *
+     * @param {string} data - data to obtain
+     * @param {Object} parameters - parameters needed for query
+     */
+    requestIndexedDB: async (data, parameters) => {
+      return requestIndexedDB(
+        graphNodeEndpoint,
+        subgraphName,
+        databaseSource,
+        data,
+        parameters,
+      );
     },
 
     /**
