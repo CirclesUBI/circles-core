@@ -21,4 +21,3 @@ Use this checklist to create a new release of `circles-core` and publish the Nod
 1. Run `npm run build` to build a publishable version of the library in the `lib` folder.
 2. Make sure you have an [authenticated npm account](https://docs.npmjs.com/cli/v7/commands/npm-adduser) with permission to deploy the `@circles/core` package.
 3. Run `npm publish` to finally release the package on npm.
-
