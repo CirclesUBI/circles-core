@@ -49,14 +49,10 @@ export default function createTrustModule(web3, contracts, utils) {
 
       const safeAddress = options.safeAddress.toLowerCase();
 
-      const response = await utils.requestGraph({
-        query: `{
-          trusts(where: { userAddress: "${safeAddress}" }) {
-            id
-            limitPercentage
-          }
-        }`,
-      });
+      const response = await utils.requestIndexedDB(
+        'trust_network',
+        safeAddress,
+      );
 
       if (!response) {
         return {
@@ -98,28 +94,10 @@ export default function createTrustModule(web3, contracts, utils) {
 
       const safeAddress = options.safeAddress.toLowerCase();
 
-      const response = await utils.requestGraph({
-        query: `{
-          safe(id: "${safeAddress}") {
-            outgoing {
-              limitPercentage
-              userAddress
-              canSendToAddress
-            }
-            incoming {
-              limitPercentage
-              userAddress
-              user {
-                outgoing {
-                  canSendToAddress
-                  limitPercentage
-                }
-              }
-              canSendToAddress
-            }
-          }
-        }`,
-      });
+      const response = await utils.requestIndexedDB(
+        'trust_limits',
+        safeAddress,
+      );
 
       if (!response || response.safe === null) {
         // Fail silently with empty response / no trust connections when Safe

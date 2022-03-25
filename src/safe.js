@@ -314,13 +314,7 @@ export default function createSafeModule(web3, contracts, utils) {
         },
       });
 
-      const response = await utils.requestGraph({
-        query: `{
-          user(id: "${options.ownerAddress.toLowerCase()}") {
-            safeAddresses,
-          }
-        }`,
-      });
+      const response = await utils.requestIndexedDB('safe_addresses', options);
 
       if (!response || !response.user) {
         return [];

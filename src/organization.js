@@ -261,17 +261,7 @@ export default function createOrganizationModule(web3, contracts, utils) {
       const owners = await getOwners(web3, options.safeAddress);
 
       const promises = owners.map((ownerAddress) => {
-        return utils.requestGraph({
-          query: `{
-            user(id: "${ownerAddress.toLowerCase()}") {
-              id,
-              safes {
-                id
-                organization
-              }
-            }
-          }`,
-        });
+        return utils.requestIndexedDB('organization_status', ownerAddress);
       });
 
       const results = await Promise.all(promises);

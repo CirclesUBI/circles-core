@@ -25,6 +25,7 @@ export default class CirclesCore {
    * @param {Web3} web3 - instance of Web3
    * @param {Object} options - global core options
    * @param {string} options.apiServiceEndpoint - URL of the username resolver service
+   * @param {string} options.databaseSource - database source type
    * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
@@ -53,6 +54,9 @@ export default class CirclesCore {
         type: web3.utils.checkAddressChecksum,
       },
       graphNodeEndpoint: {
+        type: 'string',
+      },
+      databaseSource: {
         type: 'string',
       },
       apiServiceEndpoint: {
