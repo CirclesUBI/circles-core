@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.11] - 2022-03-25
+
+### Fixed
+
+- Add possibility to choose data layer[#105](https://github.com/CirclesUBI/circles-core/pull/105)
+- Update tests
+- Fix Git Actions
+
 ## [2.10.10] - 2021-06-02
 
 ### Fixed
