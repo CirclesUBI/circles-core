@@ -187,6 +187,22 @@ export default function createUserModule(web3, contracts, utils) {
         },
       });
 
+      // const apiResult = await utils.requestAPI({
+      //   path: ['users'],
+      //   data: {
+      //     query: options.query,
+      //   },
+      // });
+
+      // const moreInfo = apiResult.map( async (item) => {
+      //   const isOrg = await organization.isOrganization(item.safeAddress);
+      //   return {
+      //     ...item,
+      //     organization: isOrg,
+      //   }
+      // });
+      // //[{username}]
+
       return await utils.requestAPI({
         path: ['users'],
         data: {

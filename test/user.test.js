@@ -58,5 +58,14 @@ describe('User', () => {
 
       expect(result.data[0].username).toEqual(username);
     });
+    
+    // it('search result should include information that the user is not an organization', async () => {
+    //   const result = await core.user.search(account, {
+    //     query: username,
+    //   });
+    //   console.log('SEARCH RESULT: ', result);
+
+    //   expect(result.data[0].organization).toEqual(false);
+    // });
   });
 });
