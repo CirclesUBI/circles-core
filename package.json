@@ -22,26 +22,26 @@
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.11.6",
-    "@babel/plugin-proposal-class-properties": "^7.10.4",
-    "@babel/plugin-proposal-object-rest-spread": "^7.11.0",
-    "@babel/plugin-transform-runtime": "^7.11.5",
-    "@babel/preset-env": "^7.11.5",
+    "@babel/core": "^7.17.10",
+    "@babel/plugin-proposal-class-properties": "^7.16.7",
+    "@babel/plugin-proposal-object-rest-spread": "^7.17.3",
+    "@babel/plugin-transform-runtime": "^7.17.10",
+    "@babel/preset-env": "^7.17.10",
     "babel-eslint": "^10.1.0",
-    "babel-jest": "^26.5.2",
+    "babel-jest": "^26.6.3",
     "babel-plugin-add-module-exports": "^1.0.4",
-    "babel-plugin-module-resolver": "^4.0.0",
-    "cross-env": "^7.0.2",
-    "documentation": "^13.0.2",
-    "dotenv": "^8.2.0",
-    "eslint": "^7.11.0",
-    "eslint-config-prettier": "^6.12.0",
-    "eslint-plugin-prettier": "^3.1.4",
+    "babel-plugin-module-resolver": "^4.1.0",
+    "cross-env": "^7.0.3",
+    "documentation": "^13.2.5",
+    "dotenv": "^8.6.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-prettier": "^3.4.1",
     "isomorphic-fetch": "^3.0.0",
-    "jest": "^26.5.3",
-    "prettier": "^2.1.2",
+    "jest": "^26.6.3",
+    "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
-    "rollup": "^2.29.0",
+    "rollup": "^2.72.1",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-commonjs": "^10.1.0",
@@ -50,15 +50,15 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.4",
     "serialize-javascript": "^5.0.1",
-    "truffle": "^5.1.48",
-    "web3": "^1.7.0"
+    "truffle": "^5.5.13",
+    "web3": "^1.7.3"
   },
   "peerDependencies": {
     "isomorphic-fetch": "^3.0.0",
-    "web3": "^1.7.0"
+    "web3": "^1.7.3"
   },
   "dependencies": {
-    "@babel/runtime": "^7.11.2",
+    "@babel/runtime": "^7.17.9",
     "@circles/safe-contracts": "^1.0.17",
     "circles-contracts": "^2.3.1"
   }
