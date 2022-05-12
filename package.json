@@ -60,6 +60,7 @@
   "dependencies": {
     "@babel/runtime": "^7.11.2",
     "@circles/safe-contracts": "^1.0.17",
-    "circles-contracts": "^2.3.1"
+    "circles-contracts": "^2.3.1",
+    "web3-providers-ws": "^1.7.3"
   }
 }
