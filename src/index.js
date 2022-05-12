@@ -15,6 +15,8 @@ import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
+const DEFAULT_DATABASE_SOURCE = 'graph';
+
 /**
  * Base class of CirclesCore.
  */
@@ -58,6 +60,7 @@ export default class CirclesCore {
       },
       databaseSource: {
         type: 'string',
+        default: DEFAULT_DATABASE_SOURCE,
       },
       apiServiceEndpoint: {
         type: 'string',
