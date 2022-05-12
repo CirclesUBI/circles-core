@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.12] - 2022-05-12
+
+### Fixed
+
+- Add default value for `databaseSource` constructor param [#112](https://github.com/CirclesUBI/circles-core/pull/112) [#115](https://github.com/CirclesUBI/circles-core/pull/115)
+- Update dependencies [#114](https://github.com/CirclesUBI/circles-core/pull/114)
+
 ## [2.10.11] - 2022-03-25
 
 ### Fixed
