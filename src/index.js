@@ -15,7 +15,7 @@ import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
-const DEFAULT_DATABASE_SOURCE = 'graph';
+const DEFAULT_DATABASE_SOURCE = process.env.DATABASE_SOURCE;
 
 /**
  * Base class of CirclesCore.
