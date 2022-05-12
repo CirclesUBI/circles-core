@@ -32,7 +32,7 @@
     "babel-plugin-add-module-exports": "^1.0.4",
     "babel-plugin-module-resolver": "^4.0.0",
     "cross-env": "^7.0.2",
-    "documentation": "^13.0.2",
+    "documentation": "^13.2.5",
     "dotenv": "^8.2.0",
     "eslint": "^7.11.0",
     "eslint-config-prettier": "^6.12.0",
