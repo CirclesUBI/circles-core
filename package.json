@@ -50,7 +50,7 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.4",
     "serialize-javascript": "^5.0.1",
-    "truffle": "^5.1.48",
+    "truffle": "^5.5.13",
     "web3": "^1.7.0"
   },
   "peerDependencies": {
