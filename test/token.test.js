@@ -338,14 +338,14 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles('10')),
+          value: web3.utils.toBN(core.utils.toFreckles('5')),
         }),
       ).rejects.toThrow();
 
       const updateResult = await core.token.updateTransferSteps(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('10')),
+        value: web3.utils.toBN(core.utils.toFreckles('5')),
       });
       await wait(3000);
       expect(updateResult.updated).toBe(true);
@@ -354,7 +354,7 @@ describe('Token', () => {
       const response = await core.token.transfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('10')),
+        value: web3.utils.toBN(core.utils.toFreckles('5')),
       });
       expect(web3.utils.isHexStrict(response)).toBe(true);
     });
