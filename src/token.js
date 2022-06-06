@@ -58,6 +58,51 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
 }
 
 /**
+ * Update the transitive transfer steps from someone to someone for
+ * an amount of Circles.
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - search arguments
+ * @param {string} userOptions.from - sender Safe address
+ * @param {string} userOptions.to - receiver Safe address
+ * @param {BN} userOptions.value - value of Circles tokens
+ *
+ * @return {boolean} - steps are updated
+ */
+export async function updateTransitiveTransfer(web3, utils, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    value: {
+      type: web3.utils.isBN,
+    },
+  });
+
+  try {
+    const response = await utils.requestAPI({
+      path: ['transfers', 'update'],
+      method: 'POST',
+      data: {
+        from: options.from,
+        to: options.to,
+        value: options.value.toString(),
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
+  }
+}
+
+/**
  * UBI submodule to get current Token balance and send Circles to other users.
  *
  * @access private
@@ -291,6 +336,27 @@ export default function createTokenModule(web3, contracts, utils) {
     findTransitiveTransfer: async (account, userOptions) => {
       checkAccount(web3, account);
       return await findTransitiveTransfer(web3, utils, userOptions);
+    },
+
+    /**
+     * Update the transitive transfer steps from someone to someone for
+     * an amount of Circles.
+     *
+     * This method does not execute any real transactions.
+     *
+     * @namespace core.token.updateTransferSteps
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - search arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {BN} userOptions.value - value for transactions path
+     *
+     * @return {boolean} - steps are updated
+     */
+    updateTransferSteps: async (account, userOptions) => {
+      checkAccount(web3, account);
+      return await updateTransitiveTransfer(web3, utils, userOptions);
     },
 
     /**

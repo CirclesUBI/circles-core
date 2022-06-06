@@ -1,3 +1,6 @@
+import { execSync } from 'child_process';
+import fastJsonStringify from 'fast-json-stringify';
+
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
 import { ZERO_ADDRESS } from '~/common/constants';
@@ -25,6 +28,31 @@ const TEST_TRUST_NETWORK = [
   [4, 1, 10],
   [2, 5, 50], // Unidirectional
 ];
+
+async function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+const stringify = fastJsonStringify({
+  title: 'Circles Edges Schema',
+  type: 'array',
+  properties: {
+    from: {
+      type: 'string',
+    },
+    to: {
+      type: 'string',
+    },
+    token: {
+      type: 'string',
+    },
+    capacity: {
+      type: 'string',
+    },
+  },
+});
 
 async function deployTestNetwork(
   core,
@@ -278,6 +306,57 @@ describe('Token', () => {
           value: web3.utils.toBN('1'),
         }),
       ).rejects.toThrow();
+    });
+
+    it('should fail sending Circles when data error', async () => {
+      // Update the edges.json file simulating data error:
+      // Direct path does not exist between safeAddress 0 and 4,
+      // thus we create a false edge between safeAddress 0 and 4
+      await Promise.resolve().then(() => {
+        const edgesData = JSON.parse(
+          execSync(
+            `docker exec circles-api cat edges-data/edges.json`,
+          ).toString(),
+        );
+        edgesData.push({
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          token: safeAddresses[0],
+          capacity: '100',
+        });
+        // Add backslashes to scape the double quote symbol
+        const edgesDataString = stringify(edgesData).replace(/"/g, '\\"');
+        execSync(
+          `docker exec circles-api bash -c "echo '${edgesDataString}' > edges-data/edges.json"`,
+        );
+      });
+
+      // Then we perform the transfer expecting it to fail:
+      // Attempt to send an ammount which we know is higher
+      // than the allowed by the blockchain data
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value: web3.utils.toBN(core.utils.toFreckles('5')),
+        }),
+      ).rejects.toThrow();
+
+      const updateResult = await core.token.updateTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value: web3.utils.toBN(core.utils.toFreckles('5')),
+      });
+      await wait(3000);
+      expect(updateResult.updated).toBe(true);
+
+      // Only after updating the path, the transfer can succeed
+      const response = await core.token.transfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value: web3.utils.toBN(core.utils.toFreckles('5')),
+      });
+      expect(web3.utils.isHexStrict(response)).toBe(true);
     });
 
     describe('requestUBIPayout', () => {
