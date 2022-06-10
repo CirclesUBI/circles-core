@@ -82,7 +82,7 @@ jobs:
 
       - name: Run tests
         working-directory: circles-core
-        run: npm run test
+        run: npm run test-with-retries
 
       - name: Build
         working-directory: circles-core
