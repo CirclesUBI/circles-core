@@ -312,6 +312,7 @@ describe('Token', () => {
       // Update the edges.json file simulating data error:
       // Direct path does not exist between safeAddress 0 and 4,
       // thus we create a false edge between safeAddress 0 and 4
+      await wait(2000); // Wait 2 seconds for the resources to be ready
       await Promise.resolve().then(() => {
         const edgesData = JSON.parse(
           execSync(
