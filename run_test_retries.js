@@ -25,7 +25,6 @@ async function runTestsAndRetry(jestConfig, retriesRemaining) {
 
   // Decrement retries remaining and retry
   retriesRemaining = retriesRemaining - 1;
-  console.log(`Retrying failed tests. ${retriesRemaining} attempts remaining.`);
   return await runTestsAndRetry(jestConfig, retriesRemaining);
 }
 
