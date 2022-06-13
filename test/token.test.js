@@ -7,7 +7,7 @@ import { ZERO_ADDRESS } from '~/common/constants';
 
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop, { waitAndRetryOnFail } from './helpers/loop';
+import loop from './helpers/loop';
 import web3 from './helpers/web3';
 import {
   deploySafe,
@@ -312,26 +312,18 @@ describe('Token', () => {
       // Update the edges.json file simulating data error:
       // Direct path does not exist between safeAddress 0 and 4,
       // thus we create a false edge between safeAddress 0 and 4
-      await wait(2000); // Wait 2 seconds for the resources to be ready
-      const edgesData = await waitAndRetryOnFail(
-        async () => {
-          return await JSON.parse(
-            execSync(
-              `docker exec circles-api cat edges-data/edges.json`,
-            ).toString(),
-          );
-        },
-        async () => {
-          return true;
-        },
-      );
-      edgesData.push({
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        token: safeAddresses[0],
-        capacity: '100',
-      });
       await Promise.resolve().then(() => {
+        const edgesData = JSON.parse(
+          execSync(
+            `docker exec circles-api cat edges-data/edges.json`,
+          ).toString(),
+        );
+        edgesData.push({
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          token: safeAddresses[0],
+          capacity: '100',
+        });
         // Add backslashes to scape the double quote symbol
         const edgesDataString = stringify(edgesData).replace(/"/g, '\\"');
         execSync(
