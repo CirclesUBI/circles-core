@@ -9,6 +9,11 @@ import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
 import { formatTypedData, signTypedData } from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
+import {
+  convertTimeCirclesToCircles,
+  convertCirclesToTimeCircles,
+  displayBalance,
+} from '~/common/timeCircles';
 
 /** @access private */
 const transactionQueue = new TransactionQueue();
@@ -640,6 +645,49 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      */
     fromFreckles: (value) => {
       return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
+    },
+
+    /**
+     * Convert from CRC to TimeCircles.
+     *
+     * @namespace core.utils.convertCirclesToTimeCircles
+     *
+     * @param {string|number} value - value in Circles
+     * @param {string} date - timestamp of the timeCircles value
+     *
+     * @return {string} - value in timeCircles
+     */
+    convertCirclesToTimeCircles: (value, date) => {
+      return convertCirclesToTimeCircles(value, date);
+    },
+
+    /**
+     * Convert from TimeCircles to CRC.
+     *
+     * @namespace core.utils.convertTimeCirclesToCircles
+     *
+     * @param {string|number} value - value in timeCircles
+     * @param {string} date - timestamp of the timeCircles value
+     *
+     * @return {string} - value in Circles
+     */
+    convertTimeCirclesToCircles: (value, date) => {
+      return convertTimeCirclesToCircles(value, date);
+    },
+
+    /**
+     * Display balance in a specific currency.
+     *
+     * @namespace core.utils.displayBalance
+     *
+     * @param {string|number} value - value in timeCircles
+     * @param {string} currency - currency of the output ('CIRCLES' | 'TIME-CIRCLES' | 'EURO')
+     * @param {string} date - timestamp of the timeCircles value
+     *
+     * @return {string} - value in the selected currency
+     */
+    displayBalance: (value, currency, date) => {
+      return displayBalance(value, currency, date);
     },
 
     /**
