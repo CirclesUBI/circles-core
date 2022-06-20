@@ -1,3 +1,5 @@
+import { crcToTc } from '@circles/timecircles';
+
 import { ZERO_ADDRESS } from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
@@ -67,6 +69,7 @@ export default function createActivityModule(web3, contracts, utils) {
      * @param {number} userOptions.offset - pagination start index
      * @param {number} userOptions.timestamp - show only messages after this time
      * @param {symbol} userOptions.filter - optional filter for message types
+     * @param {boolean} userOptions.timeCircles - unit of the returned values: CRC or TC
      *
      * @return {Object} List of latest activities
      */
@@ -96,6 +99,10 @@ export default function createActivityModule(web3, contracts, utils) {
             );
           },
           default: ActivityFilterTypes.DISABLED,
+        },
+        timeCircles: {
+          type: 'boolean',
+          default: true,
         },
       });
 
@@ -147,7 +154,9 @@ export default function createActivityModule(web3, contracts, utils) {
             data = {
               from: web3.utils.toChecksumAddress(from),
               to: web3.utils.toChecksumAddress(to),
-              value: new web3.utils.BN(amount),
+              value: new web3.utils.BN(
+                options.timeCircles ? crcToTc(timestamp, amount) : amount,
+              ),
             };
           } else if (notification.type === TYPE_HUB_TRANSFER) {
             const { from, to, amount } = notification.hubTransfer;
@@ -156,7 +165,9 @@ export default function createActivityModule(web3, contracts, utils) {
             data = {
               from: web3.utils.toChecksumAddress(from),
               to: web3.utils.toChecksumAddress(to),
-              value: new web3.utils.BN(amount),
+              value: new web3.utils.BN(
+                options.timeCircles ? crcToTc(timestamp, amount) : amount,
+              ),
             };
           } else if (notification.type === TYPE_TRUST) {
             const { user, canSendTo, limitPercentage } = notification.trust;
