@@ -1,7 +1,7 @@
 import GnosisSafeContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
-import HubContract from 'circles-contracts/build/contracts/Hub.json';
+import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
 import ProxyFactoryContract from '@circles/safe-contracts/build/contracts/ProxyFactory.json';
-import TokenContract from 'circles-contracts/build/contracts/Token.json';
+import TokenContract from '@circles/circles-contracts/build/contracts/Token.json';
 
 /**
  * Helper method to get a deployed smart contract instance.
