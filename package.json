@@ -4,7 +4,11 @@
   "description": "Common methods to interact with the Circles ecosystem",
   "main": "lib/index.js",
   "contributors": [
-    "adzialocha"
+    "adzialocha",
+    "llunaCreixent",
+    "ana0",
+    "louilinn",
+    "mikozet"
   ],
   "license": "AGPL-3.0",
   "repository": {
