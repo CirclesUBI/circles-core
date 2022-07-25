@@ -1,5 +1,6 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
+import { deploySafe } from './helpers/transactions';
 
 let account;
 let core;
@@ -57,6 +58,26 @@ describe('User', () => {
       });
 
       expect(result.data[0].username).toEqual(username);
+    });
+
+    it('should be resolveable after changing username', async () => {
+      // Actually deploy the safe before trying to change the username
+      const safeAddressDeployed = await deploySafe(core, account);
+
+      const newUsername = 'dolfin';
+      expect(
+        await core.user.update(account, {
+          email,
+          safeAddress: safeAddressDeployed,
+          username: newUsername,
+        }),
+      ).toBe(true);
+
+      const first = await core.user.resolve(account, {
+        usernames: [newUsername],
+      });
+
+      expect(first.data[0].username).toEqual(newUsername);
     });
   });
 });
