@@ -29,7 +29,6 @@ export default class CirclesCore {
    * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
-   * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
    */
   constructor(web3, options) {
