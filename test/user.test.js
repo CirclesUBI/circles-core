@@ -1,6 +1,6 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import { deploySafe } from './helpers/transactions';
+import { deploySafeAndToken } from './helpers/transactions';
 
 let account;
 let core;
@@ -61,14 +61,14 @@ describe('User', () => {
     });
 
     it('should be resolveable after changing username', async () => {
-      // Actually deploy the safe before trying to change the username
-      const safeAddressDeployed = await deploySafe(core, account);
+      // The Safe must be deployed and signedup to the Hub before trying to change the username
+      const result = await deploySafeAndToken(core, account);
 
       const newUsername = 'dolfin';
       expect(
         await core.user.update(account, {
           email,
-          safeAddress: safeAddressDeployed,
+          safeAddress: result.safeAddress,
           username: newUsername,
         }),
       ).toBe(true);
