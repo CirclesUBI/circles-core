@@ -70,7 +70,7 @@ describe('User', () => {
       // The Safe must be deployed and signedup to the Hub before trying to change the username
       const result = await deploySafeAndToken(core, account);
 
-      await wait(2000); // wait for the subgraph to index the data
+      await wait(5000); // wait for the subgraph to index the data
       const newUsername = 'dolfin';
       expect(
         await core.user.update(account, {
