@@ -14,6 +14,7 @@ import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
+import createTransactionsModule from '~/transactions';
 
 /**
  * Base class of CirclesCore.
@@ -106,5 +107,7 @@ export default class CirclesCore {
     this.trust = createTrustModule(web3, this.contracts, this.utils);
     /** @type {Object} - user module */
     this.user = createUserModule(web3, this.contracts, this.utils);
+    /** @type {Object} - transactions module */
+    this.transactions = createTransactionsModule(web3, this.contracts);
   }
 }
