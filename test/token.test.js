@@ -1,5 +1,4 @@
 // import { execSync } from 'child_process';
-import fastJsonStringify from 'fast-json-stringify';
 // import json2csv from 'json2csv';
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
@@ -14,7 +13,7 @@ import {
   deploySafeAndToken,
   addTrustConnection,
 } from './helpers/transactions';
-
+import logger from '../src/logger';
 const TEST_TRUST_NETWORK = [
   [0, 1, 25],
   [1, 0, 50],
@@ -28,31 +27,6 @@ const TEST_TRUST_NETWORK = [
   [4, 1, 10],
   [2, 5, 50], // Unidirectional
 ];
-
-async function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-const stringify = fastJsonStringify({
-  title: 'Circles Edges Schema',
-  type: 'array',
-  properties: {
-    from: {
-      type: 'string',
-    },
-    to: {
-      type: 'string',
-    },
-    token: {
-      type: 'string',
-    },
-    capacity: {
-      type: 'string',
-    },
-  },
-});
 
 async function deployTestNetwork(
   core,
@@ -188,7 +162,9 @@ describe('Token', () => {
         to: safeAddresses[4],
         value,
       });
-
+      logger.info('find transitive transfer result' + result);
+      logger.info(safeAddresses[0]);
+      logger.info(safeAddresses[4]);
       expect(result.transferSteps.length).toBe(2);
 
       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
