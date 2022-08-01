@@ -71,7 +71,7 @@ describe('User', () => {
       const result = await deploySafeAndToken(core, account);
 
       await wait(5000); // wait for the subgraph to index the data
-      const newUsername = 'dolfin';
+      const newUsername = `dolfin${new Date().getTime()}`;
       expect(
         await core.user.update(account, {
           email,
