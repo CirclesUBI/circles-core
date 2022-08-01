@@ -72,13 +72,12 @@ describe('User', () => {
 
       await wait(10000); // wait for the subgraph to index the data
       const newUsername = `dolfin${new Date().getTime()}`;
-      expect(
-        await core.user.update(account, {
-          email,
-          safeAddress: result.safeAddress,
-          username: newUsername,
-        }),
-      ).toBe(true);
+      const updated = await core.user.update(account, {
+        email,
+        safeAddress: result.safeAddress,
+        username: newUsername,
+      });
+      expect(updated).toBe(true);
 
       const first = await core.user.resolve(account, {
         usernames: [newUsername],
