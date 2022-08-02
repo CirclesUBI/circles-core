@@ -9,12 +9,6 @@ let safeCreationNonce;
 let username;
 let email;
 
-async function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 beforeAll(async () => {
   account = getAccount();
   core = createCore();
@@ -70,14 +64,14 @@ describe('User', () => {
       // The Safe must be deployed and signedup to the Hub before trying to change the username
       const result = await deploySafeAndToken(core, account);
 
-      await wait(10000); // wait for the subgraph to index the data
       const newUsername = `dolfin${new Date().getTime()}`;
-      const updated = await core.user.update(account, {
-        email,
-        safeAddress: result.safeAddress,
-        username: newUsername,
-      });
-      expect(updated).toBe(true);
+      expect(
+        await core.user.update(account, {
+          email,
+          safeAddress: result.safeAddress,
+          username: newUsername,
+        }),
+      ).toBe(true);
 
       const first = await core.user.resolve(account, {
         usernames: [newUsername],
