@@ -171,7 +171,6 @@ describe('Token', () => {
       });
       console.log(safeAddresses);
       console.log(core.utils.toFreckles(1));
-
       expect(result.transferSteps.length).toBe(2);
       console.log(result.transferSteps);
       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
