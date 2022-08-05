@@ -70,6 +70,7 @@ describe('User', () => {
         await core.user.update(account, {
           safeAddress: result.safeAddress,
           username: newUsername,
+          email: '',
         }),
       ).toBe(true);
 

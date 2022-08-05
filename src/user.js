@@ -162,7 +162,8 @@ export default function createUserModule(web3, contracts, utils) {
       });
 
       const { address } = account;
-      const { avatarUrl, safeAddress, username, email } = options;
+      const { safeAddress, username, email, avatarUrl } = options;
+      console.log({ options });
 
       const { signature } = web3.eth.accounts.sign(
         [address, safeAddress, username].join(''),
@@ -176,9 +177,9 @@ export default function createUserModule(web3, contracts, utils) {
           address: account.address,
           signature,
           data: {
-            email,
             safeAddress,
             username,
+            email,
             avatarUrl,
           },
         },
