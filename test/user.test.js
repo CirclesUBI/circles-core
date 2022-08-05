@@ -60,14 +60,14 @@ describe('User', () => {
       expect(result.data[0].username).toEqual(username);
     });
 
-    it('should be resolveable after changing username', async () => {
+    it('should be resolveable after changing only username', async () => {
       // The Safe must be deployed and signedup to the Hub before trying to change the username
       const result = await deploySafeAndToken(core, account);
 
       const newUsername = `dolfin${new Date().getTime()}`;
       expect(
+        // email not provided
         await core.user.update(account, {
-          email,
           safeAddress: result.safeAddress,
           username: newUsername,
         }),
