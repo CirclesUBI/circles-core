@@ -169,10 +169,7 @@ describe('Token', () => {
         to: safeAddresses[4],
         value,
       });
-      console.log(safeAddresses);
-      console.log(core.utils.toFreckles(1));
       expect(result.transferSteps.length).toBe(2);
-      console.log(result.transferSteps);
       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
       expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
       expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
@@ -291,31 +288,13 @@ describe('Token', () => {
     });
 
     it('should fail sending Circles when data error', async () => {
-      // Update the edges.json file simulating data error:
+      // Update the edges.csv file simulating data error:
       // Direct path does not exist between safeAddress 0 and 4,
       // thus we create a false edge between safeAddress 0 and 4
       await Promise.resolve().then(() => {
-        // const jsonData = JSON.stringify({
-        //   from: safeAddresses[0],
-        //   to: safeAddresses[4],
-        //   token: safeAddresses[0],
-        //   capacity: '100',
-        // });
-        // const csv = json2csv.Parse(jsonData);
-        // console.log(csv);
-        const edgesData = execSync(
-          `docker exec circles-api cat edges-data/edges.csv`,
-        );
-        console.log(edgesData);
-        console.log(
-          execSync(`docker exec circles-api cat edges-data/edges.csv`),
-        );
-
-        // Add backslashes to scape the double quote symbol
         let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100`;
-
         execSync(
-          `docker exec circles-api bash -c "echo '${edgesCSVdata}' > edges-data/edges.csv"`,
+          `docker exec circles-api bash -c "echo '${edgesCSVdata}' >> edges-data/edges.csv" `,
         );
       });
 
@@ -326,7 +305,7 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles('5')),
+          value: web3.utils.toBN(core.utils.toFreckles('100000000')),
         }),
       ).rejects.toThrow();
 
