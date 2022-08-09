@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2022-08-09
+
+## Added
+
+- Add user methods: update user data, and get email [#130](https://github.com/CirclesUBI/circles-core/pull/130)
+
+### Changed
+
+- Update Contributors in package.json [#129](https://github.com/CirclesUBI/circles-core/pull/129)
+- Update CODEOWNERS [#132](https://github.com/CirclesUBI/circles-core/pull/132)
+
 ## [2.11.2] - 2022-07-08
 
 ### Changed
