@@ -127,6 +127,66 @@ export default function createUserModule(web3, contracts, utils) {
     },
 
     /**
+     * Update username, email address, and/or image url, connected (or not) to a deployed Safe address.
+     *
+     * @namespace core.user.update
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     * @param {string} userOptions.username - alphanumerical username
+     * @param {string} userOptions.email - email address
+     * @param {string} userOptions.avatarUrl - url of the avatar image
+     *
+     * @return {boolean} - Returns true when successful
+     */
+    update: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        username: {
+          type: 'string',
+          default: '',
+        },
+        email: {
+          type: 'string',
+          default: '',
+        },
+        avatarUrl: {
+          type: 'string',
+          default: '',
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress, username, email, avatarUrl } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress, username].join(''),
+        account.privateKey,
+      );
+
+      await utils.requestAPI({
+        path: ['users', safeAddress],
+        method: 'POST',
+        data: {
+          address: account.address,
+          signature,
+          data: {
+            safeAddress,
+            username,
+            email,
+            avatarUrl,
+          },
+        },
+      });
+
+      return true;
+    },
+
+    /**
      * Find multiple user entries by Safe address and username.
      *
      * @namespace core.user.resolve
@@ -193,6 +253,59 @@ export default function createUserModule(web3, contracts, utils) {
           query: options.query,
         },
       });
+    },
+
+    /**
+     * Get email of user.
+     *
+     * @namespace core.user.getEmail
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     * @param {string} userOptions.username - alphanumerical username
+     *
+     * @return {email} - Email of the user
+     */
+    getEmail: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress].join(''),
+        account.privateKey,
+      );
+
+      try {
+        const response = await utils.requestAPI({
+          path: ['users', safeAddress, 'email'],
+          method: 'POST',
+          data: {
+            address: account.address,
+            signature,
+          },
+        });
+
+        if (response && response.data && response.data.email) {
+          return response.data.email;
+        }
+      } catch (error) {
+        // Do nothing when not found or denied access ...
+        if (
+          !error.request ||
+          (error.request.status !== 404 && error.request.status !== 403)
+        ) {
+          throw error;
+        }
+      }
+      return null;
     },
   };
 }
