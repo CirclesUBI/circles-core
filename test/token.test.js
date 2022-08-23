@@ -1,6 +1,5 @@
 import { execSync } from 'child_process';
 
-//import json2csv from 'json2csv';
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
 import { ZERO_ADDRESS } from '~/common/constants';
