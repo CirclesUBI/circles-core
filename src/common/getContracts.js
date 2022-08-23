@@ -2,6 +2,8 @@ import GnosisSafeContract from '@circles/safe-contracts/build/contracts/GnosisSa
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
 import ProxyFactoryContract from '@circles/safe-contracts/build/contracts/ProxyFactory.json';
 import TokenContract from '@circles/circles-contracts/build/contracts/Token.json';
+import MultiSendContract from '@circles/safe-contracts/build/contracts/MultiSend.json';
+import MasterCopyContract from '@circles/safe-contracts/build/contracts/MasterCopy.json';
 
 /**
  * Helper method to get a deployed smart contract instance.
@@ -47,6 +49,20 @@ export function getTokenContract(web3, address) {
 }
 
 /**
+ * Returns deployed Gnosis Proxy Factory smart contract instance.
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} address - contract address
+ *
+ * @return {Object} - contract instance
+ */
+export function getProxyFactoryContract(web3, address) {
+  return getContract(web3, ProxyFactoryContract.abi, address);
+}
+
+/**
  * Helper method to get all required deployed contract instances.
  *
  * @access private
@@ -57,7 +73,13 @@ export function getTokenContract(web3, address) {
  * @return {Object} - contract instances
  */
 export default function getContracts(web3, options) {
-  const { safeMasterAddress, proxyFactoryAddress, hubAddress } = options;
+  const {
+    safeMasterAddress,
+    proxyFactoryAddress,
+    hubAddress,
+    masterCopyAddress,
+    multiSendAddress,
+  } = options;
 
   // Gnosis master Safe copy
   const safeMaster = getSafeContract(web3, safeMasterAddress);
@@ -72,9 +94,21 @@ export default function getContracts(web3, options) {
   // Circles Hub
   const hub = getContract(web3, HubContract.abi, hubAddress);
 
+  // Gnosis Multisend
+  const multiSend = getContract(web3, MultiSendContract.abi, multiSendAddress);
+
+  // Gnosis Master Copy
+  const masterCopy = getContract(
+    web3,
+    MasterCopyContract.abi,
+    masterCopyAddress,
+  );
+
   return {
     hub,
     proxyFactory,
     safeMaster,
+    multiSend,
+    masterCopy,
   };
 }

@@ -12,3 +12,5 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Maximum Wei value
 export const MAX_WEI = '99999999999999999999999';
+
+export const EMPTY_DATA = '0x';
