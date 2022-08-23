@@ -291,11 +291,12 @@ describe('Token', () => {
       // Direct path does not exist between safeAddress 0 and 4,
       // thus we create a false edge between safeAddress 0 and 4
       await Promise.resolve().then(() => {
-        let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100`;
+        let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100000000000000000000`;
         execSync(
           `docker exec circles-api bash -c "echo '${edgesCSVdata}' >> edges-data/edges.csv" `,
         );
       });
+      const valueToSend = '5';
 
       // Then we perform the transfer expecting it to fail:
       // Attempt to send an ammount which we know is higher
@@ -304,14 +305,14 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles('100000000')),
+          value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
         }),
       ).rejects.toThrow();
 
       const updateResult = await core.token.updateTransferSteps(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('5')),
+        value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
       });
       await wait(3000);
       expect(updateResult.updated).toBe(true);
@@ -320,7 +321,7 @@ describe('Token', () => {
       const response = await core.token.transfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('5')),
+        value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
       });
       expect(web3.utils.isHexStrict(response)).toBe(true);
     });
