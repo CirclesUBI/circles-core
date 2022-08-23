@@ -1,5 +1,4 @@
 import { execSync } from 'child_process';
-import fastJsonStringify from 'fast-json-stringify';
 
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
@@ -34,25 +33,6 @@ async function wait(ms) {
     setTimeout(resolve, ms);
   });
 }
-
-const stringify = fastJsonStringify({
-  title: 'Circles Edges Schema',
-  type: 'array',
-  properties: {
-    from: {
-      type: 'string',
-    },
-    to: {
-      type: 'string',
-    },
-    token: {
-      type: 'string',
-    },
-    capacity: {
-      type: 'string',
-    },
-  },
-});
 
 async function deployTestNetwork(
   core,
@@ -188,17 +168,15 @@ describe('Token', () => {
         to: safeAddresses[4],
         value,
       });
-
       expect(result.transferSteps.length).toBe(2);
-
       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-      expect(result.transferSteps[0].to).toBe(safeAddresses[1]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
       expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
       expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-      expect(result.transferSteps[1].from).toBe(safeAddresses[1]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
       expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
       expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[1]);
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
 
       // The `pathfinder` stops searching for max flow as soon as it found a
       // successful solution, therefore it returns a lower max flow than it
@@ -309,27 +287,16 @@ describe('Token', () => {
     });
 
     it('should fail sending Circles when data error', async () => {
-      // Update the edges.json file simulating data error:
+      // Update the edges.csv file simulating data error:
       // Direct path does not exist between safeAddress 0 and 4,
       // thus we create a false edge between safeAddress 0 and 4
       await Promise.resolve().then(() => {
-        const edgesData = JSON.parse(
-          execSync(
-            `docker exec circles-api cat edges-data/edges.json`,
-          ).toString(),
-        );
-        edgesData.push({
-          from: safeAddresses[0],
-          to: safeAddresses[4],
-          token: safeAddresses[0],
-          capacity: '100',
-        });
-        // Add backslashes to scape the double quote symbol
-        const edgesDataString = stringify(edgesData).replace(/"/g, '\\"');
+        let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100000000000000000000`;
         execSync(
-          `docker exec circles-api bash -c "echo '${edgesDataString}' > edges-data/edges.json"`,
+          `docker exec circles-api bash -c "echo '${edgesCSVdata}' >> edges-data/edges.csv" `,
         );
       });
+      const valueToSend = '5';
 
       // Then we perform the transfer expecting it to fail:
       // Attempt to send an ammount which we know is higher
@@ -338,14 +305,14 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles('5')),
+          value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
         }),
       ).rejects.toThrow();
 
       const updateResult = await core.token.updateTransferSteps(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('5')),
+        value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
       });
       await wait(3000);
       expect(updateResult.updated).toBe(true);
@@ -354,7 +321,7 @@ describe('Token', () => {
       const response = await core.token.transfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
-        value: web3.utils.toBN(core.utils.toFreckles('5')),
+        value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
       });
       expect(web3.utils.isHexStrict(response)).toBe(true);
     });
