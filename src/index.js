@@ -14,7 +14,6 @@ import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
-
 /**
  * Base class of CirclesCore.
  */
