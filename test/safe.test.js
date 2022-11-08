@@ -8,8 +8,8 @@ import {
   fundSafe,
 } from './helpers/transactions';
 
+// eslint-disable-next-line no-unused-vars
 import { SAFE_LAST_VERSION, SAFE_BASE_VERSION } from '~/common/constants';
-
 
 describe('Safe', () => {
   let core;

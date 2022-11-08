@@ -14,5 +14,5 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const MAX_WEI = '99999999999999999999999';
 
 // Safe versions
-export const SAFE_LAST_VERSION = '1.3.0'
-export const SAFE_BASE_VERSION = '1.1.1'
+export const SAFE_LAST_VERSION = '1.3.0';
+export const SAFE_BASE_VERSION = '1.1.1';

@@ -1,4 +1,11 @@
-import { SAFE_THRESHOLD, SENTINEL_ADDRESS, SAFE_LAST_VERSION, SAFE_BASE_VERSION } from '~/common/constants';
+import {
+  SAFE_THRESHOLD,
+  SENTINEL_ADDRESS,
+  // eslint-disable-next-line no-unused-vars
+  SAFE_LAST_VERSION,
+  // eslint-disable-next-line no-unused-vars
+  SAFE_BASE_VERSION,
+} from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
@@ -32,7 +39,7 @@ export async function getOwners(web3, safeAddress) {
  *
  * @return {string} - version of the Safe
  */
- export async function getVersion(web3, safeAddress) {
+export async function getVersion(web3, safeAddress) {
   // Get Safe at given address
   const safe = getSafeContract(web3, safeAddress);
 
