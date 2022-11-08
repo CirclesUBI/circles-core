@@ -813,7 +813,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
-
+      const chainId = await web3.eth.getChainId();
       // Prepare EIP712 transaction data and sign it
       const typedData = formatTypedData(
         to,
@@ -826,6 +826,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         gasToken,
         refundReceiver,
         nonce,
+        chainId,
         safeAddress,
       );
 
