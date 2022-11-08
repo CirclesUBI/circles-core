@@ -953,7 +953,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
       // Get the chainId from the network
-      const chainId = await web3.eth.getChainId()
+      const chainId = await web3.eth.getChainId();
 
       // Prepare EIP712 transaction data and sign it
       const typedData = formatTypedData(

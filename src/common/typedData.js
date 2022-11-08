@@ -18,7 +18,7 @@ export function formatTypedData(
   return {
     types: {
       EIP712Domain: [
-        { type: "uint256", name: "chainId" },
+        { type: 'uint256', name: 'chainId' },
         { type: 'address', name: 'verifyingContract' },
       ],
       SafeTx: [
