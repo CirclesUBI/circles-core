@@ -8,6 +8,9 @@ import {
   fundSafe,
 } from './helpers/transactions';
 
+import { SAFE_LAST_VERSION, SAFE_BASE_VERSION } from '~/common/constants';
+
+
 describe('Safe', () => {
   let core;
   let accounts;
@@ -230,6 +233,22 @@ describe('Safe', () => {
 
       expect(owners[0]).toBe(accounts[0].address);
       expect(owners.length).toBe(1);
+    });
+  });
+
+  describe('when I want to update the Safe version', () => {
+    let safeAddress;
+
+    beforeAll(async () => {
+      const result = await deploySafeAndToken(core, accounts[0]);
+      safeAddress = result.safeAddress;
+    });
+
+    it('I should get the last version by default', async () => {
+      const version = await core.safe.getVersion(accounts[0], {
+        safeAddress,
+      });
+      expect(version).toBe(SAFE_LAST_VERSION);
     });
   });
 });

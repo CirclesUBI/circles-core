@@ -1,4 +1,4 @@
-import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
+import { SAFE_THRESHOLD, SENTINEL_ADDRESS, SAFE_LAST_VERSION, SAFE_BASE_VERSION } from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
@@ -20,6 +20,24 @@ export async function getOwners(web3, safeAddress) {
 
   // Call 'getOwners' method and return list of owners
   return await safe.methods.getOwners().call();
+}
+
+/**
+ * Helper method to get the Safe version.
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {string} safeAddress
+ *
+ * @return {string} - version of the Safe
+ */
+ export async function getVersion(web3, safeAddress) {
+  // Get Safe at given address
+  const safe = getSafeContract(web3, safeAddress);
+
+  // Call 'VERSION' method and return it
+  return await safe.methods.VERSION().call();
 }
 
 /**
@@ -437,6 +455,29 @@ export default function createSafeModule(web3, contracts, utils) {
         to: options.safeAddress,
         txData,
       });
+    },
+
+    /**
+     * Get Safe version.
+     *
+     * @namespace core.safe.getVersion
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
+     *
+     * @return {string} - transaction hash
+     */
+    getVersion: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      return await getVersion(web3, options.safeAddress);
     },
   };
 }
