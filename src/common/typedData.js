@@ -12,11 +12,15 @@ export function formatTypedData(
   gasToken,
   refundReceiver,
   nonce,
+  chainId,
   verifyingContract,
 ) {
   return {
     types: {
-      EIP712Domain: [{ type: 'address', name: 'verifyingContract' }],
+      EIP712Domain: [
+        { type: "uint256", name: "chainId" },
+        { type: 'address', name: 'verifyingContract' },
+      ],
       SafeTx: [
         { type: 'address', name: 'to' },
         { type: 'uint256', name: 'value' },
@@ -31,6 +35,7 @@ export function formatTypedData(
       ],
     },
     domain: {
+      chainId,
       verifyingContract,
     },
     primaryType: 'SafeTx',
