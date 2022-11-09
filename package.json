@@ -65,7 +65,7 @@
   "dependencies": {
     "@babel/runtime": "^7.18.6",
     "@circles/circles-contracts": "^3.0.1",
-    "@circles/safe-contracts": "^1.0.17",
+    "@circles/safe-contracts": "=1.0.14",
     "@gnosis.pm/safe-contracts": "^1.3.0"
   }
 }
