@@ -247,7 +247,10 @@ describe('Safe', () => {
 
       // Deploy a Safe with the CRC version
       ownerCRCVersion = getAccount(8);
-      CRCVersionSafeAddress = await deployCRCVersionSafe(accounts[0], ownerCRCVersion)
+      CRCVersionSafeAddress = await deployCRCVersionSafe(
+        accounts[0],
+        ownerCRCVersion,
+      );
     });
 
     it('I should get the last version by default', async () => {
