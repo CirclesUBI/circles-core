@@ -6,9 +6,10 @@ import {
   addTrustConnection,
   deploySafeAndToken,
   fundSafe,
+  deployCRCVersionSafe,
 } from './helpers/transactions';
 
-import { SAFE_LAST_VERSION } from '~/common/constants';
+import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
 
 describe('Safe', () => {
   let core;
@@ -237,10 +238,16 @@ describe('Safe', () => {
 
   describe('when I want to update the Safe version', () => {
     let safeAddress;
+    let ownerCRCVersion;
+    let CRCVersionSafeAddress;
 
     beforeAll(async () => {
       const result = await deploySafeAndToken(core, accounts[0]);
       safeAddress = result.safeAddress;
+
+      // Deploy a Safe with the CRC version
+      ownerCRCVersion = getAccount(8);
+      CRCVersionSafeAddress = await deployCRCVersionSafe(accounts[0], ownerCRCVersion)
     });
 
     it('I should get the last version by default', async () => {
@@ -248,6 +255,13 @@ describe('Safe', () => {
         safeAddress,
       });
       expect(version).toBe(SAFE_LAST_VERSION);
+    });
+
+    it('I should get the CRC version when I deploy with CRC version contracts', async () => {
+      const version = await core.safe.getVersion(accounts[0], {
+        safeAddress: CRCVersionSafeAddress,
+      });
+      expect(version).toBe(SAFE_CRC_VERSION);
     });
   });
 });

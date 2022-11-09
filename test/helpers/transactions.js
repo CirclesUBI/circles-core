@@ -1,5 +1,10 @@
+const Safe = require('@circles/safe-contracts/build/contracts/GnosisSafe.json');
+const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
+
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
+import { ZERO_ADDRESS } from '~/common/constants';
+
 
 const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.01', 'ether');
 
@@ -89,4 +94,33 @@ export async function addSafeOwner(core, account, userOptions) {
   );
 
   return transactionHash;
+}
+
+
+export async function deployCRCVersionSafe(account, owner) {
+
+  // Get the CRC version contracts contract
+  const safeContract = new web3.eth.Contract(Safe.abi, process.env.SAFE_CONTRACT_ADDRESS_CRC);
+  const proxyFactoryContract = new web3.eth.Contract(ProxyFactory.abi, process.env.PROXY_FACTORY_ADDRESS_CRC);
+
+  const gnosisSafeData = await safeContract.methods
+    .setup(
+        [owner.address],
+        1,
+        ZERO_ADDRESS,
+        '0x',
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        0,
+        ZERO_ADDRESS,
+    ).encodeABI();
+
+  const proxyCreated = await proxyFactoryContract.methods
+    .createProxy(safeContract.options.address, gnosisSafeData)
+    .send({
+      from: account.address,
+      gas: 10000000,
+    });
+
+  return proxyCreated.events['ProxyCreation'].returnValues['proxy'];
 }
