@@ -1,11 +1,4 @@
-import {
-  SAFE_THRESHOLD,
-  SENTINEL_ADDRESS,
-  // eslint-disable-next-line no-unused-vars
-  SAFE_LAST_VERSION,
-  // eslint-disable-next-line no-unused-vars
-  SAFE_BASE_VERSION,
-} from '~/common/constants';
+import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
