@@ -1,5 +1,5 @@
 const Safe = require('@circles/safe-contracts/build/contracts/GnosisSafe.json');
-const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
+const ProxyFactory = require('@circles/safe-contracts/build/contracts/GnosisSafeProxyFactory.json');
 
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
