@@ -6,7 +6,7 @@
     "node": true
   },
   "extends": ["eslint:recommended", "plugin:prettier/recommended"],
-  "parser": "babel-eslint",
+  "parser": "@babel/eslint-parser",
   "plugins": ["prettier"],
   "rules": {
     "no-console": "error"
