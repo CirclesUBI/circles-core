@@ -1,5 +1,5 @@
 const Safe = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
-const ProxyFactory = require('@circles/safe-contracts/build/contracts/GnosisSafeProxyFactory.json');
+const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
 
 import { formatTypedData, signTypedData } from './typedData.js';
 import loop, { getTrustConnection, isReady } from './loop';
@@ -132,44 +132,44 @@ export async function deployCRCVersionSafe(account, owner) {
 
 async function execTransaction(account, safeInstance, { to, from, value = 0, txData }) {
   const operation = 0; // CALL
-    const safeTxGas = '1239215'; // based on data // @TODO: CHANGE
-    const baseGas = '1239215'; // general transaction // @TODO: CHANGE
-    const gasPrice = 0; // no refund
-    const gasToken = ZERO_ADDRESS; // Paying in Eth
-    const refundReceiver = ZERO_ADDRESS;
-    const nonce = await safeInstance.methods.nonce().call();
-    const safeAddress = safeInstance.options.address;
+  const safeTxGas = '1239215'; // based on data // @TODO: CHANGE
+  const baseGas = '1239215'; // general transaction // @TODO: CHANGE
+  const gasPrice = 0; // no refund
+  const gasToken = ZERO_ADDRESS; // Paying in Eth
+  const refundReceiver = ZERO_ADDRESS;
+  const nonce = await safeInstance.methods.nonce().call();
+  const safeAddress = safeInstance.options.address;
 
-    const typedData = formatTypedData({
-        to,
-        value,
-        txData,
-        operation,
-        safeTxGas,
-        baseGas,
-        gasPrice,
-        gasToken,
-        refundReceiver,
-        nonce,
-        verifyingContract: safeAddress,
-    });
-    const signature = signTypedData(account.privateKey, typedData);
-    const signatures = signature;
+  const typedData = formatTypedData({
+      to,
+      value,
+      txData,
+      operation,
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      refundReceiver,
+      nonce,
+      verifyingContract: safeAddress,
+  });
+  const signature = signTypedData(account.privateKey, typedData);
+  const signatures = signature;
 
-    return await safeInstance.methods
-        .execTransaction(
-        to,
-        value,
-        txData,
-        operation,
-        safeTxGas,
-        baseGas,
-        gasPrice,
-        gasToken,
-        refundReceiver,
-        signatures,
-        )
-        .send({ from, gas: '10000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
+  return await safeInstance.methods
+      .execTransaction(
+      to,
+      value,
+      txData,
+      operation,
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      refundReceiver,
+      signatures,
+      )
+      .send({ from, gas: '10000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
 }
 
 export async function deployCRCVersionToken(web3, account, safe, hub) {
