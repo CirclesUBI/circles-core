@@ -124,7 +124,6 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
   const variables =
     Object.keys(options.variables).length === 0 ? undefined : options.variables;
 
-    console.log({query});
   const response = await request(endpoint, {
     path: ['subgraphs', 'name', subgraphName],
     method: 'POST',

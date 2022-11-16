@@ -96,7 +96,46 @@ export async function addSafeOwner(core, account, userOptions) {
   return transactionHash;
 }
 
+const signAndSendRawTransaction = async (account, to, data, gas=0) => {
+  const nonce = await web3.eth.getTransactionCount(account.address, 'pending')
+  const payload = {
+    nonce,
+    data,
+    from: account.address,
+    to,
+    gas: 10000000,
+    gasPrice: 0x3B9ACA00,
+    value: 0,
+  };
+  if (gas == 0) {
+    payload.gas = await web3.eth.estimateGas(payload);
+  } else {
+    payload.gas = gas;
+  }
+
+  const signedTx = await web3.eth.accounts.signTransaction(payload, account.privateKey);
+  const { rawTransaction } = signedTx;
+
+  return web3.eth.sendSignedTransaction(rawTransaction);
+};
+
+const createSafeWithProxy = async (proxy, safe, owner) => {
+  const proxyData = safe.methods.setup([owner.address], 1, ZERO_ADDRESS, '0x', ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS)
+    .encodeABI();
+
+  const data = proxy.methods.createProxy(safe.options.address, proxyData).encodeABI();
+
+  const tx = await signAndSendRawTransaction(owner, proxy.options.address, data)
+
+  const { logs } = tx;
+
+  const userSafeAddress = `0x${logs[1].data.substring(26, 66)}`;
+
+  return new web3.eth.Contract(Safe.abi, userSafeAddress);
+};
+
 export async function deployCRCVersionSafe(account, owner) {
+
   // Get the CRC version contracts contract
   const safeContract = new web3.eth.Contract(
     Safe.abi,
@@ -107,27 +146,30 @@ export async function deployCRCVersionSafe(account, owner) {
     process.env.PROXY_FACTORY_ADDRESS_CRC,
   );
 
-  const gnosisSafeData = await safeContract.methods
-    .setup(
-      [owner.address],
-      1,
-      ZERO_ADDRESS,
-      '0x',
-      ZERO_ADDRESS,
-      ZERO_ADDRESS,
-      0,
-      ZERO_ADDRESS,
-    )
-    .encodeABI();
 
-  const proxyCreated = await proxyFactoryContract.methods
-    .createProxy(safeContract.options.address, gnosisSafeData)
-    .send({
-      from: account.address,
-      gas: 10000000,
-    });
+  return await createSafeWithProxy(proxyFactoryContract, safeContract, owner)
 
-  return proxyCreated.events['ProxyCreation'].returnValues['proxy'];
+  // const gnosisSafeData = await safeContract.methods
+  //   .setup(
+  //     [owner.address],
+  //     1,
+  //     ZERO_ADDRESS,
+  //     '0x',
+  //     ZERO_ADDRESS,
+  //     ZERO_ADDRESS,
+  //     0,
+  //     ZERO_ADDRESS,
+  //   )
+  //   .encodeABI();
+
+  // const proxyCreated = await proxyFactoryContract.methods
+  //   .createProxy(safeContract.options.address, gnosisSafeData)
+  //   .send({
+  //     from: account.address,
+  //     gas: 10000000,
+  //   });
+
+  // return proxyCreated.events['ProxyCreation'].returnValues['proxy'];
 }
 
 async function execTransaction(account, safeInstance, { to, from, value = 0, txData }) {
