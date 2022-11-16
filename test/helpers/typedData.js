@@ -1,77 +1,26 @@
-import * as EthLibAccount from 'eth-lib/lib/account';
+// Copied from circles-core src/common/
+import { sign } from 'eth-lib/lib/account';
+
+import web3 from 'web3';
+import Web3EthAbi from 'web3-eth-abi'; 
 
 // Format transaction hash data for signing.
-export function formatTypedData(
+export function formatTypedData({
   to,
   value,
-  data,
+  txData,
   operation,
   safeTxGas,
-  dataGas,
-  gasPrice,
-  gasToken,
-  refundReceiver,
-  nonce,
-  chainId,
-  verifyingContract,
-) {
-  return {
-    types: {
-      EIP712Domain: [
-        { type: 'uint256', name: 'chainId' },
-        { type: 'address', name: 'verifyingContract' },
-      ],
-      SafeTx: [
-        { type: 'address', name: 'to' },
-        { type: 'uint256', name: 'value' },
-        { type: 'bytes', name: 'data' },
-        { type: 'uint8', name: 'operation' },
-        { type: 'uint256', name: 'safeTxGas' },
-        { type: 'uint256', name: 'baseGas' },
-        { type: 'uint256', name: 'gasPrice' },
-        { type: 'address', name: 'gasToken' },
-        { type: 'address', name: 'refundReceiver' },
-        { type: 'uint256', name: 'nonce' },
-      ],
-    },
-    domain: {
-      chainId,
-      verifyingContract,
-    },
-    primaryType: 'SafeTx',
-    message: {
-      to,
-      value,
-      data,
-      operation,
-      safeTxGas,
-      baseGas: dataGas,
-      gasPrice,
-      gasToken,
-      refundReceiver,
-      nonce,
-    },
-  };
-}
-
-export function formatTypedDataCRCVersion(
-  to,
-  value,
-  data,
-  operation,
-  safeTxGas,
-  dataGas,
+  baseGas,
   gasPrice,
   gasToken,
   refundReceiver,
   nonce,
   verifyingContract,
-) {
+}) {
   return {
     types: {
-      EIP712Domain: [
-        { type: 'address', name: 'verifyingContract' },
-      ],
+      EIP712Domain: [{ type: 'address', name: 'verifyingContract' }],
       SafeTx: [
         { type: 'address', name: 'to' },
         { type: 'uint256', name: 'value' },
@@ -92,17 +41,17 @@ export function formatTypedDataCRCVersion(
     message: {
       to,
       value,
-      data,
+      data: txData,
       operation,
       safeTxGas,
-      baseGas: dataGas,
+      baseGas,
       gasPrice,
       gasToken,
       refundReceiver,
       nonce,
     },
   };
-}
+};
 
 function dependencies(typedData, primaryType, found = []) {
   if (found.includes(primaryType)) {
@@ -142,16 +91,16 @@ function encodeType(typedData, primaryType) {
   return result;
 }
 
-function typeHash(web3, typedData, primaryType) {
+function typeHash(typedData, primaryType) {
   return web3.utils.keccak256(encodeType(typedData, primaryType));
 }
 
-function encodeData(web3, typedData, primaryType, data) {
+function encodeData(typedData, primaryType, data) {
   let types = [];
   let values = [];
 
   types.push('bytes32');
-  values.push(typeHash(web3, typedData, primaryType));
+  values.push(typeHash(typedData, primaryType));
 
   for (let field of typedData.types[primaryType]) {
     let value = data[field.name];
@@ -161,7 +110,7 @@ function encodeData(web3, typedData, primaryType, data) {
       value = web3.utils.keccak256(value);
     } else if (typedData.types[field.type] !== undefined) {
       types.push('bytes32');
-      const test = encodeData(web3, typedData, field.type, data[field.name]);
+      const test = encodeData(typedData, field.type, data[field.name]);
       value = web3.utils.keccak256(test);
     } else {
       types.push(field.type);
@@ -170,30 +119,23 @@ function encodeData(web3, typedData, primaryType, data) {
     values.push(value);
   }
 
-  return web3.eth.abi.encodeParameters(types, values);
+  return Web3EthAbi.encodeParameters(types, values);
 }
 
-function structHash(web3, typedData, primaryType, data) {
-  const hash = encodeData(web3, typedData, primaryType, data);
+function structHash(typedData, primaryType, data) {
+  const hash = encodeData(typedData, primaryType, data);
   return web3.utils.keccak256(hash).slice(2);
 }
 
 // Hash and sign EIP 712 transaction for relayer.
-export function signTypedData(web3, privateKey, typedData) {
+export function signTypedData(privateKey, typedData) {
   const typedDataHash = web3.utils.keccak256(
     [
       '0x1901',
-      structHash(web3, typedData, 'EIP712Domain', typedData.domain),
-      structHash(web3, typedData, typedData.primaryType, typedData.message),
+      structHash(typedData, 'EIP712Domain', typedData.domain),
+      structHash(typedData, typedData.primaryType, typedData.message),
     ].join(''),
   );
 
-  const signature = EthLibAccount.sign(typedDataHash, privateKey);
-  const vrs = EthLibAccount.decodeSignature(signature);
-
-  return {
-    r: web3.utils.toBN(vrs[1]).toString(10),
-    s: web3.utils.toBN(vrs[2]).toString(10),
-    v: web3.utils.toDecimal(vrs[0]),
-  };
+  return sign(typedDataHash, privateKey);
 }
