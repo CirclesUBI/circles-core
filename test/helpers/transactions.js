@@ -1,4 +1,4 @@
-const Safe = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
+const Safe = require('@circles/safe-contracts/build/contracts/GnosisSafe.json');
 const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
 
 import { formatTypedData, signTypedData } from './typedData.js';
