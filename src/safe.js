@@ -505,6 +505,7 @@ export default function createSafeModule(web3, contracts, utils, globalOptions) 
 
       const safeVersion = await getVersion(web3, options.safeAddress);
       let txHashChangeMasterCopy;
+      let txHashFallbackHandler;
 
       if (safeVersion != SAFE_LAST_VERSION){
         // References:
@@ -517,7 +518,7 @@ export default function createSafeModule(web3, contracts, utils, globalOptions) 
         // First we change the Master Copy to v1.3.0
         // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
         const updateSafeTxData = safeInstance.methods.changeMasterCopy(safeMaster.options.address).encodeABI();
-        const txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
+        txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
           safeAddress: options.safeAddress,
           to: options.safeAddress,
           txData: updateSafeTxData,
@@ -529,13 +530,13 @@ export default function createSafeModule(web3, contracts, utils, globalOptions) 
 
         // Then we setup the fallbackHandler
         const fallbackHandlerTxData = safeInstance.methods.setFallbackHandler(fallbackHandlerAddress).encodeABI();
-        await utils.executeTokenSafeTx(account, {
+        txHashFallbackHandler = await utils.executeTokenSafeTx(account, {
           safeAddress: options.safeAddress,
           to: options.safeAddress,
           txData: fallbackHandlerTxData,
         });
       }
-      return txHashChangeMasterCopy;
+      return { txHashChangeMasterCopy, txHashFallbackHandler };
     },
   };
 }
