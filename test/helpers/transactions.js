@@ -1,9 +1,9 @@
 const Safe = require('@circles/safe-contracts/build/contracts/GnosisSafe.json');
 const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
 
-import { formatTypedData, signTypedData } from './typedData.js';
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
+import { formatTypedDataCRCVersion, signTypedData } from '~/common/typedData';
 import { ZERO_ADDRESS } from '~/common/constants';
 
 const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.01', 'ether');
@@ -96,15 +96,15 @@ export async function addSafeOwner(core, account, userOptions) {
   return transactionHash;
 }
 
-const signAndSendRawTransaction = async (account, to, data, gas=0) => {
-  const nonce = await web3.eth.getTransactionCount(account.address, 'pending')
+const signAndSendRawTransaction = async (account, to, data, gas = 10000000) => {
+  const nonce = await web3.eth.getTransactionCount(account.address, 'pending');
   const payload = {
     nonce,
     data,
     from: account.address,
     to,
-    gas: 10000000,
-    gasPrice: 0x3B9ACA00,
+    gas,
+    gasPrice: '0x3b9aca00',
     value: 0,
   };
   if (gas == 0) {
@@ -113,19 +113,38 @@ const signAndSendRawTransaction = async (account, to, data, gas=0) => {
     payload.gas = gas;
   }
 
-  const signedTx = await web3.eth.accounts.signTransaction(payload, account.privateKey);
+  const signedTx = await web3.eth.accounts.signTransaction(
+    payload,
+    account.privateKey,
+  );
   const { rawTransaction } = signedTx;
 
   return web3.eth.sendSignedTransaction(rawTransaction);
 };
 
 const createSafeWithProxy = async (proxy, safe, owner) => {
-  const proxyData = safe.methods.setup([owner.address], 1, ZERO_ADDRESS, '0x', ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS)
+  const proxyData = safe.methods
+    .setup(
+      [owner.address],
+      1,
+      ZERO_ADDRESS,
+      '0x',
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      0,
+      ZERO_ADDRESS,
+    )
     .encodeABI();
 
-  const data = proxy.methods.createProxy(safe.options.address, proxyData).encodeABI();
+  const data = proxy.methods
+    .createProxy(safe.options.address, proxyData)
+    .encodeABI();
 
-  const tx = await signAndSendRawTransaction(owner, proxy.options.address, data)
+  const tx = await signAndSendRawTransaction(
+    owner,
+    proxy.options.address,
+    data,
+  );
 
   const { logs } = tx;
 
@@ -135,7 +154,6 @@ const createSafeWithProxy = async (proxy, safe, owner) => {
 };
 
 export async function deployCRCVersionSafe(account, owner) {
-
   // Get the CRC version contracts contract
   const safeContract = new web3.eth.Contract(
     Safe.abi,
@@ -146,33 +164,15 @@ export async function deployCRCVersionSafe(account, owner) {
     process.env.PROXY_FACTORY_ADDRESS_CRC,
   );
 
-
-  return await createSafeWithProxy(proxyFactoryContract, safeContract, owner)
-
-  // const gnosisSafeData = await safeContract.methods
-  //   .setup(
-  //     [owner.address],
-  //     1,
-  //     ZERO_ADDRESS,
-  //     '0x',
-  //     ZERO_ADDRESS,
-  //     ZERO_ADDRESS,
-  //     0,
-  //     ZERO_ADDRESS,
-  //   )
-  //   .encodeABI();
-
-  // const proxyCreated = await proxyFactoryContract.methods
-  //   .createProxy(safeContract.options.address, gnosisSafeData)
-  //   .send({
-  //     from: account.address,
-  //     gas: 10000000,
-  //   });
-
-  // return proxyCreated.events['ProxyCreation'].returnValues['proxy'];
+  return await createSafeWithProxy(proxyFactoryContract, safeContract, owner);
 }
 
-async function execTransaction(account, safeInstance, { to, from, value = 0, txData }) {
+async function execTransaction(
+  web3,
+  account,
+  safeInstance,
+  { to, from, value = 0, txData },
+) {
   const operation = 0; // CALL
   const safeTxGas = '1239215'; // based on data // @TODO: CHANGE
   const baseGas = '1239215'; // general transaction // @TODO: CHANGE
@@ -182,24 +182,24 @@ async function execTransaction(account, safeInstance, { to, from, value = 0, txD
   const nonce = await safeInstance.methods.nonce().call();
   const safeAddress = safeInstance.options.address;
 
-  const typedData = formatTypedData({
-      to,
-      value,
-      txData,
-      operation,
-      safeTxGas,
-      baseGas,
-      gasPrice,
-      gasToken,
-      refundReceiver,
-      nonce,
-      verifyingContract: safeAddress,
+  const typedData = formatTypedDataCRCVersion({
+    to,
+    value,
+    txData,
+    operation,
+    safeTxGas,
+    baseGas,
+    gasPrice,
+    gasToken,
+    refundReceiver,
+    nonce,
+    verifyingContract: safeAddress,
   });
-  const signature = signTypedData(account.privateKey, typedData);
+  const signature = signTypedData(web3, account.privateKey, typedData);
   const signatures = signature;
 
   return await safeInstance.methods
-      .execTransaction(
+    .execTransaction(
       to,
       value,
       txData,
@@ -210,18 +210,16 @@ async function execTransaction(account, safeInstance, { to, from, value = 0, txD
       gasToken,
       refundReceiver,
       signatures,
-      )
-      .send({ from, gas: '10000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
+    )
+    .send({ from, gas: '10000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
 }
 
 export async function deployCRCVersionToken(web3, account, safe, hub) {
-  await execTransaction(account, safe, {
+  await execTransaction(web3, account, safe, {
     to: hub.options.address,
     from: account.address,
     txData: hub.methods.signup().encodeABI(),
   });
 
-  return await hub.methods
-    .userToToken(safe.options.address)
-    .call();
+  return await hub.methods.userToToken(safe.options.address).call();
 }

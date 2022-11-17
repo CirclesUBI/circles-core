@@ -10,8 +10,12 @@ import {
   deployCRCVersionToken,
 } from './helpers/transactions';
 
-import { SAFE_LAST_VERSION, SAFE_CRC_VERSION, ZERO_ADDRESS } from '~/common/constants';
-import getContracts, { getSafeCRCVersionContract } from '~/common/getContracts';
+import {
+  SAFE_LAST_VERSION,
+  SAFE_CRC_VERSION,
+  ZERO_ADDRESS,
+} from '~/common/constants';
+import getContracts from '~/common/getContracts';
 
 describe('Safe', () => {
   let core;
@@ -245,9 +249,7 @@ describe('Safe', () => {
     let CRCVersionSafeInstance;
     let contracts;
 
-
     beforeAll(async () => {
-
       // Deploy new version (v1.3.0)
       const result = await deploySafeAndToken(core, accounts[0]);
       safeAddress = result.safeAddress;
@@ -261,16 +263,20 @@ describe('Safe', () => {
       });
       const { hub } = contracts;
 
-
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
       ownerCRCVersion = getAccount(8);
-      CRCVersionSafeInstance = await deployCRCVersionSafe(accounts[0], ownerCRCVersion);
+      CRCVersionSafeInstance = await deployCRCVersionSafe(
+        accounts[0],
+        ownerCRCVersion,
+      );
       CRCVersionSafeAddress = CRCVersionSafeInstance.options.address;
       await fundSafe(accounts[0], CRCVersionSafeAddress);
-      await deployCRCVersionToken(web3, ownerCRCVersion, CRCVersionSafeInstance, hub);
-      const ownersList = await core.safe.getOwners(accounts[0], {
-        safeAddress: CRCVersionSafeAddress,
-      });
+      await deployCRCVersionToken(
+        web3,
+        ownerCRCVersion,
+        CRCVersionSafeInstance,
+        hub,
+      );
     });
 
     it('I should get the last version by default', async () => {
@@ -288,9 +294,10 @@ describe('Safe', () => {
     });
 
     it('I should get the last version when update the Safe version of a deployed Safe', async () => {
-      const { txHashChangeMasterCopy, txHashFallbackHandler } = await core.safe.updateToLastVersion(ownerCRCVersion, {
-        safeAddress: CRCVersionSafeAddress,
-      });
+      const { txHashChangeMasterCopy, txHashFallbackHandler } =
+        await core.safe.updateToLastVersion(ownerCRCVersion, {
+          safeAddress: CRCVersionSafeAddress,
+        });
 
       expect(web3.utils.isHexStrict(txHashChangeMasterCopy)).toBe(true);
       expect(web3.utils.isHexStrict(txHashFallbackHandler)).toBe(true);
@@ -303,7 +310,7 @@ describe('Safe', () => {
     });
 
     it('I should be able to trust', async () => {
-      // The newly created Safe trusts the migrated Safe 
+      // The newly created Safe trusts the migrated Safe
       const trustTransactionHash = await addTrustConnection(core, accounts[0], {
         user: CRCVersionSafeAddress,
         canSendTo: safeAddress,
@@ -312,27 +319,33 @@ describe('Safe', () => {
       expect(web3.utils.isHexStrict(trustTransactionHash)).toBe(true);
 
       // The migrated Safe trusts the newly created Safe
-      const trustTransactionHash2 = await addTrustConnection(core, ownerCRCVersion, {
-        user: safeAddress,
-        canSendTo: CRCVersionSafeAddress,
-        limitPercentage: 65,
-      });
+      const trustTransactionHash2 = await addTrustConnection(
+        core,
+        ownerCRCVersion,
+        {
+          user: safeAddress,
+          canSendTo: CRCVersionSafeAddress,
+          limitPercentage: 65,
+        },
+      );
       expect(web3.utils.isHexStrict(trustTransactionHash2)).toBe(true);
     });
 
     it('I should be able to send Circles to someone directly', async () => {
       // Transfer from the migrated Safe to the newly created Safe
-      const transferTransactionHash = await core.token.transfer(ownerCRCVersion, {
-        from: CRCVersionSafeAddress,
-        to: safeAddress,
-        value: web3.utils.toBN(core.utils.toFreckles(5)),
-      });
+      const transferTransactionHash = await core.token.transfer(
+        ownerCRCVersion,
+        {
+          from: CRCVersionSafeAddress,
+          to: safeAddress,
+          value: web3.utils.toBN(core.utils.toFreckles(5)),
+        },
+      );
 
       expect(web3.utils.isHexStrict(transferTransactionHash)).toBe(true);
     });
 
     it('I should be able to add a new owner', async () => {
-
       const response = await core.safe.addOwner(ownerCRCVersion, {
         safeAddress: CRCVersionSafeAddress,
         ownerAddress: accounts[1].address,

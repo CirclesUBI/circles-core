@@ -43,7 +43,7 @@ export function getSafeContract(web3, address) {
  *
  * @return {Object} - contract instance
  */
- export function getSafeCRCVersionContract(web3, address) {
+export function getSafeCRCVersionContract(web3, address) {
   return getContract(web3, GnosisSafeCRCVersionContract.abi, address);
 }
 

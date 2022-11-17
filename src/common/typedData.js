@@ -69,9 +69,7 @@ export function formatTypedDataCRCVersion(
 ) {
   return {
     types: {
-      EIP712Domain: [
-        { type: 'address', name: 'verifyingContract' },
-      ],
+      EIP712Domain: [{ type: 'address', name: 'verifyingContract' }],
       SafeTx: [
         { type: 'address', name: 'to' },
         { type: 'uint256', name: 'value' },

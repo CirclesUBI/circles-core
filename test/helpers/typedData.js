@@ -2,7 +2,7 @@
 import { sign } from 'eth-lib/lib/account';
 
 import web3 from 'web3';
-import Web3EthAbi from 'web3-eth-abi'; 
+import Web3EthAbi from 'web3-eth-abi';
 
 // Format transaction hash data for signing.
 export function formatTypedData({
@@ -51,7 +51,7 @@ export function formatTypedData({
       nonce,
     },
   };
-};
+}
 
 function dependencies(typedData, primaryType, found = []) {
   if (found.includes(primaryType)) {

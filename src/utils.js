@@ -7,7 +7,11 @@ import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
-import { formatTypedData, formatTypedDataCRCVersion, signTypedData } from '~/common/typedData';
+import {
+  formatTypedData,
+  formatTypedDataCRCVersion,
+  signTypedData,
+} from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
 /** @access private */
@@ -819,7 +823,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
-      
+
       let typedData;
       if (isCRCVersion == true) {
         // Prepare EIP712 transaction data and sign it
@@ -836,7 +840,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           nonce,
           safeAddress,
         );
-        
       } else {
         const chainId = await web3.eth.getChainId();
         // Prepare EIP712 transaction data and sign it
