@@ -17,7 +17,7 @@
     "url": "git://github.com/CirclesUBI/circles-core.git"
   },
   "scripts": {
-    "build": "npm run clear && rollup -c",
+    "build": "npm run clear && rollup -c --bundleConfigAsCjs",
     "clear": "rimraf ./lib",
     "docs:build": "documentation build ./src/** -f html -o docs",
     "docs:serve": "documentation serve --watch ./src/**",
