@@ -22,7 +22,8 @@ function rollupPlugins(isUglified = false) {
     }),
     commonjs(),
     babel({
-      runtimeHelpers: true,
+      babelHelpers: 'runtime',
+      skipPreflightCheck: 'true',
     }),
     cleanup(),
   ];
