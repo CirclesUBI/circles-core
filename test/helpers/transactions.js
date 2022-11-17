@@ -3,7 +3,7 @@ const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFacto
 
 import loop, { getTrustConnection, isReady } from './loop';
 import web3 from './web3';
-import { formatTypedDataCRCVersion, signTypedData } from '~/common/typedData';
+import { formatTypedData, signTypedData } from './typedData';
 import { ZERO_ADDRESS } from '~/common/constants';
 
 const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.01', 'ether');
@@ -153,7 +153,7 @@ const createSafeWithProxy = async (proxy, safe, owner) => {
   return new web3.eth.Contract(Safe.abi, userSafeAddress);
 };
 
-export async function deployCRCVersionSafe(account, owner) {
+export async function deployCRCVersionSafe(owner) {
   // Get the CRC version contracts contract
   const safeContract = new web3.eth.Contract(
     Safe.abi,
@@ -168,7 +168,6 @@ export async function deployCRCVersionSafe(account, owner) {
 }
 
 async function execTransaction(
-  web3,
   account,
   safeInstance,
   { to, from, value = 0, txData },
@@ -182,7 +181,7 @@ async function execTransaction(
   const nonce = await safeInstance.methods.nonce().call();
   const safeAddress = safeInstance.options.address;
 
-  const typedData = formatTypedDataCRCVersion({
+  const typedData = formatTypedData({
     to,
     value,
     txData,
@@ -195,7 +194,7 @@ async function execTransaction(
     nonce,
     verifyingContract: safeAddress,
   });
-  const signature = signTypedData(web3, account.privateKey, typedData);
+  const signature = signTypedData(account.privateKey, typedData);
   const signatures = signature;
 
   return await safeInstance.methods
@@ -215,7 +214,7 @@ async function execTransaction(
 }
 
 export async function deployCRCVersionToken(web3, account, safe, hub) {
-  await execTransaction(web3, account, safe, {
+  await execTransaction(account, safe, {
     to: hub.options.address,
     from: account.address,
     txData: hub.methods.signup().encodeABI(),
