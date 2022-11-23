@@ -1,11 +1,11 @@
 import path from 'path';
 
-import babel from 'rollup-plugin-babel';
+import babel from '@rollup/plugin-babel';
 import builtins from 'rollup-plugin-node-builtins';
 import cleanup from 'rollup-plugin-cleanup';
-import commonjs from 'rollup-plugin-commonjs';
-import json from 'rollup-plugin-json';
-import resolve from 'rollup-plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import resolve from '@rollup/plugin-node-resolve';
 import { uglify } from 'rollup-plugin-uglify';
 
 const FOLDER_DIST = 'lib';
@@ -22,7 +22,8 @@ function rollupPlugins(isUglified = false) {
     }),
     commonjs(),
     babel({
-      runtimeHelpers: true,
+      babelHelpers: 'runtime',
+      skipPreflightCheck: 'true',
     }),
     cleanup(),
   ];

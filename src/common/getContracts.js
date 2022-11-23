@@ -1,6 +1,7 @@
-import GnosisSafeContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
+import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafe.sol/GnosisSafe.json';
+import GnosisSafeCRCVersionContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
-import ProxyFactoryContract from '@circles/safe-contracts/build/contracts/ProxyFactory.json';
+import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json';
 import TokenContract from '@circles/circles-contracts/build/contracts/Token.json';
 
 /**
@@ -30,6 +31,20 @@ function getContract(web3, abi, address) {
  */
 export function getSafeContract(web3, address) {
   return getContract(web3, GnosisSafeContract.abi, address);
+}
+
+/**
+ * Returns deployed Gnosis Safe smart contract instance of the CRC Version.
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} address - contract address
+ *
+ * @return {Object} - contract instance
+ */
+export function getSafeCRCVersionContract(web3, address) {
+  return getContract(web3, GnosisSafeCRCVersionContract.abi, address);
 }
 
 /**

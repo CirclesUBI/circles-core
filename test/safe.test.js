@@ -6,7 +6,16 @@ import {
   addTrustConnection,
   deploySafeAndToken,
   fundSafe,
+  deployCRCVersionSafe,
+  deployCRCVersionToken,
 } from './helpers/transactions';
+
+import {
+  SAFE_LAST_VERSION,
+  SAFE_CRC_VERSION,
+  ZERO_ADDRESS,
+} from '~/common/constants';
+import getContracts from '~/common/getContracts';
 
 describe('Safe', () => {
   let core;
@@ -230,6 +239,134 @@ describe('Safe', () => {
 
       expect(owners[0]).toBe(accounts[0].address);
       expect(owners.length).toBe(1);
+    });
+  });
+
+  describe('when I want to update the Safe version', () => {
+    let safeAddress;
+    let ownerCRCVersion;
+    let CRCVersionSafeAddress;
+    let CRCVersionSafeInstance;
+    let contracts;
+
+    beforeAll(async () => {
+      // Deploy new version (v1.3.0)
+      const result = await deploySafeAndToken(core, accounts[0]);
+      safeAddress = result.safeAddress;
+
+      // Get the hub
+      const hubAddress = core.options.hubAddress;
+      contracts = await getContracts(web3, {
+        hubAddress: hubAddress,
+        proxyFactoryAddress: ZERO_ADDRESS,
+        safeMasterAddress: ZERO_ADDRESS,
+      });
+      const { hub } = contracts;
+
+      // Deploy a Safe with the CRC version (v1.1.1+Circles)
+      ownerCRCVersion = getAccount(8);
+      CRCVersionSafeInstance = await deployCRCVersionSafe(ownerCRCVersion);
+      CRCVersionSafeAddress = CRCVersionSafeInstance.options.address;
+      await fundSafe(accounts[0], CRCVersionSafeAddress);
+      await deployCRCVersionToken(
+        web3,
+        ownerCRCVersion,
+        CRCVersionSafeInstance,
+        hub,
+      );
+    });
+
+    it('I should get the last version by default', async () => {
+      const version = await core.safe.getVersion(accounts[0], {
+        safeAddress,
+      });
+      expect(version).toBe(SAFE_LAST_VERSION);
+    });
+
+    it('I should get the CRC version when I deploy with CRC version contracts', async () => {
+      const version = await core.safe.getVersion(ownerCRCVersion, {
+        safeAddress: CRCVersionSafeAddress,
+      });
+      expect(version).toBe(SAFE_CRC_VERSION);
+    });
+
+    it('I should get the last version when update the Safe version of a deployed Safe', async () => {
+      const { txHashChangeMasterCopy, txHashFallbackHandler } =
+        await core.safe.updateToLastVersion(ownerCRCVersion, {
+          safeAddress: CRCVersionSafeAddress,
+        });
+
+      expect(web3.utils.isHexStrict(txHashChangeMasterCopy)).toBe(true);
+      expect(web3.utils.isHexStrict(txHashFallbackHandler)).toBe(true);
+
+      const version = await core.safe.getVersion(ownerCRCVersion, {
+        safeAddress: CRCVersionSafeAddress,
+      });
+
+      expect(version).toBe(SAFE_LAST_VERSION);
+    });
+
+    it('I should be able to trust', async () => {
+      // The newly created Safe trusts the migrated Safe
+      const trustTransactionHash = await addTrustConnection(core, accounts[0], {
+        user: CRCVersionSafeAddress,
+        canSendTo: safeAddress,
+        limitPercentage: 65,
+      });
+      expect(web3.utils.isHexStrict(trustTransactionHash)).toBe(true);
+
+      // The migrated Safe trusts the newly created Safe
+      const trustTransactionHash2 = await addTrustConnection(
+        core,
+        ownerCRCVersion,
+        {
+          user: safeAddress,
+          canSendTo: CRCVersionSafeAddress,
+          limitPercentage: 65,
+        },
+      );
+      expect(web3.utils.isHexStrict(trustTransactionHash2)).toBe(true);
+    });
+
+    it('I should be able to send Circles to someone directly', async () => {
+      // Transfer from the migrated Safe to the newly created Safe
+      const transferTransactionHash = await core.token.transfer(
+        ownerCRCVersion,
+        {
+          from: CRCVersionSafeAddress,
+          to: safeAddress,
+          value: web3.utils.toBN(core.utils.toFreckles(5)),
+        },
+      );
+
+      expect(web3.utils.isHexStrict(transferTransactionHash)).toBe(true);
+    });
+
+    it('I should be able to add a new owner', async () => {
+      const response = await core.safe.addOwner(ownerCRCVersion, {
+        safeAddress: CRCVersionSafeAddress,
+        ownerAddress: accounts[1].address,
+      });
+
+      expect(web3.utils.isHexStrict(response)).toBe(true);
+
+      const owners = await core.safe.getOwners(accounts[0], {
+        safeAddress: CRCVersionSafeAddress,
+      });
+
+      expect(owners[0]).toBe(accounts[1].address);
+      expect(owners[1]).toBe(ownerCRCVersion.address);
+      expect(owners.length).toBe(2);
+
+      await loop(
+        'Wait for newly added address to show up as Safe owner',
+        () => {
+          return core.safe.getAddresses(accounts[0], {
+            ownerAddress: accounts[1].address,
+          });
+        },
+        (addresses) => addresses.includes(CRCVersionSafeAddress),
+      );
     });
   });
 });

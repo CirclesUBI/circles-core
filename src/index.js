@@ -31,6 +31,7 @@ export default class CirclesCore {
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
+   * @param {string} options.fallbackHandlerAddress - address of the fallback handler of the Safe contract
    */
   constructor(web3, options) {
     // Check web3 instance
@@ -51,6 +52,9 @@ export default class CirclesCore {
         type: web3.utils.checkAddressChecksum,
       },
       safeMasterAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      fallbackHandlerAddress: {
         type: web3.utils.checkAddressChecksum,
       },
       graphNodeEndpoint: {
@@ -99,7 +103,12 @@ export default class CirclesCore {
       this.utils,
     );
     /** @type {Object} - safe module */
-    this.safe = createSafeModule(web3, this.contracts, this.utils);
+    this.safe = createSafeModule(
+      web3,
+      this.contracts,
+      this.utils,
+      this.options,
+    );
     /** @type {Object} - token module */
     this.token = createTokenModule(web3, this.contracts, this.utils);
     /** @type {Object} - trust module */

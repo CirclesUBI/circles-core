@@ -7,7 +7,11 @@ import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
-import { formatTypedData, signTypedData } from '~/common/typedData';
+import {
+  formatTypedData,
+  formatTypedDataCRCVersion,
+  signTypedData,
+} from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
 /** @access private */
@@ -717,7 +721,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - query options
      * @param {string} userOptions.safeAddress - address of Safe
+     * @param {string} userOptions.to - forwarded address
      * @param {Object} userOptions.txData - encoded transaction data
+     * @param {boolean} userOptions.isCRCVersion - is the Safe v1.1.1+Cirlces, false by default
      *
      * @return {string} - transaction hash
      */
@@ -734,9 +740,13 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         txData: {
           type: web3.utils.isHexStrict,
         },
+        isCRCVersion: {
+          type: 'boolean',
+          default: false,
+        },
       });
 
-      const { txData, safeAddress, to } = options;
+      const { txData, safeAddress, to, isCRCVersion } = options;
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
@@ -814,20 +824,40 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
-      // Prepare EIP712 transaction data and sign it
-      const typedData = formatTypedData(
-        to,
-        value,
-        txData,
-        operation,
-        safeTxGas,
-        dataGas,
-        gasPrice,
-        gasToken,
-        refundReceiver,
-        nonce,
-        safeAddress,
-      );
+      let typedData;
+      if (isCRCVersion == true) {
+        // Prepare EIP712 transaction data and sign it
+        typedData = formatTypedDataCRCVersion(
+          to,
+          value,
+          txData,
+          operation,
+          safeTxGas,
+          dataGas,
+          gasPrice,
+          gasToken,
+          refundReceiver,
+          nonce,
+          safeAddress,
+        );
+      } else {
+        const chainId = await web3.eth.getChainId();
+        // Prepare EIP712 transaction data and sign it
+        typedData = formatTypedData(
+          to,
+          value,
+          txData,
+          operation,
+          safeTxGas,
+          dataGas,
+          gasPrice,
+          gasToken,
+          refundReceiver,
+          nonce,
+          chainId,
+          safeAddress,
+        );
+      }
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
@@ -952,6 +982,9 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
+      // Get the chainId from the network
+      const chainId = await web3.eth.getChainId();
+
       // Prepare EIP712 transaction data and sign it
       const typedData = formatTypedData(
         to,
@@ -964,6 +997,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         gasToken,
         refundReceiver,
         nonce,
+        chainId,
         safeAddress,
       );
 
