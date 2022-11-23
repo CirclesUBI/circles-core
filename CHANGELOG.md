@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.0] - 2022-11-23
 
-## Added
+### Added
 
 - Add method to update Safe to the last version (v1.3.0) by changing the the Master Copy [#141](https://github.com/CirclesUBI/circles-core/pull/141)
 - Add method to get the Safe version [#141](https://github.com/CirclesUBI/circles-core/pull/141)
