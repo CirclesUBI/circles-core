@@ -70,6 +70,7 @@ This library provides common methods for JavaScript clients and wallets to inter
 - List owned Circles tokens and their current balance
 - Show last activities like transfers, trusts and Safe ownership changes
 - Calculate transitive transfer steps to send Circles
+- Update the Version of the Safe contract to `v1.3.0`
 
 [`safe-relay-service`]: https://github.com/CirclesUBI/safe-relay-service
 [`graph`]: https://thegraph.com/explorer/subgraph/circlesubi/circles
@@ -87,13 +88,14 @@ const web3 = new Web3();
 // Initialize core with default configs when running against local `circles-docker` setup
 const core = new CirclesCore(web3, {
   hubAddress: '0xCfEB869F69431e42cdB54A4F4f105C19C080A601',
-  proxyFactoryAddress: '0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb',
-  safeMasterAddress: '0xC89Ce4735882C9F0f0FE26686c53074E09B0D550',
+  proxyFactoryAddress: '0x9b1f7F645351AF3631a656421eD2e40f2802E6c0',
+  safeMasterAddress: '0x59d3631c86BbE35EF041872d502F218A39FBa150',
   apiServiceEndpoint: 'http://api.circles.local',
   graphNodeEndpoint: 'http://graph.circles.local',
   databaseSource: 'graph',
   relayServiceEndpoint: 'http://relay.circles.local',
-  subgraphName: 'CirclesUBI/circles-subgraph',
+  subgraphName: 'circlesubi/circles-subgraph',
+  fallbackHandlerAddress: '0x67B5656d60a809915323Bf2C40A8bEF15A152e3e'
 });
 
 // Create existing account from private key which owns a Safe
