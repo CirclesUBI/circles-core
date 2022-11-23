@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2022-11-23
+
+## Added
+
+- Add method to update Safe to the last version (v1.3.0) by changing the the Master Copy [#141](https://github.com/CirclesUBI/circles-core/pull/141)
+- Add method to get the Safe version [#141](https://github.com/CirclesUBI/circles-core/pull/141)
+
+### Changed
+
+- Use latest Safe contracts (Safe v1.3.0) by default [#141](https://github.com/CirclesUBI/circles-core/pull/141)
+- Use Node v14 for tests [#143](https://github.com/CirclesUBI/circles-core/pull/143)
+- Update dependencies
+- Update contributors
+
+### Fixed
+
+- Token test updated to becompatible with the new [`circles-api`](https://github.com/CirclesUBI/circles-api/pull/123) that uses csv export and new pathfinder with `--flowcsv` tag [#133](https://github.com/CirclesUBI/circles-core/pull/133)
+
 ## [2.12.0] - 2022-08-09
 
 ## Added
