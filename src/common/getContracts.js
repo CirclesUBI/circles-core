@@ -1,4 +1,4 @@
-import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafe.sol/GnosisSafe.json';
+import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafeL2.sol/GnosisSafeL2.json';
 import GnosisSafeCRCVersionContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
 import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json';
