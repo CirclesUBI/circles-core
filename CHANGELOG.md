@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update `circles-contracts` and use GnosisSafeL2 [#145](https://github.com/CirclesUBI/circles-core/pull/145)
 
-
 ## [3.0.0] - 2022-11-23
 
 ### Added
