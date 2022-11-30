@@ -292,13 +292,10 @@ describe('Safe', () => {
     });
 
     it('I should get the last version when update the Safe version of a deployed Safe', async () => {
-      //const { txHashChangeMasterCopy, txHashFallbackHandler } =
       const txHash = await core.safe.updateToLastVersion(ownerCRCVersion, {
         safeAddress: CRCVersionSafeAddress,
       });
 
-      // expect(web3.utils.isHexStrict(txHashChangeMasterCopy)).toBe(true);
-      // expect(web3.utils.isHexStrict(txHashFallbackHandler)).toBe(true);
       expect(web3.utils.isHexStrict(txHash)).toBe(true);
 
       const version = await core.safe.getVersion(ownerCRCVersion, {
