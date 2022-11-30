@@ -26,12 +26,13 @@ export default class CirclesCore {
    * @param {Object} options - global core options
    * @param {string} options.apiServiceEndpoint - URL of the username resolver service
    * @param {string} options.databaseSource - database source type
+   * @param {string} options.fallbackHandlerAddress - address of the fallback handler of the Safe contract
    * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
+   * @param {string} options.multiSendCallOnlyAddress - address of deployed Gnosis MultiSendCallOnly contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
-   * @param {string} options.fallbackHandlerAddress - address of the fallback handler of the Safe contract
    */
   constructor(web3, options) {
     // Check web3 instance
@@ -46,6 +47,9 @@ export default class CirclesCore {
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      multiSendCallOnlyAddress: {
         type: web3.utils.checkAddressChecksum,
       },
       proxyFactoryAddress: {
