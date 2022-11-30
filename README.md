@@ -95,7 +95,8 @@ const core = new CirclesCore(web3, {
   databaseSource: 'graph',
   relayServiceEndpoint: 'http://relay.circles.local',
   subgraphName: 'circlesubi/circles-subgraph',
-  fallbackHandlerAddress: '0x67B5656d60a809915323Bf2C40A8bEF15A152e3e'
+  fallbackHandlerAddress: '0x67B5656d60a809915323Bf2C40A8bEF15A152e3e',
+  multiSendCallOnlyAddress: '0x0290FB167208Af455bB137780163b7B7a9a10C16'
 });
 
 // Create existing account from private key which owns a Safe
