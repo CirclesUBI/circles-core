@@ -8,7 +8,6 @@ export default function createCore() {
     fallbackHandlerAddress: process.env.SAFE_DEFAULT_CALLBACK_HANDLER,
     graphNodeEndpoint: process.env.GRAPH_NODE_ENDPOINT,
     hubAddress: process.env.HUB_ADDRESS,
-    multiSendCallOnlyAddress: process.env.MULTISEND_CALLONLY_ADDRESS,
     proxyFactoryAddress: process.env.PROXY_FACTORY_ADDRESS,
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
     safeMasterAddress: process.env.SAFE_ADDRESS,

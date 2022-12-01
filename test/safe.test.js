@@ -258,7 +258,6 @@ describe('Safe', () => {
       const hubAddress = core.options.hubAddress;
       contracts = await getContracts(web3, {
         hubAddress: hubAddress,
-        multiSendCallOnlyAddress: ZERO_ADDRESS,
         proxyFactoryAddress: ZERO_ADDRESS,
         safeMasterAddress: ZERO_ADDRESS,
       });
@@ -292,11 +291,13 @@ describe('Safe', () => {
     });
 
     it('I should get the last version when update the Safe version of a deployed Safe', async () => {
-      const txHash = await core.safe.updateToLastVersion(ownerCRCVersion, {
-        safeAddress: CRCVersionSafeAddress,
-      });
+      const { txHashChangeMasterCopy, txHashFallbackHandler } =
+        await core.safe.updateToLastVersion(ownerCRCVersion, {
+          safeAddress: CRCVersionSafeAddress,
+        });
 
-      expect(web3.utils.isHexStrict(txHash)).toBe(true);
+      expect(web3.utils.isHexStrict(txHashChangeMasterCopy)).toBe(true);
+      expect(web3.utils.isHexStrict(txHashFallbackHandler)).toBe(true);
 
       const version = await core.safe.getVersion(ownerCRCVersion, {
         safeAddress: CRCVersionSafeAddress,
