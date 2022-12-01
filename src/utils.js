@@ -745,7 +745,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           default: false,
         },
         operation: {
-          type: 'string',
+          type: 'number',
           default: CALL_OP,
         },
       });

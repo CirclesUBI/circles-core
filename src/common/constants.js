@@ -1,6 +1,6 @@
 // Gnosis Safe operation types
-export const CALL_OP = '0';
-export const DELEGATE_OP = '1';
+export const CALL_OP = 0;
+export const DELEGATE_OP = 1;
 
 // Gnosis Safe owner threshold
 export const SAFE_THRESHOLD = 1;
