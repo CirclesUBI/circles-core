@@ -89,7 +89,6 @@ describe('Token', () => {
     hubAddress = core.options.hubAddress;
     contracts = await getContracts(web3, {
       hubAddress: hubAddress,
-      multiSendCallOnlyAddress: ZERO_ADDRESS,
       proxyFactoryAddress: ZERO_ADDRESS,
       safeMasterAddress: ZERO_ADDRESS,
     });

@@ -17,7 +17,7 @@ jobs:
           sudo echo "127.0.1.1 relay.circles.local" | sudo tee -a /etc/hosts
 
       - name: Check out circles-core repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: circles-core
 
@@ -28,15 +28,15 @@ jobs:
       - name: Read node version from .nvmrc
         working-directory: circles-core
         id: nvmrc
-        run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_OUTPUT
 
       - name: Setup node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '${{ steps.nvmrc.outputs.NODE_VERSION }}'
 
       - name: Cache Node.js modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS.
           path: ~/.npm
@@ -46,7 +46,7 @@ jobs:
             ${{ runner.OS }}-
 
       - name: Get circles-docker repository and copy configs
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: CirclesUBI/circles-docker.git
           ref: main

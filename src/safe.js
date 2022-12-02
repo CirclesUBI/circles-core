@@ -1,5 +1,4 @@
 import {
-  DELEGATE_OP,
   SAFE_LAST_VERSION,
   SAFE_THRESHOLD,
   SENTINEL_ADDRESS,
@@ -11,7 +10,6 @@ import {
   getSafeContract,
   getSafeCRCVersionContract,
 } from '~/common/getContracts';
-import encodeMultiSendCall from '~/common/multiSend';
 
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
@@ -129,7 +127,7 @@ export default function createSafeModule(
   globalOptions,
 ) {
   const { fallbackHandlerAddress } = globalOptions;
-  const { safeMaster, multiSendCallOnly } = contracts;
+  const { safeMaster } = contracts;
   return {
     /**
      * Predict Safe address.
@@ -518,7 +516,8 @@ export default function createSafeModule(
       });
 
       const safeVersion = await getVersion(web3, options.safeAddress);
-      let txHash;
+      let txHashChangeMasterCopy;
+      let txHashFallbackHandler;
 
       if (safeVersion != SAFE_LAST_VERSION) {
         // References:
@@ -536,44 +535,28 @@ export default function createSafeModule(
         const updateSafeTxData = safeInstance.methods
           .changeMasterCopy(safeMaster.options.address)
           .encodeABI();
-        // Then we setup the fallbackHandler
-        const fallbackHandlerTxData = safeInstance.methods
-          .setFallbackHandler(fallbackHandlerAddress)
-          .encodeABI();
-
-        const txs = [
-          {
-            to: options.safeAddress,
-            value: '0',
-            data: updateSafeTxData,
-          },
-          {
-            to: options.safeAddress,
-            value: '0',
-            data: fallbackHandlerTxData,
-          },
-        ];
-
-        const multiSendCallTxData = encodeMultiSendCall(
-          web3,
-          txs,
-          multiSendCallOnly,
-        );
-
-        txHash = await utils.executeTokenSafeTx(account, {
+        txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
           safeAddress: options.safeAddress,
-          to: multiSendCallOnly.options.address,
-          txData: multiSendCallTxData,
+          to: options.safeAddress,
+          txData: updateSafeTxData,
           isCRCVersion: true,
-          operation: DELEGATE_OP,
         });
-        if (!txHash) {
+        if (!txHashChangeMasterCopy) {
           throw new CoreError(
             `Safe with version ${safeVersion} failed to change the Master Copy`,
           );
         }
+        // Then we setup the fallbackHandler
+        const fallbackHandlerTxData = safeInstance.methods
+          .setFallbackHandler(fallbackHandlerAddress)
+          .encodeABI();
+        txHashFallbackHandler = await utils.executeTokenSafeTx(account, {
+          safeAddress: options.safeAddress,
+          to: options.safeAddress,
+          txData: fallbackHandlerTxData,
+        });
       }
-      return txHash;
+      return { txHashChangeMasterCopy, txHashFallbackHandler };
     },
   };
 }

@@ -744,13 +744,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           type: 'boolean',
           default: false,
         },
-        operation: {
-          type: 'number',
-          default: CALL_OP,
-        },
       });
 
-      const { txData, safeAddress, to, isCRCVersion, operation } = options;
+      const { txData, safeAddress, to, isCRCVersion } = options;
+      const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
 

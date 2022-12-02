@@ -1,7 +1,6 @@
 import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafeL2.sol/GnosisSafeL2.json';
 import GnosisSafeCRCVersionContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
-import MultiSendCallOnlyContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/libraries/MultiSendCallOnly.sol/MultiSendCallOnly.json';
 import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json';
 import TokenContract from '@circles/circles-contracts/build/contracts/Token.json';
 
@@ -73,12 +72,7 @@ export function getTokenContract(web3, address) {
  * @return {Object} - contract instances
  */
 export default function getContracts(web3, options) {
-  const {
-    safeMasterAddress,
-    proxyFactoryAddress,
-    hubAddress,
-    multiSendCallOnlyAddress,
-  } = options;
+  const { safeMasterAddress, proxyFactoryAddress, hubAddress } = options;
 
   // Gnosis master Safe copy
   const safeMaster = getSafeContract(web3, safeMasterAddress);
@@ -93,16 +87,8 @@ export default function getContracts(web3, options) {
   // Circles Hub
   const hub = getContract(web3, HubContract.abi, hubAddress);
 
-  // Multisend Call Only contract
-  const multiSendCallOnly = getContract(
-    web3,
-    MultiSendCallOnlyContract.abi,
-    multiSendCallOnlyAddress,
-  );
-
   return {
     hub,
-    multiSendCallOnly,
     proxyFactory,
     safeMaster,
   };

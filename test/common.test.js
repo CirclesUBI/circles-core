@@ -175,7 +175,6 @@ describe('Common', () => {
     beforeEach(() => {
       contracts = getContracts(web3, {
         hubAddress: ZERO_ADDRESS,
-        multiSendCallOnlyAddress: ZERO_ADDRESS,
         proxyFactoryAddress: ZERO_ADDRESS,
         safeMasterAddress: ZERO_ADDRESS,
       });
@@ -184,7 +183,6 @@ describe('Common', () => {
     it('should give us access to contracts', () => {
       expect(contracts.safeMaster.methods).toBeDefined();
       expect(contracts.hub.methods).toBeDefined();
-      expect(contracts.multiSendCallOnly.methods).toBeDefined();
       expect(contracts.proxyFactory.methods).toBeDefined();
     });
 
