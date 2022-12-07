@@ -781,8 +781,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         );
       }
 
+      const TX_GAS_OFFSET = 3000;
+
       const foundToken = tokens.find(({ amount }) => {
-        return web3.utils.toBN(amount).gte(totalGasEstimate);
+        return web3.utils.toBN(amount).gte(totalGasEstimate + TX_GAS_OFFSET);
       });
 
       if (!foundToken) {
@@ -808,6 +810,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
+      const safeTxGasWithOffset = safeTxGas + TX_GAS_OFFSET;
+
       const gasToken = foundToken.address;
 
       // Register transaction in waiting queue
@@ -832,7 +836,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
           txData,
           operation,
-          safeTxGas,
+          safeTxGasWithOffset,
           dataGas,
           gasPrice,
           gasToken,
@@ -848,7 +852,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
           txData,
           operation,
-          safeTxGas,
+          safeTxGasWithOffset,
           dataGas,
           gasPrice,
           gasToken,
@@ -873,7 +877,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
             data: txData,
             operation,
             signatures: [signature],
-            safeTxGas,
+            safeTxGasWithOffset,
             dataGas,
             gasPrice,
             nonce,
