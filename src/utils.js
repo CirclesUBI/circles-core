@@ -781,8 +781,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         );
       }
 
-      const TX_GAS_OFFSET = 3000;
-
       const foundToken = tokens.find(({ amount }) => {
         return web3.utils.toBN(amount).gte(totalGasEstimate + TX_GAS_OFFSET);
       });
@@ -810,8 +808,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         },
       );
 
-      const safeTxGasWithOffset = safeTxGas + TX_GAS_OFFSET;
-
       const gasToken = foundToken.address;
 
       // Register transaction in waiting queue
@@ -828,6 +824,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
+      const TX_GAS_OFFSET = 3000;
+
       let typedData;
       if (isCRCVersion == true) {
         // Prepare EIP712 transaction data and sign it
@@ -836,7 +834,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
           txData,
           operation,
-          safeTxGasWithOffset,
+          safeTxGas + TX_GAS_OFFSET,
           dataGas,
           gasPrice,
           gasToken,
@@ -852,7 +850,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           value,
           txData,
           operation,
-          safeTxGasWithOffset,
+          safeTxGas + TX_GAS_OFFSET,
           dataGas,
           gasPrice,
           gasToken,
@@ -877,7 +875,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
             data: txData,
             operation,
             signatures: [signature],
-            safeTxGasWithOffset,
+            safeTxGas: safeTxGas + TX_GAS_OFFSET,
             dataGas,
             gasPrice,
             nonce,
