@@ -781,6 +781,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         );
       }
 
+      const TX_GAS_OFFSET = 3000;
+
       const foundToken = tokens.find(({ amount }) => {
         return web3.utils.toBN(amount).gte(totalGasEstimate + TX_GAS_OFFSET);
       });
@@ -823,8 +825,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
-
-      const TX_GAS_OFFSET = 3000;
 
       let typedData;
       if (isCRCVersion == true) {
