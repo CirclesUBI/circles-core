@@ -184,7 +184,7 @@ describe('Token', () => {
       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
     });
 
-    it('should return max flow and possible path with hops parameter', async () => {
+    it('should return max flow and possible path when using hops parameter', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
 
       const result = await core.token.findTransitiveTransfer(accounts[0], {
@@ -209,7 +209,7 @@ describe('Token', () => {
       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
     });
 
-    it('should return max flow and possible path with hops parameter', async () => {
+    it('should return 0 max flow and no path when using too low hops parameter', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
 
       const result = await core.token.findTransitiveTransfer(accounts[0], {
@@ -308,22 +308,6 @@ describe('Token', () => {
       );
     });
 
-    it('should fail to send Circles to someone transitively if hops is too low to find a path', async () => {
-      const sentCircles = 5;
-      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
-      const indexFrom = 0;
-      const indexTo = 4;
-
-      await expect(
-        core.token.transfer(accounts[indexFrom], {
-          from: safeAddresses[indexFrom],
-          to: safeAddresses[indexTo],
-          value,
-          hops: 1,
-        }),
-      ).rejects.toThrow();
-    });
-
     it('should fail sending Circles when maxflow is lower than requested transfer value', async () => {
       await expect(
         core.token.transfer(accounts[0], {
@@ -417,6 +401,17 @@ describe('Token', () => {
 
         // Do not check for the exact amount as payout is changing every second
         expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
+      });
+    
+      it('should fail to send Circles to someone transitively if hops are too few to find a path', async () => {
+        await expect(
+          core.token.transfer(accounts[0], {
+            from: safeAddresses[0],
+            to: safeAddresses[4],
+            value: web3.utils.toBN(core.utils.toFreckles(5)),
+            hops: 1,
+          }),
+        ).rejects.toThrow();
       });
     });
   });
