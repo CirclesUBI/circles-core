@@ -183,6 +183,31 @@ describe('Token', () => {
       // actually is (25).
       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
     });
+
+    it('should return max flow and possible path with hops parameter', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+
+      const result = await core.token.findTransitiveTransfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        hops: '2',
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
   });
 
   describe('Transitive Transactions', () => {

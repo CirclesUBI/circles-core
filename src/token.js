@@ -38,6 +38,10 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
     value: {
       type: web3.utils.isBN,
     },
+    hops: {
+      type: 'number',
+      default: 3,
+    },
   });
 
   try {
@@ -48,6 +52,7 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
         from: options.from,
         to: options.to,
         value: options.value.toString(),
+        hops: options.hops.toString(),
       },
     });
 
