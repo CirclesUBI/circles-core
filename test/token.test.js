@@ -402,7 +402,7 @@ describe('Token', () => {
         // Do not check for the exact amount as payout is changing every second
         expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
       });
-    
+
       it('should fail to send Circles to someone transitively if hops are too few to find a path', async () => {
         await expect(
           core.token.transfer(accounts[0], {
