@@ -102,7 +102,7 @@ export async function updateTransitiveTransfer(web3, utils, userOptions) {
         from: options.from,
         to: options.to,
         value: options.value.toString(),
-        hops: options.value.toString(),
+        hops: options.hops.toString(),
       },
     });
 
