@@ -24,6 +24,7 @@ const MAX_TRANSFER_STEPS = 52;
  * @param {string} userOptions.from - sender Safe address
  * @param {string} userOptions.to - receiver Safe address
  * @param {BN} userOptions.value - value of Circles tokens
+ * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
  *
  * @return {Object[]} - transaction steps
  */
@@ -74,6 +75,7 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
  * @param {string} userOptions.from - sender Safe address
  * @param {string} userOptions.to - receiver Safe address
  * @param {BN} userOptions.value - value of Circles tokens
+ * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
  *
  * @return {boolean} - steps are updated
  */
@@ -361,6 +363,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.from - sender Safe address
      * @param {string} userOptions.to - receiver Safe address
      * @param {BN} userOptions.value - value for transactions path
+     * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
      *
      * @return {boolean} - steps are updated
      */
@@ -380,6 +383,7 @@ export default function createTokenModule(web3, contracts, utils) {
      * @param {string} userOptions.to - receiver address
      * @param {BN} userOptions.value - value
      * @param {string} userOptions.paymentNote - optional payment note stored in API
+     * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
      *
      * @return {string} - transaction hash
      */
