@@ -400,6 +400,10 @@ export default function createTokenModule(web3, contracts, utils) {
           type: 'string',
           default: '',
         },
+        hops: {
+          type: 'number',
+          default: 3,
+        },
       });
 
       const transfer = {
