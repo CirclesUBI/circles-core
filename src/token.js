@@ -88,6 +88,10 @@ export async function updateTransitiveTransfer(web3, utils, userOptions) {
     value: {
       type: web3.utils.isBN,
     },
+    hops: {
+      type: 'number',
+      default: 3,
+    },
   });
 
   try {
@@ -98,6 +102,7 @@ export async function updateTransitiveTransfer(web3, utils, userOptions) {
         from: options.from,
         to: options.to,
         value: options.value.toString(),
+        hops: options.value.toString(),
       },
     });
 
