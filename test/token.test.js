@@ -329,6 +329,17 @@ describe('Token', () => {
       ).rejects.toThrow();
     });
 
+    it('should fail to send Circles to someone transitively if hops are too few to find a path', async () => {
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value: web3.utils.toBN(core.utils.toFreckles(5)),
+          hops: 1,
+        }),
+      ).rejects.toThrow();
+    });
+
     it('should fail sending Circles when data error', async () => {
       // Update the edges.csv file simulating data error:
       // Direct path does not exist between safeAddress 0 and 4,
@@ -401,17 +412,6 @@ describe('Token', () => {
 
         // Do not check for the exact amount as payout is changing every second
         expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
-      });
-
-      it('should fail to send Circles to someone transitively if hops are too few to find a path', async () => {
-        await expect(
-          core.token.transfer(accounts[0], {
-            from: safeAddresses[0],
-            to: safeAddresses[4],
-            value: web3.utils.toBN(core.utils.toFreckles(5)),
-            hops: 1,
-          }),
-        ).rejects.toThrow();
       });
     });
   });
