@@ -183,6 +183,48 @@ describe('Token', () => {
       // actually is (25).
       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
     });
+
+    it('should return max flow and possible path when using hops parameter', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+
+      const result = await core.token.findTransitiveTransfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        hops: 2,
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
+
+    it('should return 0 max flow and no path when using too low hops parameter', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+
+      const result = await core.token.findTransitiveTransfer(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        hops: 1,
+      });
+      expect(result.transferSteps.length).toBe(0);
+
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
+    });
   });
 
   describe('Transitive Transactions', () => {
@@ -266,8 +308,7 @@ describe('Token', () => {
       );
     });
 
-    it('should fail sending Circles when there is no path', async () => {
-      // Max flow is smaller than the given transfer value
+    it('should fail sending Circles when maxflow is lower than requested transfer value', async () => {
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
@@ -275,13 +316,26 @@ describe('Token', () => {
           value: web3.utils.toBN(core.utils.toFreckles('100')),
         }),
       ).rejects.toThrow();
+    });
 
+    it('should fail sending Circles when there is no trust path between sender and receiver', async () => {
       // Trust connection does not exist between node 0 and 5
       await expect(
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[5],
           value: web3.utils.toBN('1'),
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should fail to send Circles to someone transitively if hops are too few to find a path', async () => {
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value: web3.utils.toBN(core.utils.toFreckles(5)),
+          hops: 1,
         }),
       ).rejects.toThrow();
     });
