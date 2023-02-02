@@ -1,16 +1,9 @@
-import {
-  SAFE_LAST_VERSION,
-  SAFE_THRESHOLD,
-  SENTINEL_ADDRESS,
-} from '~/common/constants';
-import CoreError from '~/common/error';
+import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-import {
-  getSafeContract,
-  getSafeCRCVersionContract,
-} from '~/common/getContracts';
-
+import { getSafeContract } from '~/common/getContracts';
+import CoreError, { ErrorCodes } from '~/common/error';
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
  *
@@ -27,24 +20,6 @@ export async function getOwners(web3, safeAddress) {
 
   // Call 'getOwners' method and return list of owners
   return await safe.methods.getOwners().call();
-}
-
-/**
- * Helper method to get the Safe version.
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {string} safeAddress
- *
- * @return {string} - version of the Safe
- */
-export async function getVersion(web3, safeAddress) {
-  // Get Safe at given address
-  const safe = getSafeContract(web3, safeAddress);
-
-  // Call 'VERSION' method and return it
-  return await safe.methods.VERSION().call();
 }
 
 /**
@@ -86,7 +61,15 @@ async function predictAddress(web3, utils, nonce, address) {
  */
 async function getSafeStatus(utils, safeAddress) {
   let isCreated = false;
+  // 1. predictAddress()
+  // 2. getEstimateCost of future deployment
+  // 3. create in DB
+  // 4. relayer talk to the subgraph to check the three trust
+  // 5. if yes, then deploy in the network
+
   let isDeployed = false;
+  //  to check if it's deployed use the following
+  //  const safe = getSafeContract(web3, safeAddress);
 
   try {
     const { txHash } = await utils.requestRelayer({
@@ -116,18 +99,10 @@ async function getSafeStatus(utils, safeAddress) {
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
- * @param {Object} globalOptions - global core options
  *
  * @return {Object} - safe module instance
  */
-export default function createSafeModule(
-  web3,
-  contracts,
-  utils,
-  globalOptions,
-) {
-  const { fallbackHandlerAddress } = globalOptions;
-  const { safeMaster } = contracts;
+export default function createSafeModule(web3, contracts, utils) {
   return {
     /**
      * Predict Safe address.
@@ -471,92 +446,39 @@ export default function createSafeModule(
         txData,
       });
     },
-
     /**
-     * Get Safe version.
+     * Update the transitive transfer edges for safe users
      *
-     * @namespace core.safe.getVersion
+     * @namespace core.safe.updateAllEdgesSafe
      *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
      *
-     * @return {string} - transaction hash
+     *
+     * @param {Web3} web3 - Web3 instance
+     * @param {Object} account - Web3 instance
+     * @param {Object} userOptions - search arguments
+     * @return {boolean} - edges are updated
      */
-    getVersion: async (account, userOptions) => {
+
+    updateAllEdgesSafe: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
+        safeAddress: { type: web3.utils.checkAddressChecksum },
       });
-
-      return await getVersion(web3, options.safeAddress);
-    },
-
-    /**
-     * Update Safe version to the last version (v1.3.0) by changing the the Master Copy.
-     *
-     * @namespace core.safe.updateSafeVersion
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     *
-     * @return {string} - transaction hash
-     */
-    updateToLastVersion: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      const safeVersion = await getVersion(web3, options.safeAddress);
-      let txHashChangeMasterCopy;
-      let txHashFallbackHandler;
-
-      if (safeVersion != SAFE_LAST_VERSION) {
-        // References:
-        // https://github.com/safe-global/web-core/blob/main/src/services/tx/safeUpdateParams.ts
-        // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
-
-        // Get the Safe contract with version v1.1.1+Circles
-        const safeInstance = getSafeCRCVersionContract(
-          web3,
-          options.safeAddress,
-        );
-
-        // First we change the Master Copy to v1.3.0
-        // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-        const updateSafeTxData = safeInstance.methods
-          .changeMasterCopy(safeMaster.options.address)
-          .encodeABI();
-        txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: updateSafeTxData,
-          isCRCVersion: true,
+      const { safeAddress } = options;
+      try {
+        const response = await utils.requestAPI({
+          path: ['transfers', 'update'],
+          method: 'POST',
+          data: {
+            safeAddress: safeAddress,
+          },
         });
-        if (!txHashChangeMasterCopy) {
-          throw new CoreError(
-            `Safe with version ${safeVersion} failed to change the Master Copy`,
-          );
-        }
-        // Then we setup the fallbackHandler
-        const fallbackHandlerTxData = safeInstance.methods
-          .setFallbackHandler(fallbackHandlerAddress)
-          .encodeABI();
-        txHashFallbackHandler = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: fallbackHandlerTxData,
-        });
+
+        return response.data;
+      } catch (error) {
+        throw new CoreError(error.message, ErrorCodes.SAFE_NOT_FOUND);
       }
-      return { txHashChangeMasterCopy, txHashFallbackHandler };
     },
   };
 }
