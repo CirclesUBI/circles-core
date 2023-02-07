@@ -468,7 +468,7 @@ export default function createSafeModule(web3, contracts, utils) {
       const { safeAddress } = options;
       try {
         const response = await utils.requestAPI({
-          path: ['transfers', 'update'],
+          path: ['transfers', 'update', 'edges'],
           method: 'POST',
           data: {
             safeAddress: safeAddress,
