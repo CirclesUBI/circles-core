@@ -179,6 +179,14 @@ describe('Safe', () => {
       expect(code).not.toBe('0x');
       expect(web3.utils.isAddress(tokenAddress)).toBe(true);
     });
+
+    it('should update edges of given safe', async () => {
+      expect(
+        await core.safe.updateAllEdgesSafe({
+          safeAddress: safeAddress,
+        }),
+      ).toBe(true);
+    });
   });
 
   describe('when I want to manage the owners of a Safe', () => {
@@ -367,22 +375,6 @@ describe('Safe', () => {
         },
         (addresses) => addresses.includes(CRCVersionSafeAddress),
       );
-    });
-  });
-  describe('Update Edges Safe ', () => {
-    let safeAddress;
-
-    beforeAll(async () => {
-      const result = await deploySafeAndToken(core, accounts[0]);
-      safeAddress = result.safeAddress;
-    });
-
-    it('should update edges of given safe', async () => {
-      expect(
-        await core.safe.updateAllEdgesSafe({
-          safeAddress: safeAddress,
-        }),
-      ).toBe(true);
     });
   });
 });

@@ -570,22 +570,19 @@ export default function createSafeModule(
      * @return {boolean} - edges are updated
      */
 
-    updateAllEdgesSafe: async (account, userOptions) => {
-      checkAccount(web3, account);
-
+    updateAllEdgesSafe: async (userOptions) => {
       const options = checkOptions(userOptions, {
         safeAddress: { type: web3.utils.checkAddressChecksum },
       });
       const { safeAddress } = options;
       try {
         const response = await utils.requestAPI({
-          path: ['transfers', 'update'],
+          path: ['transfers', 'update', 'edges'],
           method: 'POST',
           data: {
             safeAddress: safeAddress,
           },
         });
-
         return response.data;
       } catch (error) {
         throw new CoreError(error.message, ErrorCodes.SAFE_NOT_FOUND);
