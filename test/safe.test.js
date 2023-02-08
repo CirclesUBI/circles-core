@@ -7,15 +7,10 @@ import {
   deploySafeAndToken,
   fundSafe,
   deployCRCVersionSafe,
-  deployCRCVersionToken,
+  deployToken,
 } from './helpers/transactions';
 
-import {
-  SAFE_LAST_VERSION,
-  SAFE_CRC_VERSION,
-  ZERO_ADDRESS,
-} from '~/common/constants';
-import getContracts from '~/common/getContracts';
+import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
 
 describe('Safe', () => {
   let core;
@@ -247,33 +242,20 @@ describe('Safe', () => {
     let ownerCRCVersion;
     let CRCVersionSafeAddress;
     let CRCVersionSafeInstance;
-    let contracts;
 
     beforeAll(async () => {
       // Deploy new version (v1.3.0)
       const result = await deploySafeAndToken(core, accounts[0]);
       safeAddress = result.safeAddress;
 
-      // Get the hub
-      const hubAddress = core.options.hubAddress;
-      contracts = await getContracts(web3, {
-        hubAddress: hubAddress,
-        proxyFactoryAddress: ZERO_ADDRESS,
-        safeMasterAddress: ZERO_ADDRESS,
-      });
-      const { hub } = contracts;
-
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
       ownerCRCVersion = getAccount(8);
       CRCVersionSafeInstance = await deployCRCVersionSafe(ownerCRCVersion);
       CRCVersionSafeAddress = CRCVersionSafeInstance.options.address;
       await fundSafe(accounts[0], CRCVersionSafeAddress);
-      await deployCRCVersionToken(
-        web3,
-        ownerCRCVersion,
-        CRCVersionSafeInstance,
-        hub,
-      );
+      await deployToken(core, ownerCRCVersion, {
+        safeAddress: CRCVersionSafeAddress,
+      });
     });
 
     it('I should get the last version by default', async () => {
