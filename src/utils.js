@@ -910,6 +910,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {string} userOptions.gasToken - address of ERC20 token
      * @param {Object} userOptions.txData - encoded transaction data
      * @param {number} userOptions.value - value in Wei
+     * @param {boolean} userOptions.isCRCVersion - is the Safe v1.1.1+Cirlces, false by default
+
      *
      * @return {string} - transaction hash
      */
@@ -935,9 +937,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           type: 'number',
           default: 0,
         },
+        isCRCVersion: {
+          type: 'boolean',
+          default: false,
+        },
       });
 
-      const { to, gasToken, txData, value, safeAddress } = options;
+      const { to, gasToken, txData, value, safeAddress, isCRCVersion } =
+        options;
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
 
@@ -982,24 +989,42 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       // Request nonce for Safe
       const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
 
-      // Get the chainId from the network
-      const chainId = await web3.eth.getChainId();
-
       // Prepare EIP712 transaction data and sign it
-      const typedData = formatTypedData(
-        to,
-        value,
-        txData,
-        operation,
-        safeTxGas,
-        dataGas,
-        gasPrice,
-        gasToken,
-        refundReceiver,
-        nonce,
-        chainId,
-        safeAddress,
-      );
+      let typedData;
+      if (isCRCVersion == true) {
+        // Prepare EIP712 transaction data and sign it
+        typedData = formatTypedDataCRCVersion(
+          to,
+          value,
+          txData,
+          operation,
+          safeTxGas,
+          dataGas,
+          gasPrice,
+          gasToken,
+          refundReceiver,
+          nonce,
+          safeAddress,
+        );
+      } else {
+        // Get the chainId from the network
+        const chainId = await web3.eth.getChainId();
+        // Prepare EIP712 transaction data and sign it
+        typedData = formatTypedData(
+          to,
+          value,
+          txData,
+          operation,
+          safeTxGas,
+          dataGas,
+          gasPrice,
+          gasToken,
+          refundReceiver,
+          nonce,
+          chainId,
+          safeAddress,
+        );
+      }
 
       const signature = signTypedData(web3, account.privateKey, typedData);
 
