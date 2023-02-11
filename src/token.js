@@ -1,9 +1,10 @@
-import { ZERO_ADDRESS } from '~/common/constants';
+import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
 
 import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
+import { getVersion } from '~/safe';
 
 /* Due to block gas limit of 12.500.000 a transitive transaction can have a
  * limited number of steps. The limit below gives a 50% buffer between the
@@ -225,11 +226,14 @@ export default function createTokenModule(web3, contracts, utils) {
 
       const txData = await hub.methods.signup().encodeABI();
 
+      const safeVersion = await getVersion(web3, options.safeAddress);
+
       // Call method and return result
       return await utils.executeSafeTx(account, {
         safeAddress: options.safeAddress,
         to: hub.options.address,
         txData,
+        isCRCVersion: safeVersion != SAFE_LAST_VERSION,
       });
     },
 
