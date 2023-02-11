@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.1] - 2023-02-11
 
-### Added
+### Changed
 
 - Use `isCRCVersion` option in `token.deploy` to allow execution of txs with Safes on version `v1.1.1+Circles` [#162](https://github.com/CirclesUBI/circles-core/pull/162)
 
