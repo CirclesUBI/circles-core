@@ -585,6 +585,7 @@ export default function createSafeModule(
         });
         return response.data;
       } catch (error) {
+        console.log(error);
         throw new CoreError(error.message, ErrorCodes.SAFE_NOT_FOUND);
       }
     },
