@@ -40,25 +40,24 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
     value: {
       type: web3.utils.isBN,
     },
-    hops: {
+    maxTransfers: {
       type: 'number',
-      default: 3,
+      default: MAX_TRANSFER_STEPS,
     },
   });
 
   try {
-    const response = await utils.requestAPI({
-      path: ['transfers'],
+    const response = await utils.requestPathfinderAPI({
       method: 'POST',
       data: {
         from: options.from,
         to: options.to,
         value: options.value.toString(),
-        hops: options.hops.toString(),
+        maxTransfers: options.maxTransfers,
       },
     });
 
-    return response.data;
+    return response.result;
   } catch (error) {
     throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
   }
@@ -408,9 +407,9 @@ export default function createTokenModule(web3, contracts, utils) {
           type: 'string',
           default: '',
         },
-        hops: {
+        maxTransfers: {
           type: 'number',
-          default: 3,
+          default: 40,
         },
       });
 
@@ -423,64 +422,78 @@ export default function createTokenModule(web3, contracts, utils) {
 
       // Try first to send the transaction directly, this saves us the
       // roundtrip through the api
-      const sendLimit = await hub.methods
-        .checkSendLimit(options.from, options.from, options.to)
+      // Try first with the token of the 'to' address,
+      // then try with the token of the 'from' address.
+      const sendLimitTo = await hub.methods
+        .checkSendLimit(options.to, options.from, options.to)
         .call();
 
-      if (web3.utils.toBN(sendLimit).gte(options.value)) {
+      if (web3.utils.toBN(sendLimitTo).gte(options.value)) {
         // Direct transfer is possible, fill in the required transaction data
-        transfer.tokenOwners.push(options.from);
+        transfer.tokenOwners.push(options.to);
         transfer.sources.push(options.from);
         transfer.destinations.push(options.to);
         transfer.values.push(options.value.toString());
       } else {
-        // This seems to be a little bit more complicated ..., request API to
-        // find transitive transfer path
-        let response;
-        try {
-          response = await findTransitiveTransfer(web3, utils, options);
+        const sendLimitFrom = await hub.methods
+        .checkSendLimit(options.from, options.from, options.to)
+        .call();
+        if (web3.utils.toBN(sendLimitFrom).gte(options.value)) {
+          // Direct transfer is possible, fill in the required transaction data
+          transfer.tokenOwners.push(options.from);
+          transfer.sources.push(options.from);
+          transfer.destinations.push(options.to);
+          transfer.values.push(options.value.toString());
+        } else {
 
-          if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
-            throw new TransferError(
-              'No possible transfer found',
-              ErrorCodes.TRANSFER_NOT_FOUND,
-              {
-                ...options,
-                response,
-              },
-            );
-          }
+          // This seems to be a little bit more complicated ..., request API to
+          // find transitive transfer path
+          let response;
+          try {
+            response = await findTransitiveTransfer(web3, utils, options);
 
-          if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
-            throw new TransferError(
-              'Too many transfer steps',
-              ErrorCodes.TOO_COMPLEX_TRANSFER,
-              {
-                ...options,
-                response,
-              },
-            );
-          }
+            if (web3.utils.toBN(response.flow).lt(options.value)) {
+              throw new TransferError(
+                'No possible transfer found',
+                ErrorCodes.TRANSFER_NOT_FOUND,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            }
 
-          // Convert connections to contract argument format
-          response.transferSteps.forEach((transaction) => {
-            transfer.tokenOwners.push(transaction.tokenOwnerAddress);
-            transfer.sources.push(transaction.from);
-            transfer.destinations.push(transaction.to);
-            transfer.values.push(transaction.value);
-          });
-        } catch (error) {
-          if (!error.code) {
-            throw new TransferError(
-              error.message,
-              ErrorCodes.INVALID_TRANSFER,
-              {
-                ...options,
-                response,
-              },
-            );
-          } else {
-            throw error;
+            if (response.transfers.length > MAX_TRANSFER_STEPS) {
+              throw new TransferError(
+                'Too many transfer steps',
+                ErrorCodes.TOO_COMPLEX_TRANSFER,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            }
+
+            // Convert connections to contract argument format
+            response.transfers.forEach((transaction) => {
+              transfer.tokenOwners.push(transaction.token_owner);
+              transfer.sources.push(transaction.from);
+              transfer.destinations.push(transaction.to);
+              transfer.values.push(transaction.value);
+            });
+          } catch (error) {
+            if (!error.code) {
+              throw new TransferError(
+                error.message,
+                ErrorCodes.INVALID_TRANSFER,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            } else {
+              throw error;
+            }
           }
         }
       }

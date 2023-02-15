@@ -91,6 +91,7 @@ const core = new CirclesCore(web3, {
   proxyFactoryAddress: '0x9b1f7F645351AF3631a656421eD2e40f2802E6c0',
   safeMasterAddress: '0x59d3631c86BbE35EF041872d502F218A39FBa150',
   apiServiceEndpoint: 'http://api.circles.local',
+  pathfinderServiceEndpoint: 'http://pathfinder.circles.local'
   graphNodeEndpoint: 'http://graph.circles.local',
   databaseSource: 'graph',
   relayServiceEndpoint: 'http://relay.circles.local',
