@@ -190,12 +190,18 @@ export async function updateTransitiveTransfer(web3, utils, userOptions) {
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
+ * @param {Object} globalOptions - global core options
  *
  * @return {Object} - token module instance
  */
-export default function createTokenModule(web3, contracts, utils) {
+export default function createTokenModule(
+  web3,
+  contracts,
+  utils,
+  globalOptions,
+) {
   const { hub } = contracts;
-
+  const { pathfinderType } = globalOptions;
   return {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
@@ -416,9 +422,35 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @return {Object} - maximum possible Circles value and transactions path
      */
+    // findTransitiveTransfer(web3, utils, userOptions)
     findTransitiveTransfer: async (account, userOptions) => {
       checkAccount(web3, account);
       return await findTransitiveTransfer(web3, utils, userOptions);
+    },
+
+    /**
+     * Find Transitive Transfer Steps using either the cli or the server version
+     * of the pathfinder2
+     *
+     * @namespace core.token.requestTransferSteps
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - search arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {BN} userOptions.value - value for transactions path
+     * @param {string} pathfinderType - "cli" or "server"
+     *
+     * @return {Object} - maximum possible Circles value and transactions path
+     */
+    requestTransferSteps: async (account, userOptions) => {
+      checkAccount(web3, account);
+      return await requestTransferSteps(
+        web3,
+        utils,
+        userOptions,
+        pathfinderType,
+      );
     },
 
     /**
