@@ -163,11 +163,15 @@ describe('Token', () => {
     it('should return max flow and possible path', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
 
-      const result = await core.token.findTransitiveTransfer(accounts[0], {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        value,
-      });
+      const result = await core.token.requestTransferSteps(
+        accounts[0],
+        {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value,
+        },
+        'server',
+      );
       expect(result.transfers.length).toBe(2);
       expect(result.transfers[0].from).toBe(safeAddresses[0]);
       expect(result.transfers[0].to).toBe(safeAddresses[3]);
