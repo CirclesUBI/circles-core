@@ -26,6 +26,7 @@ export default class CirclesCore {
    * @param {Object} options - global core options
    * @param {string} options.apiServiceEndpoint - URL of the username resolver service
    * @param {string} options.pathfinderServiceEndpoint - URL of the pathfinder service
+   * @param {string} options.pathfinderType - Type of pathfinder used to get transfer steps ("cli" or "server")
    * @param {string} options.databaseSource - database source type
    * @param {string} options.fallbackHandlerAddress - address of the fallback handler of the Safe contract
    * @param {string} options.graphNodeEndpoint - URL of the graph node
@@ -77,6 +78,10 @@ export default class CirclesCore {
       subgraphName: {
         type: 'string',
       },
+      pathfinderType: {
+        type: 'string',
+        default: 'server',
+      },
     });
 
     // Expose error classes and constants
@@ -114,7 +119,12 @@ export default class CirclesCore {
       this.options,
     );
     /** @type {Object} - token module */
-    this.token = createTokenModule(web3, this.contracts, this.utils);
+    this.token = createTokenModule(
+      web3,
+      this.contracts,
+      this.utils,
+      this.options,
+    );
     /** @type {Object} - trust module */
     this.trust = createTrustModule(web3, this.contracts, this.utils);
     /** @type {Object} - user module */
