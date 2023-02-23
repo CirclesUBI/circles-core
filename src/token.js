@@ -19,13 +19,15 @@ async function requestTransferSteps(
   userOptions,
   pathfinderType = 'server',
 ) {
+  let result;
   if (pathfinderType == 'cli') {
     // call cli pathfinders
-    findTransitiveTransfer(web3, utils, userOptions);
+    result = await findTransitiveTransfer(web3, utils, userOptions);
   } else if (pathfinderType == 'server') {
     // call server
-    findTransitiveTransferServer(web3, utils, userOptions);
+    result = await findTransitiveTransferServer(web3, utils, userOptions);
   }
+  return result;
 }
 
 /**
@@ -61,7 +63,6 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
       default: 3,
     },
   });
-
   try {
     const response = await utils.requestAPI({
       path: ['transfers'],
@@ -73,7 +74,6 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
         hops: options.hops.toString(),
       },
     });
-
     return response.data;
   } catch (error) {
     throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
@@ -112,19 +112,27 @@ export async function findTransitiveTransferServer(web3, utils, userOptions) {
       type: 'number',
       default: MAX_TRANSFER_STEPS,
     },
+    pathfinderMethod: {
+      type: 'string',
+      default: 'compute_transfer',
+    },
   });
 
   try {
     const response = await utils.requestPathfinderAPI({
       method: 'POST',
       data: {
-        from: options.from,
-        to: options.to,
-        value: options.value.toString(),
-        maxTransfers: options.maxTransfers,
+        id: Date.now(),
+        method: options.pathfinderMethod,
+        params: {
+          from: options.from,
+          to: options.to,
+          value: options.value.toString(),
+          max_transfers: options.maxTransfers,
+        },
       },
+      isTrailingSlash: false,
     });
-
     return response.result;
   } catch (error) {
     throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
@@ -198,10 +206,10 @@ export default function createTokenModule(
   web3,
   contracts,
   utils,
-  globalOptions,
+  // globalOptions,
 ) {
   const { hub } = contracts;
-  const { pathfinderType } = globalOptions;
+  // const { pathfinderType } = globalOptions;
   return {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
@@ -443,7 +451,7 @@ export default function createTokenModule(
      *
      * @return {Object} - maximum possible Circles value and transactions path
      */
-    requestTransferSteps: async (account, userOptions) => {
+    requestTransferSteps: async (account, userOptions, pathfinderType) => {
       checkAccount(web3, account);
       return await requestTransferSteps(
         web3,
@@ -493,26 +501,53 @@ export default function createTokenModule(
      */
     transfer: async (account, userOptions, pathfinderType = 'server') => {
       checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        from: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        to: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        value: {
-          type: web3.utils.isBN,
-        },
-        paymentNote: {
-          type: 'string',
-          default: '',
-        },
-        maxTransfers: {
-          type: 'number',
-          default: 40,
-        },
-      });
+      let fieldObject;
+      if (pathfinderType == 'cli') {
+        fieldObject = {
+          from: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          to: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          value: {
+            type: web3.utils.isBN,
+          },
+          paymentNote: {
+            type: 'string',
+            default: '',
+          },
+          hops: {
+            type: 'number',
+            default: 3,
+          },
+        };
+      } else {
+        fieldObject = {
+          from: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          to: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          value: {
+            type: web3.utils.isBN,
+          },
+          paymentNote: {
+            type: 'string',
+            default: '',
+          },
+          maxTransfers: {
+            type: 'number',
+            default: 40,
+          },
+          pathfinderMethod: {
+            type: 'string',
+            default: 'compute_transfer',
+          },
+        };
+      }
+      const options = checkOptions(userOptions, fieldObject);
 
       const transfer = {
         tokenOwners: [],
@@ -556,16 +591,7 @@ export default function createTokenModule(
               options,
               pathfinderType,
             );
-            let maxflow;
-            let totalTransfers;
-            if (pathfinderType == 'cli') {
-              maxflow == response.maxFlowValue;
-              totalTransfers == response.transferSteps;
-            } else if (pathfinderType == 'server') {
-              maxflow == response.flow;
-              totalTransfers == response.transfers;
-            }
-            if (web3.utils.toBN(maxflow).lt(options.value)) {
+            if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
               throw new TransferError(
                 'No possible transfer found',
                 ErrorCodes.TRANSFER_NOT_FOUND,
@@ -576,7 +602,7 @@ export default function createTokenModule(
               );
             }
 
-            if (response.totalTransfers.length > MAX_TRANSFER_STEPS) {
+            if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
               throw new TransferError(
                 'Too many transfer steps',
                 ErrorCodes.TOO_COMPLEX_TRANSFER,
@@ -586,17 +612,16 @@ export default function createTokenModule(
                 },
               );
             }
-
             // Convert connections to contract argument format depending on the pathfinder used
             if (pathfinderType == 'cli') {
-              response.transfers.forEach((transaction) => {
+              response.transferSteps.forEach((transaction) => {
                 transfer.tokenOwners.push(transaction.tokenOwnerAddress);
                 transfer.sources.push(transaction.from);
                 transfer.destinations.push(transaction.to);
                 transfer.values.push(transaction.value);
               });
             } else if (pathfinderType == 'server') {
-              response.transfers.forEach((transaction) => {
+              response.transferSteps.forEach((transaction) => {
                 transfer.tokenOwners.push(transaction.token_owner);
                 transfer.sources.push(transaction.from);
                 transfer.destinations.push(transaction.to);

@@ -1121,10 +1121,11 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           default: {},
         },
       });
-
       return request(pathfinderServiceEndpoint, {
         data: options.data,
         method: options.method,
+        path: [],
+        isTrailingSlash: false,
       });
     },
 
