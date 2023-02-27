@@ -51,9 +51,7 @@ jobs:
           repository: CirclesUBI/circles-docker.git
           ref:  pathfinder2-dev-env
           path: circles-docker
-      - name: Delete Ganache docker
-        working-directory: circles-docker
-        run: docker stop circles-ganache; docker rm circles-ganache
+
       - name: Setup docker repo
         working-directory: circles-docker
         run: cp .env.example .env
