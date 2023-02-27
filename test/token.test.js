@@ -227,7 +227,7 @@ describe('Token', () => {
       // actually is (25).
       expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
     });
-    it('should return max flow and possible path when using pathfinder server', async () => {
+    it('should return max flow and possible path when using pathfinder server.', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
       const result = await core.token.requestTransferSteps(
         accounts[0],
