@@ -35,15 +35,15 @@ jobs:
         with:
           node-version: '${{ steps.nvmrc.outputs.NODE_VERSION }}'
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS.
-          path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
+      # - name: Cache Node.js modules
+      #   uses: actions/cache@v3
+      #   with:
+      #     # npm cache files are stored in `~/.npm` on Linux/macOS.
+      #     path: ~/.npm
+      #     key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+      #     restore-keys: |
+      #       ${{ runner.OS }}-node-
+      #       ${{ runner.OS }}-
 
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v3
