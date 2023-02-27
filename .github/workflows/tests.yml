@@ -63,6 +63,10 @@ jobs:
       - name: Download and migrate contracts
         working-directory: circles-docker
         run: ./scripts/migrate-contracts.sh
+  
+      - name: Update .env file
+        working-directory: circles-docker
+        run: ./scripts/update_contract_addresses.sh
 
       - name: Create and deploy subgraph
         working-directory: circles-docker
