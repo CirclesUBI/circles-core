@@ -222,6 +222,7 @@ describe('Token', () => {
         'cli',
       );
       expect(result.transferSteps.length).toBe(0);
+
       // The `pathfinder` stops searching for max flow as soon as it found a
       // successful solution, therefore it returns a lower max flow than it
       // actually is (25).
