@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-      DOCKER_COMPOSE: docker compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
+      DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
 
     steps:
       - name: Add hosts to /etc/hosts
@@ -58,7 +58,7 @@ jobs:
 
       - name: Container setup via docker-compose
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -f docker-compose.pathfinder-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -f docker-compose.pathfinder-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
@@ -71,10 +71,13 @@ jobs:
       - name: Create and deploy subgraph
         working-directory: circles-docker
         run: ./scripts/deploy-subgraph.sh
+      - name: Try starting failed services
+        working-directory: circles-docker
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up –force-recreate
 
       - name: Try starting failed services
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --remove-orphans --build
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --remove-orphans --build
 
       - name: Install dependencies
         working-directory: circles-core
