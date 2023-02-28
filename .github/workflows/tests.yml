@@ -73,7 +73,7 @@ jobs:
         run: ./scripts/deploy-subgraph.sh
       - name: Try starting failed services
         working-directory: circles-docker
-        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up –force-recreate
+        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up -–force-recreate
 
       - name: Try starting failed services
         working-directory: circles-docker
