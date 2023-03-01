@@ -125,12 +125,16 @@ describe('Token', () => {
       // Send some Circles on that path and store payment note
       const value = new web3.utils.BN(core.utils.toFreckles(3));
       paymentNote = 'Thank you for the fish';
-      txHash = await core.token.transfer(accounts[0], {
-        from: sender.safeAddress,
-        to: receiver.safeAddress,
-        value,
-        paymentNote,
-      });
+      txHash = await core.token.transfer(
+        accounts[0],
+        {
+          from: sender.safeAddress,
+          to: receiver.safeAddress,
+          value,
+          paymentNote,
+        },
+        'server',
+      );
 
       expect(web3.utils.isHexStrict(txHash)).toBe(true);
     });
