@@ -56,41 +56,42 @@ jobs:
         working-directory: circles-docker
         run: cp .env.example .env
 
-      - name: Container setup via docker-compose
+      - name: Container setup via docker-compose without pathfinder
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -f docker-compose.pathfinder-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -p circles  up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
         run: ./scripts/migrate-contracts.sh
   
-      - name: Update .env file
-        working-directory: circles-docker
-        run: ./scripts/update_contract_addresses.sh
+     
+      # - name: Update .env file
+      #   working-directory: circles-docker
+      #   run: ./scripts/update_contract_addresses.sh
 
       - name: Create and deploy subgraph
         working-directory: circles-docker
         run: ./scripts/deploy-subgraph.sh
-
-      # - name: Run indexer-db
-      #   working-directory: circles-docker
-      #   run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up indexer-db
-
-      # - name: Run indexer-db background
-      #   working-directory: circles-docker
-      #   run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up -d indexer-db  
-
-      # - name: Run indexer-db-init
-      #   working-directory: circles-docker
-      #   run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml run --rm indexer-db-init    
-
+      
       - name: Try starting failed services
         working-directory: circles-docker
         run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --remove-orphans --build
-
-      - name: Try starting failed services
+      
+      - name: Container setup via docker-compose for pathfinder
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml  -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --build
+
+      - name: Run indexer-db
+        working-directory: circles-docker
+        run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up indexer-db
+
+      - name: Run indexer-db background
+        working-directory: circles-docker
+        run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up -d indexer-db  
+
+      - name: Run indexer-db-init
+        working-directory: circles-docker
+        run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml run --rm indexer-db-init    
 
       - name: Install dependencies
         working-directory: circles-core
