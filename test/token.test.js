@@ -133,7 +133,7 @@ describe('Token', () => {
           value,
           paymentNote,
         },
-        'server',
+        'cli',
       );
 
       expect(web3.utils.isHexStrict(txHash)).toBe(true);
