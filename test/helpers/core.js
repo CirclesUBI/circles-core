@@ -9,6 +9,7 @@ export default function createCore() {
     graphNodeEndpoint: process.env.GRAPH_NODE_ENDPOINT,
     hubAddress: process.env.HUB_ADDRESS,
     pathfinderServiceEndpoint: process.env.PATHFINDER_SERVICE_ENDPOINT,
+    pathfinderType: process.env.PATHFINDER_TYPE,
     proxyFactoryAddress: process.env.PROXY_FACTORY_ADDRESS,
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
     safeMasterAddress: process.env.SAFE_ADDRESS,

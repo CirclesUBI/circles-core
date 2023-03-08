@@ -13,12 +13,20 @@ import { getVersion } from '~/safe';
  */
 const MAX_TRANSFER_STEPS = 52;
 
-async function requestTransferSteps(
-  web3,
-  utils,
-  userOptions,
-  pathfinderType = 'server',
-) {
+/**
+ * Find maximumFlow and transfer steps through a trust graph from someone to
+ * someone else to transitively send an amount of Circles using the binary
+ * version of pathfinder2 or the rpc server version
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - search arguments
+ *
+ * @return {Object[]} - transaction steps
+ */
+async function requestTransferSteps(web3, utils, userOptions, pathfinderType) {
   let result;
   if (pathfinderType == 'cli') {
     // call cli pathfinders
@@ -206,10 +214,10 @@ export default function createTokenModule(
   web3,
   contracts,
   utils,
-  // globalOptions,
+  globalOptions,
 ) {
   const { hub } = contracts;
-  // const { pathfinderType } = globalOptions;
+  const { pathfinderType } = globalOptions;
   return {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
@@ -447,11 +455,10 @@ export default function createTokenModule(
      * @param {string} userOptions.from - sender Safe address
      * @param {string} userOptions.to - receiver Safe address
      * @param {BN} userOptions.value - value for transactions path
-     * @param {string} pathfinderType - "cli" or "server"
      *
      * @return {Object} - maximum possible Circles value and transactions path
      */
-    requestTransferSteps: async (account, userOptions, pathfinderType) => {
+    requestTransferSteps: async (account, userOptions) => {
       checkAccount(web3, account);
       return await requestTransferSteps(
         web3,

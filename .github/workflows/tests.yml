@@ -81,13 +81,13 @@ jobs:
         working-directory: circles-docker
         run: docker compose -f docker-compose.pathfinder-pull.yml  -p circles  up --detach --build
 
-      - name: Run indexer-db background
-        working-directory: circles-docker
-        run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up -d indexer-db  
+      # - name: Run indexer-db background
+      #   working-directory: circles-docker
+      #   run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml up -d indexer-db  
 
-      - name: Run indexer-db-init
-        working-directory: circles-docker
-        run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml run --rm indexer-db-init    
+      # - name: Run indexer-db-init
+      #   working-directory: circles-docker
+      #   run: docker compose -p  circles -f docker-compose.pathfinder-pull.yml run --rm indexer-db-init    
 
       - name: Install dependencies
         working-directory: circles-core
