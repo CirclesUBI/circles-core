@@ -86,6 +86,7 @@ describe('Token', () => {
     core = createCore();
 
     // Retrieve the value of the initial UBI payout (called signupBonus) from the deployed Hub contract
+
     hubAddress = core.options.hubAddress;
     contracts = await getContracts(web3, {
       hubAddress: hubAddress,
