@@ -28,7 +28,6 @@ const MAX_TRANSFER_STEPS = 52;
  */
 async function requestTransferSteps(web3, utils, userOptions, pathfinderType) {
   let result;
-  console.log('pathfinder type ', pathfinderType);
   if (pathfinderType == 'cli') {
     // call cli pathfinders
     result = await findTransitiveTransfer(web3, utils, userOptions);
@@ -509,7 +508,6 @@ export default function createTokenModule(
     transfer: async (account, userOptions) => {
       checkAccount(web3, account);
       let fieldObject;
-      console.log('pathfinder type in transfer', pathfinderType);
       if (pathfinderType == 'cli') {
         fieldObject = {
           from: {
@@ -609,7 +607,6 @@ export default function createTokenModule(
                 },
               );
             }
-            console.log('transferSteps response in transfer', response);
             if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
               throw new TransferError(
                 'Too many transfer steps',
