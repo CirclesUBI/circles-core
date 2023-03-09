@@ -503,11 +503,10 @@ export default function createTokenModule(
      * @param {BN} userOptions.value - value
      * @param {string} userOptions.paymentNote - optional payment note stored in API
      * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
-     * @param {string} pathfinderType - "cli" or "server"
      *
      * @return {string} - transaction hash
      */
-    transfer: async (account, userOptions, pathfinderType) => {
+    transfer: async (account, userOptions) => {
       checkAccount(web3, account);
       let fieldObject;
       console.log('pathfinder type in transfer', pathfinderType);

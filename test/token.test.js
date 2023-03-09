@@ -154,314 +154,314 @@ describe('Token', () => {
     });
   });
 
-  // describe('Find transitive transfer steps', () => {
-  //   let safeAddresses;
-  //   beforeAll(async () => {
-  //     const result = await deployTestNetwork(core, accounts);
-  //     safeAddresses = result.safeAddresses;
-  //   });
-  // it('should return max flow and possible path when using pathfinder binary.', async () => {
-  //   const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //   const result = await core.token.requestTransferSteps(accounts[0], {
-  //     from: safeAddresses[0],
-  //     to: safeAddresses[4],
-  //     value,
-  //   });
-  //   expect(result.transferSteps.length).toBe(2);
-  //   expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-  //   expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-  //   expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-  //   expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-  //   expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-  //   expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-  //   expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-  //   expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
-  //   // The `pathfinder` stops searching for max flow as soon as it found a
-  //   // successful solution, therefore it returns a lower max flow than it
-  //   // actually is (25).
-  //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-  // });
-  // it('should return max flow and possible path when using hops parameter in binary pathfinder', async () => {
-  //   const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //   const result = await core.token.requestTransferSteps(accounts[0], {
-  //     from: safeAddresses[0],
-  //     to: safeAddresses[4],
-  //     value,
-  //     hops: 2,
-  //   });
-  //   expect(result.transferSteps.length).toBe(2);
-  //   expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-  //   expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-  //   expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-  //   expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-  //   expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-  //   expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-  //   expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-  //   expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
-  //   // The `pathfinder` stops searching for max flow as soon as it found a
-  //   // successful solution, therefore it returns a lower max flow than it
-  //   // actually is (25).
-  //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-  // });
-  // it('should return 0 max flow and no path when using too low hops parameter in binary pathfinder', async () => {
-  //   const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //   const result = await core.token.requestTransferSteps(accounts[0], {
-  //     from: safeAddresses[0],
-  //     to: safeAddresses[4],
-  //     value,
-  //     hops: 1,
-  //   });
-  //   expect(result.transferSteps.length).toBe(0);
+  describe('Find transitive transfer steps', () => {
+    let safeAddresses;
+    beforeAll(async () => {
+      const result = await deployTestNetwork(core, accounts);
+      safeAddresses = result.safeAddresses;
+    });
+    it('should return max flow and possible path when using pathfinder binary.', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
+    it('should return max flow and possible path when using hops parameter in binary pathfinder', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        hops: 2,
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
+    it('should return 0 max flow and no path when using too low hops parameter in binary pathfinder', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        hops: 1,
+      });
+      expect(result.transferSteps.length).toBe(0);
 
-  //   // The `pathfinder` stops searching for max flow as soon as it found a
-  //   // successful solution, therefore it returns a lower max flow than it
-  //   // actually is (25).
-  //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
-  // });
-  //     it('should return max flow and possible path when using pathfinder server.', async () => {
-  //       const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //       const result = await core.token.requestTransferSteps(accounts[0], {
-  //         from: safeAddresses[0],
-  //         to: safeAddresses[4],
-  //         value,
-  //       });
-  //       expect(result.transferSteps.length).toBe(2);
-  //       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-  //       expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-  //       expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-  //       expect(result.transferSteps[0].token_owner).toBe(safeAddresses[0]);
-  //       expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-  //       expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-  //       expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-  //       expect(result.transferSteps[1].token_owner).toBe(safeAddresses[3]);
-  //       // The `pathfinder` stops searching for max flow as soon as it found a
-  //       // successful solution, therefore it returns a lower max flow than it
-  //       // actually is (25).
-  //       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-  //     });
-  //     it('should return max flow and possible path when using max_transfers parameter in pathfinder server', async () => {
-  //       const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //       const result = await core.token.requestTransferSteps(accounts[0], {
-  //         from: safeAddresses[0],
-  //         to: safeAddresses[4],
-  //         value,
-  //         maxTransfers: 2,
-  //       });
-  //       expect(result.transferSteps.length).toBe(2);
-  //       expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-  //       expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-  //       expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-  //       expect(result.transferSteps[0].token_owner).toBe(safeAddresses[0]);
-  //       expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-  //       expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-  //       expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-  //       expect(result.transferSteps[1].token_owner).toBe(safeAddresses[3]);
-  //       // The `pathfinder` stops searching for max flow as soon as it found a
-  //       // successful solution, therefore it returns a lower max flow than it
-  //       // actually is (25).
-  //       expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-  //     });
-  //     it('should return 0 max flow and no path when using too low max_transfer parameter in pathfinder server', async () => {
-  //       const value = new web3.utils.BN(core.utils.toFreckles(1));
-  //       const result = await core.token.requestTransferSteps(accounts[0], {
-  //         from: safeAddresses[0],
-  //         to: safeAddresses[4],
-  //         value,
-  //         maxTransfers: 1,
-  //       });
-  //       expect(result.transferSteps.length).toBe(0);
-  //       // The `pathfinder` stops searching for max flow as soon as it found a
-  //       // successful solution, therefore it returns a lower max flow than it
-  //       // actually is (25).
-  //       expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
-  //     });
-  //   });
-  //   describe('Transitive Transactions', () => {
-  //     let safeAddresses;
-  //     let tokenAddresses;
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
+    });
+    it('should return max flow and possible path when using pathfinder server.', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].token_owner).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].token_owner).toBe(safeAddresses[3]);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
+    it('should return max flow and possible path when using max_transfers parameter in pathfinder server', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        maxTransfers: 2,
+      });
+      expect(result.transferSteps.length).toBe(2);
+      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[0].token_owner).toBe(safeAddresses[0]);
+      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+      expect(result.transferSteps[1].token_owner).toBe(safeAddresses[3]);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    });
+    it('should return 0 max flow and no path when using too low max_transfer parameter in pathfinder server', async () => {
+      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const result = await core.token.requestTransferSteps(accounts[0], {
+        from: safeAddresses[0],
+        to: safeAddresses[4],
+        value,
+        maxTransfers: 1,
+      });
+      expect(result.transferSteps.length).toBe(0);
+      // The `pathfinder` stops searching for max flow as soon as it found a
+      // successful solution, therefore it returns a lower max flow than it
+      // actually is (25).
+      expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
+    });
+  });
+  describe('Transitive Transactions', () => {
+    let safeAddresses;
+    let tokenAddresses;
 
-  //     beforeAll(async () => {
-  //       const result = await deployTestNetwork(core, accounts);
-  //       safeAddresses = result.safeAddresses;
-  //       tokenAddresses = result.tokenAddresses;
-  //     });
+    beforeAll(async () => {
+      const result = await deployTestNetwork(core, accounts);
+      safeAddresses = result.safeAddresses;
+      tokenAddresses = result.tokenAddresses;
+    });
 
-  //     it('should get the current balance', async () => {
-  //       const balance = await core.token.getBalance(accounts[5], {
-  //         safeAddress: safeAddresses[5],
-  //       });
+    it('should get the current balance', async () => {
+      const balance = await core.token.getBalance(accounts[5], {
+        safeAddress: safeAddresses[5],
+      });
 
-  //       // It should be equals the initial UBI payout (called signupBonus) which was set during Hub
-  //       // contract deployment:
-  //       expect(balance).toMatchObject(new web3.utils.BN(signupBonus));
-  //     });
+      // It should be equals the initial UBI payout (called signupBonus) which was set during Hub
+      // contract deployment:
+      expect(balance).toMatchObject(new web3.utils.BN(signupBonus));
+    });
 
-  //     it('should send Circles to someone directly', async () => {
-  //       const value = web3.utils.toBN(core.utils.toFreckles(5));
+    it('should send Circles to someone directly', async () => {
+      const value = web3.utils.toBN(core.utils.toFreckles(5));
 
-  //       // Unidirectional trust relationship from 1 to 2
-  //       const indexFrom = 1;
-  //       const indexTo = 2;
+      // Unidirectional trust relationship from 1 to 2
+      const indexFrom = 1;
+      const indexTo = 2;
 
-  //       // Transfer from 1 to 2
-  //       const response = await core.token.transfer(accounts[indexFrom], {
-  //         from: safeAddresses[indexFrom],
-  //         to: safeAddresses[indexTo],
-  //         value,
-  //       });
+      // Transfer from 1 to 2
+      const response = await core.token.transfer(accounts[indexFrom], {
+        from: safeAddresses[indexFrom],
+        to: safeAddresses[indexTo],
+        value,
+      });
 
-  //       expect(web3.utils.isHexStrict(response)).toBe(true);
-  //     });
+      expect(web3.utils.isHexStrict(response)).toBe(true);
+    });
 
-  //     it('should send Circles to someone transitively', async () => {
-  //       const sentCircles = 5;
-  //       const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
-  //       const indexFrom = 0;
-  //       const indexTo = 4;
+    it('should send Circles to someone transitively', async () => {
+      const sentCircles = 5;
+      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
+      const indexFrom = 0;
+      const indexTo = 4;
 
-  //       const response = await core.token.transfer(accounts[indexFrom], {
-  //         from: safeAddresses[indexFrom],
-  //         to: safeAddresses[indexTo],
-  //         value,
-  //       });
+      const response = await core.token.transfer(accounts[indexFrom], {
+        from: safeAddresses[indexFrom],
+        to: safeAddresses[indexTo],
+        value,
+      });
 
-  //       expect(web3.utils.isHexStrict(response)).toBe(true);
+      expect(web3.utils.isHexStrict(response)).toBe(true);
 
-  //       const accountBalance = await loop(
-  //         'Wait for balance to be lower after user transferred Circles',
-  //         () => {
-  //           return core.token.getBalance(accounts[indexFrom], {
-  //             safeAddress: safeAddresses[indexFrom],
-  //           });
-  //         },
-  //         (balance) => {
-  //           return (
-  //             (core.utils.fromFreckles(balance) + 1).toString() ===
-  //             (core.utils.fromFreckles(signupBonus) - sentCircles).toString()
-  //           );
-  //         },
-  //       );
+      const accountBalance = await loop(
+        'Wait for balance to be lower after user transferred Circles',
+        () => {
+          return core.token.getBalance(accounts[indexFrom], {
+            safeAddress: safeAddresses[indexFrom],
+          });
+        },
+        (balance) => {
+          return (
+            (core.utils.fromFreckles(balance) + 1).toString() ===
+            (core.utils.fromFreckles(signupBonus) - sentCircles).toString()
+          );
+        },
+      );
 
-  //       const otherAccountBalance = await core.token.getBalance(
-  //         accounts[indexTo],
-  //         {
-  //           safeAddress: safeAddresses[indexTo],
-  //         },
-  //       );
+      const otherAccountBalance = await core.token.getBalance(
+        accounts[indexTo],
+        {
+          safeAddress: safeAddresses[indexTo],
+        },
+      );
 
-  //       expect(
-  //         (core.utils.fromFreckles(otherAccountBalance) + 1).toString(),
-  //       ).toBe((core.utils.fromFreckles(signupBonus) + sentCircles).toString());
-  //       expect((core.utils.fromFreckles(accountBalance) + 1).toString()).toBe(
-  //         (core.utils.fromFreckles(signupBonus) - sentCircles).toString(),
-  //       );
-  //     });
+      expect(
+        (core.utils.fromFreckles(otherAccountBalance) + 1).toString(),
+      ).toBe((core.utils.fromFreckles(signupBonus) + sentCircles).toString());
+      expect((core.utils.fromFreckles(accountBalance) + 1).toString()).toBe(
+        (core.utils.fromFreckles(signupBonus) - sentCircles).toString(),
+      );
+    });
 
-  //     it('should fail sending Circles when maxflow is lower than requested transfer value', async () => {
-  //       await expect(
-  //         core.token.transfer(accounts[0], {
-  //           from: safeAddresses[0],
-  //           to: safeAddresses[4],
-  //           value: web3.utils.toBN(core.utils.toFreckles('100')),
-  //         }),
-  //       ).rejects.toThrow();
-  //     });
+    it('should fail sending Circles when maxflow is lower than requested transfer value', async () => {
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value: web3.utils.toBN(core.utils.toFreckles('100')),
+        }),
+      ).rejects.toThrow();
+    });
 
-  //     it('should fail sending Circles when there is no trust path between sender and receiver', async () => {
-  //       // Trust connection does not exist between node 0 and 5
-  //       await expect(
-  //         core.token.transfer(accounts[0], {
-  //           from: safeAddresses[0],
-  //           to: safeAddresses[5],
-  //           value: web3.utils.toBN('1'),
-  //         }),
-  //       ).rejects.toThrow();
-  //     });
+    it('should fail sending Circles when there is no trust path between sender and receiver', async () => {
+      // Trust connection does not exist between node 0 and 5
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[5],
+          value: web3.utils.toBN('1'),
+        }),
+      ).rejects.toThrow();
+    });
 
-  //     it('should fail to send Circles to someone transitively if maxTransfers value is too small to find a path', async () => {
-  //       await expect(
-  //         core.token.transfer(accounts[0], {
-  //           from: safeAddresses[0],
-  //           to: safeAddresses[4],
-  //           value: web3.utils.toBN(core.utils.toFreckles(5)),
-  //           maxTransfers: 1,
-  //         }),
-  //       ).rejects.toThrow();
-  //     });
+    it('should fail to send Circles to someone transitively if maxTransfers value is too small to find a path', async () => {
+      await expect(
+        core.token.transfer(accounts[0], {
+          from: safeAddresses[0],
+          to: safeAddresses[4],
+          value: web3.utils.toBN(core.utils.toFreckles(5)),
+          maxTransfers: 1,
+        }),
+      ).rejects.toThrow();
+    });
 
-  //     // it('should fail sending Circles when data error when using the pathfinder binary', async () => {
-  //     //   // Update the edges.csv file simulating data error:
-  //     //   // Direct path does not exist between safeAddress 0 and 4,
-  //     //   // thus we create a false edge between safeAddress 0 and 4
-  //     //   await Promise.resolve().then(() => {
-  //     //     let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100000000000000000000`;
-  //     //     execSync(
-  //     //       `docker exec circles-api bash -c "echo '${edgesCSVdata}' >> edges-data/edges.csv" `,
-  //     //     );
-  //     //   });
-  //     //   const valueToSend = '5';
+    // it('should fail sending Circles when data error when using the pathfinder binary', async () => {
+    //   // Update the edges.csv file simulating data error:
+    //   // Direct path does not exist between safeAddress 0 and 4,
+    //   // thus we create a false edge between safeAddress 0 and 4
+    //   await Promise.resolve().then(() => {
+    //     let edgesCSVdata = `${safeAddresses[0]},${safeAddresses[4]},${safeAddresses[0]},100000000000000000000`;
+    //     execSync(
+    //       `docker exec circles-api bash -c "echo '${edgesCSVdata}' >> edges-data/edges.csv" `,
+    //     );
+    //   });
+    //   const valueToSend = '5';
 
-  //     //   // Then we perform the transfer expecting it to fail:
-  //     //   // Attempt to send an ammount which we know is higher
-  //     //   // than the allowed by the blockchain data
-  //     //   await expect(
-  //     //     core.token.transfer(accounts[0], {
-  //     //       from: safeAddresses[0],
-  //     //       to: safeAddresses[4],
-  //     //       value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
-  //     //     }),
-  //     //   ).rejects.toThrow();
+    //   // Then we perform the transfer expecting it to fail:
+    //   // Attempt to send an ammount which we know is higher
+    //   // than the allowed by the blockchain data
+    //   await expect(
+    //     core.token.transfer(accounts[0], {
+    //       from: safeAddresses[0],
+    //       to: safeAddresses[4],
+    //       value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+    //     }),
+    //   ).rejects.toThrow();
 
-  //     //   const updateResult = await core.token.updateTransferSteps(accounts[0], {
-  //     //     from: safeAddresses[0],
-  //     //     to: safeAddresses[4],
-  //     //     value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
-  //     //   });
-  //     //   await wait(3000);
-  //     //   expect(updateResult.updated).toBe(true);
+    //   const updateResult = await core.token.updateTransferSteps(accounts[0], {
+    //     from: safeAddresses[0],
+    //     to: safeAddresses[4],
+    //     value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+    //   });
+    //   await wait(3000);
+    //   expect(updateResult.updated).toBe(true);
 
-  //     //   // Only after updating the path, the transfer can succeed
-  //     //   const response = await core.token.transfer(accounts[0], {
-  //     //     from: safeAddresses[0],
-  //     //     to: safeAddresses[4],
-  //     //     value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
-  //     //   });
-  //     //   expect(web3.utils.isHexStrict(response)).toBe(true);
-  //     // });
+    //   // Only after updating the path, the transfer can succeed
+    //   const response = await core.token.transfer(accounts[0], {
+    //     from: safeAddresses[0],
+    //     to: safeAddresses[4],
+    //     value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+    //   });
+    //   expect(web3.utils.isHexStrict(response)).toBe(true);
+    // });
 
-  //     describe('requestUBIPayout', () => {
-  //       let token;
-  //       let payout;
+    describe('requestUBIPayout', () => {
+      let token;
+      let payout;
 
-  //       beforeAll(async () => {
-  //         token = await getTokenContract(web3, tokenAddresses[5]);
+      beforeAll(async () => {
+        token = await getTokenContract(web3, tokenAddresses[5]);
 
-  //         payout = await core.token.checkUBIPayout(accounts[5], {
-  //           safeAddress: safeAddresses[5],
-  //         });
-  //       });
+        payout = await core.token.checkUBIPayout(accounts[5], {
+          safeAddress: safeAddresses[5],
+        });
+      });
 
-  //       it('should add the next payout to our balance', async () => {
-  //         const balanceBefore = await token.methods
-  //           .balanceOf(safeAddresses[5])
-  //           .call();
+      it('should add the next payout to our balance', async () => {
+        const balanceBefore = await token.methods
+          .balanceOf(safeAddresses[5])
+          .call();
 
-  //         await core.token.requestUBIPayout(accounts[5], {
-  //           safeAddress: safeAddresses[5],
-  //         });
+        await core.token.requestUBIPayout(accounts[5], {
+          safeAddress: safeAddresses[5],
+        });
 
-  //         const balanceAfter = await token.methods
-  //           .balanceOf(safeAddresses[5])
-  //           .call();
+        const balanceAfter = await token.methods
+          .balanceOf(safeAddresses[5])
+          .call();
 
-  //         const expectedBalance = web3.utils
-  //           .toBN(balanceBefore)
-  //           .add(payout)
-  //           .toString();
+        const expectedBalance = web3.utils
+          .toBN(balanceBefore)
+          .add(payout)
+          .toString();
 
-  //         // Do not check for the exact amount as payout is changing every second
-  //         expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
-  //       });
-  //     });
-  //   });
+        // Do not check for the exact amount as payout is changing every second
+        expect(web3.utils.toBN(balanceAfter).gt(expectedBalance)).toBe(true);
+      });
+    });
+  });
 });
