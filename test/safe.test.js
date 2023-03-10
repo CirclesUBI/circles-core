@@ -232,4 +232,20 @@ describe('Safe', () => {
       expect(owners.length).toBe(1);
     });
   });
+  describe('Update Edges Safe ', () => {
+    let safeAddress;
+
+    beforeAll(async () => {
+      const result = await deploySafeAndToken(core, accounts[0]);
+      safeAddress = result.safeAddress;
+    });
+
+    it('should update edges of given safe', async () => {
+      expect(
+        await core.safe.updateAllEdgesSafe({
+          safeAddress: safeAddress,
+        }),
+      ).toBe(true);
+    });
+  });
 });

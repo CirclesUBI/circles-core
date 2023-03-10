@@ -9,6 +9,8 @@ export default function createCore() {
     hubAddress: process.env.HUB_ADDRESS,
     proxyFactoryAddress: process.env.PROXY_FACTORY_ADDRESS,
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
+    multiSendAddress: process.env.MULTISEND_ADDRESS,
+    multiSendCallAddress: process.env.MULTSENDCALL_ADDRESS,
     safeMasterAddress: process.env.SAFE_ADDRESS,
     subgraphName: process.env.SUBGRAPH_NAME,
   });

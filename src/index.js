@@ -9,12 +9,12 @@ import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
 import createOrganizationModule from '~/organization';
-import createSafeModule from '~/safe';
+import createSafeModule from '~/safe_v2';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
 import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
-import createTransactionsModule from '~/transactions';
+//import createTransactionsModule from '~/transactions';
 
 /**
  * Base class of CirclesCore.
@@ -30,7 +30,9 @@ export default class CirclesCore {
    * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
-   * @param {string} options.relayServiceEndpoint - URL of the Relayer server
+   * @param {string} options.relayServiceEndpoint - address of deployed Gnosis ProxyFactory contract
+   * @param {string} options.multiSendAddress - address of deployed Gnosis Multisend contract
+   * @param {string} options.multiSendCallAddress -  address of deployed Gnosis MultisendCall contract
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
    */
   constructor(web3, options) {
@@ -52,6 +54,12 @@ export default class CirclesCore {
         type: web3.utils.checkAddressChecksum,
       },
       safeMasterAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      multiSendAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      multiSendCallAddress: {
         type: web3.utils.checkAddressChecksum,
       },
       graphNodeEndpoint: {
@@ -100,7 +108,7 @@ export default class CirclesCore {
       this.utils,
     );
     /** @type {Object} - safe module */
-    this.safe = createSafeModule(web3, this.contracts, this.utils);
+    this.safe = createSafeModule(web3, this.options);
     /** @type {Object} - token module */
     this.token = createTokenModule(web3, this.contracts, this.utils);
     /** @type {Object} - trust module */
@@ -108,6 +116,6 @@ export default class CirclesCore {
     /** @type {Object} - user module */
     this.user = createUserModule(web3, this.contracts, this.utils);
     /** @type {Object} - transactions module */
-    this.transactions = createTransactionsModule(web3, this.contracts);
+    //    this.transactions = createTransactionsModule(web3, this.contracts);
   }
 }

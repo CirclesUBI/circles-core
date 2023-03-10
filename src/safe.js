@@ -3,7 +3,7 @@ import { SAFE_THRESHOLD, SENTINEL_ADDRESS } from '~/common/constants';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeContract } from '~/common/getContracts';
-
+import CoreError, { ErrorCodes } from '~/common/error';
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
  *
@@ -61,7 +61,15 @@ async function predictAddress(web3, utils, nonce, address) {
  */
 async function getSafeStatus(utils, safeAddress) {
   let isCreated = false;
+  // 1. predictAddress()
+  // 2. getEstimateCost of future deployment
+  // 3. create in DB
+  // 4. relayer talk to the subgraph to check the three trust
+  // 5. if yes, then deploy in the network
+
   let isDeployed = false;
+  //  to check if it's deployed use the following
+  //  const safe = getSafeContract(web3, safeAddress);
 
   try {
     const { txHash } = await utils.requestRelayer({
@@ -437,6 +445,40 @@ export default function createSafeModule(web3, contracts, utils) {
         to: options.safeAddress,
         txData,
       });
+    },
+    /**
+     * Update the transitive transfer edges for safe users
+     *
+     * @namespace core.safe.updateAllSafeEdges
+     *
+     *
+     *
+     * @param {Web3} web3 - Web3 instance
+     * @param {Object} account - Web3 instance
+     * @param {Object} userOptions - search arguments
+     * @return {boolean} - edges are updated
+     */
+
+    updateAllSafeEdges: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: { type: web3.utils.checkAddressChecksum },
+      });
+      const { safeAddress } = options;
+      try {
+        const response = await utils.requestAPI({
+          path: ['transfers', 'update'],
+          method: 'POST',
+          data: {
+            safeAddress: safeAddress,
+          },
+        });
+
+        return response.data;
+      } catch (error) {
+        throw new CoreError(error.message, ErrorCodes.SAFE_NOT_FOUND);
+      }
     },
   };
 }

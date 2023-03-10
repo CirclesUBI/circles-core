@@ -1,6 +1,8 @@
-import GnosisSafeContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
+import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafe.sol/GnosisSafe.json';
+import ProxyFactoryContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json';
+import MultiSendContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/libraries/MultiSend.sol/MultiSend.json';
+import MultiSendCallOnlyContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/libraries/MultiSendCallOnly.sol/MultiSendCallOnly.json';
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
-import ProxyFactoryContract from '@circles/safe-contracts/build/contracts/ProxyFactory.json';
 import TokenContract from '@circles/circles-contracts/build/contracts/Token.json';
 
 /**
@@ -76,5 +78,27 @@ export default function getContracts(web3, options) {
     hub,
     proxyFactory,
     safeMaster,
+  };
+}
+
+/**
+ * Helper method to get abis from deployed contracts
+ *
+ * @access private
+ *
+ * @return {Object} - contract instances
+ */
+
+export function getAbis() {
+  const safeMasterCopyAbi = GnosisSafeContract.abi;
+  const safeProxyFactoryAbi = ProxyFactoryContract.abi;
+  const multiSendAbi = MultiSendContract.abi;
+  const multiSendCallOnlyAbi = MultiSendCallOnlyContract.abi;
+
+  return {
+    safeMasterCopyAbi,
+    safeProxyFactoryAbi,
+    multiSendAbi,
+    multiSendCallOnlyAbi,
   };
 }

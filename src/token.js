@@ -4,6 +4,7 @@ import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
+import { sync } from 'rimraf';
 
 /* Due to block gas limit of 12.500.000 a transitive transaction can have a
  * limited number of steps. The limit below gives a 50% buffer between the
@@ -73,6 +74,36 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
  * @return {boolean} - steps are updated
  */
 export async function updateTransitiveTransfer(web3, utils, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    value: {
+      type: web3.utils.isBN,
+    },
+  });
+
+  try {
+    const response = await utils.requestAPI({
+      path: ['transfers', 'update'],
+      method: 'POST',
+      data: {
+        from: options.from,
+        to: options.to,
+        value: options.value.toString(),
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
+  }
+}
+
+export async function updateEdgesSafe2(account, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,

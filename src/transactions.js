@@ -42,7 +42,7 @@ export default function createTransactionsModule(web3, contracts) {
       const gasToken = ZERO_ADDRESS; // Paying in Eth
       const refundReceiver = ZERO_ADDRESS;
       const nonce = await safeInstance.methods.nonce().call();
-      const baseGas = new web3.utils.toBN('0');
+      let baseGas = new web3.utils.toBN('0');
 
       // code from circles.garden
       // const safeTxGas = await web3.eth.estimateGas({to, from: safeAddress, value, data: txData});
