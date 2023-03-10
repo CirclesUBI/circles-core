@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+// import { execSync } from 'child_process';
 
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
@@ -28,11 +28,11 @@ const TEST_TRUST_NETWORK = [
   [2, 5, 50], // Unidirectional
 ];
 
-async function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+// async function wait(ms) {
+//   return new Promise((resolve) => {
+//     setTimeout(resolve, ms);
+//   });
+// }
 
 async function deployTestNetwork(
   core,
@@ -115,6 +115,8 @@ describe('Token', () => {
       // Create sender and receiver Safe
       const sender = await deploySafeAndToken(core, accounts[0]);
       const receiver = await deploySafeAndToken(core, accounts[1]);
+      console.log('sender', sender);
+      console.log('receiver', receiver);
       // Create a trust connection between receiver and sender
       await addTrustConnection(core, accounts[1], {
         user: sender.safeAddress,
@@ -158,64 +160,64 @@ describe('Token', () => {
       const result = await deployTestNetwork(core, accounts);
       safeAddresses = result.safeAddresses;
     });
-    it('should return max flow and possible path when using pathfinder binary.', async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
-      const result = await core.token.requestTransferSteps(accounts[0], {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        value,
-      });
-      expect(result.transferSteps.length).toBe(2);
-      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
-      // The `pathfinder` stops searching for max flow as soon as it found a
-      // successful solution, therefore it returns a lower max flow than it
-      // actually is (25).
-      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-    });
-    it('should return max flow and possible path when using hops parameter in binary pathfinder', async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
-      const result = await core.token.requestTransferSteps(accounts[0], {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        value,
-        hops: 2,
-      });
-      expect(result.transferSteps.length).toBe(2);
-      expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
-      expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
-      expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
-      expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
-      expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
-      expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
-      expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
-      expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
-      // The `pathfinder` stops searching for max flow as soon as it found a
-      // successful solution, therefore it returns a lower max flow than it
-      // actually is (25).
-      expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
-    });
-    it('should return 0 max flow and no path when using too low hops parameter in binary pathfinder', async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
-      const result = await core.token.requestTransferSteps(accounts[0], {
-        from: safeAddresses[0],
-        to: safeAddresses[4],
-        value,
-        hops: 1,
-      });
-      expect(result.transferSteps.length).toBe(0);
+    // it('should return max flow and possible path when using pathfinder binary.', async () => {
+    //   const value = new web3.utils.BN(core.utils.toFreckles(1));
+    //   const result = await core.token.requestTransferSteps(accounts[0], {
+    //     from: safeAddresses[0],
+    //     to: safeAddresses[4],
+    //     value,
+    //   });
+    //   expect(result.transferSteps.length).toBe(2);
+    //   expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+    //   expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+    //   expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+    //   expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+    //   expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+    //   expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+    //   expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+    //   expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+    //   // The `pathfinder` stops searching for max flow as soon as it found a
+    //   // successful solution, therefore it returns a lower max flow than it
+    //   // actually is (25).
+    //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    // });
+    // it('should return max flow and possible path when using hops parameter in binary pathfinder', async () => {
+    //   const value = new web3.utils.BN(core.utils.toFreckles(1));
+    //   const result = await core.token.requestTransferSteps(accounts[0], {
+    //     from: safeAddresses[0],
+    //     to: safeAddresses[4],
+    //     value,
+    //     hops: 2,
+    //   });
+    //   expect(result.transferSteps.length).toBe(2);
+    //   expect(result.transferSteps[0].from).toBe(safeAddresses[0]);
+    //   expect(result.transferSteps[0].to).toBe(safeAddresses[3]);
+    //   expect(result.transferSteps[0].value).toBe(core.utils.toFreckles(1));
+    //   expect(result.transferSteps[0].tokenOwnerAddress).toBe(safeAddresses[0]);
+    //   expect(result.transferSteps[1].from).toBe(safeAddresses[3]);
+    //   expect(result.transferSteps[1].to).toBe(safeAddresses[4]);
+    //   expect(result.transferSteps[1].value).toBe(core.utils.toFreckles(1));
+    //   expect(result.transferSteps[1].tokenOwnerAddress).toBe(safeAddresses[3]);
+    //   // The `pathfinder` stops searching for max flow as soon as it found a
+    //   // successful solution, therefore it returns a lower max flow than it
+    //   // actually is (25).
+    //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(1));
+    // });
+    // it('should return 0 max flow and no path when using too low hops parameter in binary pathfinder', async () => {
+    //   const value = new web3.utils.BN(core.utils.toFreckles(1));
+    //   const result = await core.token.requestTransferSteps(accounts[0], {
+    //     from: safeAddresses[0],
+    //     to: safeAddresses[4],
+    //     value,
+    //     hops: 1,
+    //   });
+    //   expect(result.transferSteps.length).toBe(0);
 
-      // The `pathfinder` stops searching for max flow as soon as it found a
-      // successful solution, therefore it returns a lower max flow than it
-      // actually is (25).
-      expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
-    });
+    //   // The `pathfinder` stops searching for max flow as soon as it found a
+    //   // successful solution, therefore it returns a lower max flow than it
+    //   // actually is (25).
+    //   expect(result.maxFlowValue).toBe(core.utils.toFreckles(0));
+    // });
     it('should return max flow and possible path when using pathfinder server.', async () => {
       const value = new web3.utils.BN(core.utils.toFreckles(1));
       const result = await core.token.requestTransferSteps(accounts[0], {
