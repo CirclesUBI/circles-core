@@ -115,8 +115,6 @@ describe('Token', () => {
       // Create sender and receiver Safe
       const sender = await deploySafeAndToken(core, accounts[0]);
       const receiver = await deploySafeAndToken(core, accounts[1]);
-      console.log('sender', sender);
-      console.log('receiver', receiver);
       // Create a trust connection between receiver and sender
       await addTrustConnection(core, accounts[1], {
         user: sender.safeAddress,
