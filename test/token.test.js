@@ -77,6 +77,8 @@ describe('Token', () => {
   let signupBonus;
   let contracts;
   let hubAddress;
+  let safeAddresses;
+  let tokenAddresses;
 
   beforeAll(async () => {
     accounts = new Array(6).fill({}).map((item, index) => {
@@ -95,6 +97,10 @@ describe('Token', () => {
     });
     const { hub } = contracts;
     signupBonus = await hub.methods.signupBonus().call();
+
+    const result = await deployTestNetwork(core, accounts);
+    safeAddresses = result.safeAddresses;
+    tokenAddresses = result.tokenAddresses;
   });
 
   it('should check if safe has enough funds for token to be deployed', async () => {
@@ -153,11 +159,7 @@ describe('Token', () => {
   });
 
   describe('Find transitive transfer steps', () => {
-    let safeAddresses;
-    beforeAll(async () => {
-      const result = await deployTestNetwork(core, accounts);
-      safeAddresses = result.safeAddresses;
-    });
+
     // it('should return max flow and possible path when using pathfinder binary.', async () => {
     //   const value = new web3.utils.BN(core.utils.toFreckles(1));
     //   const result = await core.token.requestTransferSteps(accounts[0], {
@@ -275,14 +277,6 @@ describe('Token', () => {
     });
   });
   describe('Transitive Transactions', () => {
-    let safeAddresses;
-    let tokenAddresses;
-
-    beforeAll(async () => {
-      const result = await deployTestNetwork(core, accounts);
-      safeAddresses = result.safeAddresses;
-      tokenAddresses = result.tokenAddresses;
-    });
 
     it('should get the current balance', async () => {
       const balance = await core.token.getBalance(accounts[5], {
