@@ -159,7 +159,6 @@ describe('Token', () => {
   });
 
   describe('Find transitive transfer steps', () => {
-
     // it('should return max flow and possible path when using pathfinder binary.', async () => {
     //   const value = new web3.utils.BN(core.utils.toFreckles(1));
     //   const result = await core.token.requestTransferSteps(accounts[0], {
@@ -277,7 +276,6 @@ describe('Token', () => {
     });
   });
   describe('Transitive Transactions', () => {
-
     it('should get the current balance', async () => {
       const balance = await core.token.getBalance(accounts[5], {
         safeAddress: safeAddresses[5],

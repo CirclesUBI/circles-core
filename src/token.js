@@ -71,6 +71,7 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
       default: 3,
     },
   });
+
   try {
     const response = await utils.requestAPI({
       path: ['transfers'],
