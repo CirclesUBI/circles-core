@@ -11,7 +11,7 @@ import { getVersion } from '~/safe';
  * gas estimate and the block gas limit.
  * For more information, see the Circles handbook.
  */
-const MAX_TRANSFER_STEPS = 52;
+const MAX_TRANSFER_STEPS = 30;
 
 /**
  * Find maximumFlow and transfer steps through a trust graph from someone to
@@ -545,7 +545,7 @@ export default function createTokenModule(
           },
           maxTransfers: {
             type: 'number',
-            default: 40,
+            default: MAX_TRANSFER_STEPS,
           },
           pathfinderMethod: {
             type: 'string',
