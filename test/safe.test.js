@@ -162,13 +162,7 @@ describe('Safe', () => {
       );
 
       // Deploy Token
-      await core.token.deploy(accounts[0], {
-        safeAddress,
-      });
-
-      const tokenAddress = await core.token.getAddress(accounts[0], {
-        safeAddress,
-      });
+      const tokenAddress = await deployToken(core, accounts[0], { safeAddress });
 
       const code = await web3.eth.getCode(tokenAddress);
       expect(code).not.toBe('0x');
@@ -201,9 +195,15 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await core.safe.getOwners(accounts[0], {
-        safeAddress,
-      });
+      const owners = await loop(
+        'Wait for newly added address to show up as Safe owner',
+        () => {
+          return core.safe.getOwners(accounts[0], {
+            safeAddress,
+          });
+        },
+        (owners) => owners.length === 2,
+      );
 
       expect(owners[0]).toBe(accounts[1].address);
       expect(owners[1]).toBe(accounts[0].address);
@@ -228,9 +228,15 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await core.safe.getOwners(accounts[0], {
-        safeAddress,
-      });
+      const owners = await loop(
+        'Wait for newly added address to show up as Safe owner',
+        () => {
+          return core.safe.getOwners(accounts[0], {
+            safeAddress,
+          });
+        },
+        (owners) => owners.length === 1,
+      );
 
       expect(owners[0]).toBe(accounts[0].address);
       expect(owners.length).toBe(1);
@@ -332,9 +338,15 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await core.safe.getOwners(accounts[0], {
-        safeAddress: CRCVersionSafeAddress,
-      });
+      const owners = await loop(
+        'Wait for newly added address to show up as Safe owner',
+        () => {
+          return core.safe.getOwners(accounts[0], {
+            safeAddress: CRCVersionSafeAddress,
+          });
+        },
+        (owners) => owners.length === 2,
+      );
 
       expect(owners[0]).toBe(accounts[1].address);
       expect(owners[1]).toBe(ownerCRCVersion.address);
