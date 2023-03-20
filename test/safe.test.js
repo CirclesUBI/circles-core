@@ -162,7 +162,9 @@ describe('Safe', () => {
       );
 
       // Deploy Token
-      const tokenAddress = await deployToken(core, accounts[0], { safeAddress });
+      const tokenAddress = await deployToken(core, accounts[0], {
+        safeAddress,
+      });
 
       const code = await web3.eth.getCode(tokenAddress);
       expect(code).not.toBe('0x');
