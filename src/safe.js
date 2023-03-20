@@ -10,6 +10,7 @@ import {
   getSafeContract,
   getSafeCRCVersionContract,
 } from '~/common/getContracts';
+import loop from '~/common/loop';
 
 /**
  * Helper method to receive a list of all Gnosis Safe owners.
@@ -546,6 +547,17 @@ export default function createSafeModule(
             `Safe with version ${safeVersion} failed to change the Master Copy`,
           );
         }
+
+        // Wait to check that the version is updated
+        await loop(
+          () => {
+            return getVersion(web3, options.safeAddress);
+          },
+          (version) => {
+            return version == SAFE_LAST_VERSION;
+          },
+        );
+
         // Then we setup the fallbackHandler
         const fallbackHandlerTxData = safeInstance.methods
           .setFallbackHandler(fallbackHandlerAddress)
