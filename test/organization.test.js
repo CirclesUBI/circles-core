@@ -69,9 +69,15 @@ describe('Organization', () => {
     expect(web3.utils.isHexStrict(txHash)).toBe(true);
 
     // isOrganization should be true now
-    isOrganization = await core.organization.isOrganization(account, {
-      safeAddress,
-    });
+    isOrganization = await loop(
+      'Wait for newly added address to show up as Safe owner',
+      () => {
+        return core.organization.isOrganization(account, {
+          safeAddress,
+        });
+      },
+      (isOrg) => isOrg,
+    );
     expect(isOrganization).toBe(true);
   });
 
