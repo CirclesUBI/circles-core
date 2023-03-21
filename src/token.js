@@ -11,11 +11,37 @@ import { getVersion } from '~/safe';
  * gas estimate and the block gas limit.
  * For more information, see the Circles handbook.
  */
-const MAX_TRANSFER_STEPS = 52;
+const MAX_TRANSFER_STEPS = 30;
 
 /**
  * Find maximumFlow and transfer steps through a trust graph from someone to
- * someone else to transitively send an amount of Circles.
+ * someone else to transitively send an amount of Circles using the binary
+ * version of pathfinder2 or the rpc server version
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - search arguments
+ *
+ * @return {Object[]} - transaction steps
+ */
+async function requestTransferSteps(web3, utils, userOptions, pathfinderType) {
+  let result;
+  if (pathfinderType == 'cli') {
+    // call cli pathfinders
+    result = await findTransitiveTransfer(web3, utils, userOptions);
+  } else if (pathfinderType == 'server') {
+    // call server
+    result = await findTransitiveTransferServer(web3, utils, userOptions);
+  }
+  return result;
+}
+
+/**
+ * Find maximumFlow and transfer steps through a trust graph from someone to
+ * someone else to transitively send an amount of Circles using the binary
+ * version of pathfinder2
  *
  * @access private
  *
@@ -57,8 +83,66 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
         hops: options.hops.toString(),
       },
     });
-
     return response.data;
+  } catch (error) {
+    throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
+  }
+}
+
+/**
+ * Find maximumFlow and transfer steps through a trust graph from someone to
+ * someone else to transitively send an amount of Circles using the server
+ * version of pathfinder2
+ *
+ * @access private
+ *
+ * @param {Web3} web3 - Web3 instance
+ * @param {Object} utils - core utils
+ * @param {Object} userOptions - search arguments
+ * @param {string} userOptions.from - sender Safe address
+ * @param {string} userOptions.to - receiver Safe address
+ * @param {BN} userOptions.value - value of Circles tokens
+ * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
+ *
+ * @return {Object[]} - transaction steps
+ */
+export async function findTransitiveTransferServer(web3, utils, userOptions) {
+  const options = checkOptions(userOptions, {
+    from: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    to: {
+      type: web3.utils.checkAddressChecksum,
+    },
+    value: {
+      type: web3.utils.isBN,
+    },
+    maxTransfers: {
+      type: 'number',
+      default: MAX_TRANSFER_STEPS,
+    },
+    pathfinderMethod: {
+      type: 'string',
+      default: 'compute_transfer',
+    },
+  });
+
+  try {
+    const response = await utils.requestPathfinderAPI({
+      method: 'POST',
+      data: {
+        id: Date.now(),
+        method: options.pathfinderMethod,
+        params: {
+          from: options.from,
+          to: options.to,
+          value: options.value.toString(),
+          max_transfers: options.maxTransfers,
+        },
+      },
+      isTrailingSlash: false,
+    });
+    return response.result;
   } catch (error) {
     throw new TransferError(error.message, ErrorCodes.UNKNOWN_ERROR);
   }
@@ -123,12 +207,18 @@ export async function updateTransitiveTransfer(web3, utils, userOptions) {
  * @param {Web3} web3 - Web3 instance
  * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
+ * @param {Object} globalOptions - global core options
  *
  * @return {Object} - token module instance
  */
-export default function createTokenModule(web3, contracts, utils) {
+export default function createTokenModule(
+  web3,
+  contracts,
+  utils,
+  globalOptions,
+) {
   const { hub } = contracts;
-
+  const { pathfinderType } = globalOptions;
   return {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
@@ -349,9 +439,34 @@ export default function createTokenModule(web3, contracts, utils) {
      *
      * @return {Object} - maximum possible Circles value and transactions path
      */
+    // findTransitiveTransfer(web3, utils, userOptions)
     findTransitiveTransfer: async (account, userOptions) => {
       checkAccount(web3, account);
       return await findTransitiveTransfer(web3, utils, userOptions);
+    },
+
+    /**
+     * Find Transitive Transfer Steps using either the cli or the server version
+     * of the pathfinder2
+     *
+     * @namespace core.token.requestTransferSteps
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - search arguments
+     * @param {string} userOptions.from - sender Safe address
+     * @param {string} userOptions.to - receiver Safe address
+     * @param {BN} userOptions.value - value for transactions path
+     *
+     * @return {Object} - maximum possible Circles value and transactions path
+     */
+    requestTransferSteps: async (account, userOptions) => {
+      checkAccount(web3, account);
+      return await requestTransferSteps(
+        web3,
+        utils,
+        userOptions,
+        pathfinderType,
+      );
     },
 
     /**
@@ -393,26 +508,53 @@ export default function createTokenModule(web3, contracts, utils) {
      */
     transfer: async (account, userOptions) => {
       checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        from: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        to: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        value: {
-          type: web3.utils.isBN,
-        },
-        paymentNote: {
-          type: 'string',
-          default: '',
-        },
-        hops: {
-          type: 'number',
-          default: 3,
-        },
-      });
+      let fieldObject;
+      if (pathfinderType == 'cli') {
+        fieldObject = {
+          from: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          to: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          value: {
+            type: web3.utils.isBN,
+          },
+          paymentNote: {
+            type: 'string',
+            default: '',
+          },
+          hops: {
+            type: 'number',
+            default: 3,
+          },
+        };
+      } else {
+        fieldObject = {
+          from: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          to: {
+            type: web3.utils.checkAddressChecksum,
+          },
+          value: {
+            type: web3.utils.isBN,
+          },
+          paymentNote: {
+            type: 'string',
+            default: '',
+          },
+          maxTransfers: {
+            type: 'number',
+            default: MAX_TRANSFER_STEPS,
+          },
+          pathfinderMethod: {
+            type: 'string',
+            default: 'compute_transfer',
+          },
+        };
+      }
+      const options = checkOptions(userOptions, fieldObject);
 
       const transfer = {
         tokenOwners: [],
@@ -423,64 +565,88 @@ export default function createTokenModule(web3, contracts, utils) {
 
       // Try first to send the transaction directly, this saves us the
       // roundtrip through the api
-      const sendLimit = await hub.methods
-        .checkSendLimit(options.from, options.from, options.to)
+      // Try first with the token of the 'to' address,
+      // then try with the token of the 'from' address.
+      const sendLimitTo = await hub.methods
+        .checkSendLimit(options.to, options.from, options.to)
         .call();
 
-      if (web3.utils.toBN(sendLimit).gte(options.value)) {
+      if (web3.utils.toBN(sendLimitTo).gte(options.value)) {
         // Direct transfer is possible, fill in the required transaction data
-        transfer.tokenOwners.push(options.from);
+        transfer.tokenOwners.push(options.to);
         transfer.sources.push(options.from);
         transfer.destinations.push(options.to);
         transfer.values.push(options.value.toString());
       } else {
-        // This seems to be a little bit more complicated ..., request API to
-        // find transitive transfer path
-        let response;
-        try {
-          response = await findTransitiveTransfer(web3, utils, options);
-
-          if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
-            throw new TransferError(
-              'No possible transfer found',
-              ErrorCodes.TRANSFER_NOT_FOUND,
-              {
-                ...options,
-                response,
-              },
+        const sendLimitFrom = await hub.methods
+          .checkSendLimit(options.from, options.from, options.to)
+          .call();
+        if (web3.utils.toBN(sendLimitFrom).gte(options.value)) {
+          // Direct transfer is possible, fill in the required transaction data
+          transfer.tokenOwners.push(options.from);
+          transfer.sources.push(options.from);
+          transfer.destinations.push(options.to);
+          transfer.values.push(options.value.toString());
+        } else {
+          // This seems to be a little bit more complicated ..., request API to
+          // find transitive transfer path
+          let response;
+          try {
+            response = await requestTransferSteps(
+              web3,
+              utils,
+              options,
+              pathfinderType,
             );
-          }
-
-          if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
-            throw new TransferError(
-              'Too many transfer steps',
-              ErrorCodes.TOO_COMPLEX_TRANSFER,
-              {
-                ...options,
-                response,
-              },
-            );
-          }
-
-          // Convert connections to contract argument format
-          response.transferSteps.forEach((transaction) => {
-            transfer.tokenOwners.push(transaction.tokenOwnerAddress);
-            transfer.sources.push(transaction.from);
-            transfer.destinations.push(transaction.to);
-            transfer.values.push(transaction.value);
-          });
-        } catch (error) {
-          if (!error.code) {
-            throw new TransferError(
-              error.message,
-              ErrorCodes.INVALID_TRANSFER,
-              {
-                ...options,
-                response,
-              },
-            );
-          } else {
-            throw error;
+            if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
+              throw new TransferError(
+                'No possible transfer found',
+                ErrorCodes.TRANSFER_NOT_FOUND,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            }
+            if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
+              throw new TransferError(
+                'Too many transfer steps',
+                ErrorCodes.TOO_COMPLEX_TRANSFER,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            }
+            // Convert connections to contract argument format depending on the pathfinder used
+            if (pathfinderType == 'cli') {
+              response.transferSteps.forEach((transaction) => {
+                transfer.tokenOwners.push(transaction.tokenOwnerAddress);
+                transfer.sources.push(transaction.from);
+                transfer.destinations.push(transaction.to);
+                transfer.values.push(transaction.value);
+              });
+            } else if (pathfinderType == 'server') {
+              response.transferSteps.forEach((transaction) => {
+                transfer.tokenOwners.push(transaction.token_owner);
+                transfer.sources.push(transaction.from);
+                transfer.destinations.push(transaction.to);
+                transfer.values.push(transaction.value);
+              });
+            }
+          } catch (error) {
+            if (!error.code) {
+              throw new TransferError(
+                error.message,
+                ErrorCodes.INVALID_TRANSFER,
+                {
+                  ...options,
+                  response,
+                },
+              );
+            } else {
+              throw error;
+            }
           }
         }
       }

@@ -524,6 +524,7 @@ async function requestNonce(web3, endpoint, safeAddress) {
 export default function createUtilsModule(web3, contracts, globalOptions) {
   const {
     apiServiceEndpoint,
+    pathfinderServiceEndpoint,
     databaseSource,
     graphNodeEndpoint,
     relayServiceEndpoint,
@@ -1095,6 +1096,36 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         data: options.data,
         method: options.method,
         path: ['api'].concat(options.path),
+      });
+    },
+
+    /**
+     * Make a request to the Circles server API.
+     *
+     * @namespace core.utils.requestPathfinderAPI
+     *
+     * @param {Object} userOptions - Pathfinder API query options
+     * @param {string} userOptions.method - HTTP method
+     * @param {Object} userOptions.data - Request body (JSON)
+     *
+     * @return {Object} - API response
+     */
+    requestPathfinderAPI: async (userOptions) => {
+      const options = checkOptions(userOptions, {
+        method: {
+          type: 'string',
+          default: 'GET',
+        },
+        data: {
+          type: 'object',
+          default: {},
+        },
+      });
+      return request(pathfinderServiceEndpoint, {
+        data: options.data,
+        method: options.method,
+        path: [],
+        isTrailingSlash: false,
       });
     },
 

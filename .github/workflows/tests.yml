@@ -56,9 +56,9 @@ jobs:
         working-directory: circles-docker
         run: cp .env.example .env
 
-      - name: Container setup via docker-compose
+      - name: Container setup via docker-compose without pathfinder
         working-directory: circles-docker
-        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
@@ -70,7 +70,11 @@ jobs:
 
       - name: Try starting failed services
         working-directory: circles-docker
-        run: docker-compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+      
+      - name: Container setup via docker-compose for pathfinder
+        working-directory: circles-docker
+        run: docker compose -f docker-compose.pathfinder-pull.yml -p circles up --detach --build
 
       - name: Install dependencies
         working-directory: circles-core

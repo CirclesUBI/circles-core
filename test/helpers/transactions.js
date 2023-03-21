@@ -44,6 +44,16 @@ export async function deploySafe(core, account) {
 export async function deployToken(core, account, userOptions) {
   await core.token.deploy(account, userOptions);
 
+  // Wait until token deployed
+  await loop(
+    () => {
+      return core.token.getAddress(core, account, userOptions.safeAddress);
+    },
+    (address) => {
+      return address !== ZERO_ADDRESS;
+    },
+  );
+
   const tokenAddress = await core.token.getAddress(account, userOptions);
 
   return tokenAddress;
