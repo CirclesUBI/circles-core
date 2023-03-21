@@ -385,6 +385,16 @@
               
                 
                 <li><a
+                  href='#coretokenrequesttransfersteps'
+                  class="">
+                  core.token.requestTransferSteps
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#coretokenupdatetransfersteps'
                   class="">
                   core.token.updateTransferSteps
@@ -628,6 +638,16 @@
                   href='#coreutilsrequestapi'
                   class="">
                   core.utils.requestAPI
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#coreutilsrequestpathfinderapi'
+                  class="">
+                  core.utils.requestPathfinderAPI
                   
                 </a>
                 
@@ -4256,6 +4276,131 @@ possible).</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='coretokenrequesttransfersteps'>
+      core.token.requestTransferSteps
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Find Transitive Transfer Steps using either the cli or the server version
+of the pathfinder2</p>
+
+    <div class='pre p1 fill-light mt0'>core.token.requestTransferSteps</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>account</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
+	    web3 account instance
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>userOptions</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
+	    search arguments
+
+          </div>
+          
+          <table class='mt1 mb2 fixed-table h5 col-12'>
+            <colgroup>
+              <col width='30%' />
+              <col width='70%' />
+            </colgroup>
+            <thead>
+              <tr class='bold fill-light'>
+                <th>Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody class='mt1'>
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.from</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  </td>
+  <td class='break-word'><span>sender Safe address
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.to</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  </td>
+  <td class='break-word'><span>receiver Safe address
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.value</span> <code class='quiet'>BN</code>
+  </td>
+  <td class='break-word'><span>value for transactions path
+</span></td>
+</tr>
+
+
+              
+            </tbody>
+          </table>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>:
+        maximum possible Circles value and transactions path
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='coretokenupdatetransfersteps'>
       core.token.updateTransferSteps
     </h3>
@@ -6971,6 +7116,112 @@ The gas costs will be estimated by the relayer before.</p>
 </tr>
 
 
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.method</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  </td>
+  <td class='break-word'><span>HTTP method
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.data</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>
+  </td>
+  <td class='break-word'><span>Request body (JSON)
+</span></td>
+</tr>
+
+
+              
+            </tbody>
+          </table>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>:
+        API response
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='coreutilsrequestpathfinderapi'>
+      core.utils.requestPathfinderAPI
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Make a request to the Circles server API.</p>
+
+    <div class='pre p1 fill-light mt0'>core.utils.requestPathfinderAPI</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>userOptions</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
+	    Pathfinder API query options
+
+          </div>
+          
+          <table class='mt1 mb2 fixed-table h5 col-12'>
+            <colgroup>
+              <col width='30%' />
+              <col width='70%' />
+            </colgroup>
+            <thead>
+              <tr class='bold fill-light'>
+                <th>Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody class='mt1'>
               
                 <tr>
   <td class='break-word'><span class='code bold'>userOptions.method</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
