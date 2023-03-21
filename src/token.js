@@ -26,11 +26,16 @@ const MAX_TRANSFER_STEPS = 30;
  *
  * @return {Object[]} - transaction steps
  */
-async function requestTransferSteps(web3, utils, userOptions, pathfinderType) {
+export async function findTransitiveTransfer(
+  web3,
+  utils,
+  userOptions,
+  pathfinderType,
+) {
   let result;
   if (pathfinderType == 'cli') {
     // call cli pathfinders
-    result = await findTransitiveTransfer(web3, utils, userOptions);
+    result = await findTransitiveTransferCli(web3, utils, userOptions);
   } else if (pathfinderType == 'server') {
     // call server
     result = await findTransitiveTransferServer(web3, utils, userOptions);
@@ -55,7 +60,7 @@ async function requestTransferSteps(web3, utils, userOptions, pathfinderType) {
  *
  * @return {Object[]} - transaction steps
  */
-export async function findTransitiveTransfer(web3, utils, userOptions) {
+async function findTransitiveTransferCli(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -102,11 +107,11 @@ export async function findTransitiveTransfer(web3, utils, userOptions) {
  * @param {string} userOptions.from - sender Safe address
  * @param {string} userOptions.to - receiver Safe address
  * @param {BN} userOptions.value - value of Circles tokens
- * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
+ * @param {number} userOptions.maxTransfers - limit of steps returned by the pathfinder service
  *
  * @return {Object[]} - transaction steps
  */
-export async function findTransitiveTransferServer(web3, utils, userOptions) {
+async function findTransitiveTransferServer(web3, utils, userOptions) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -121,10 +126,6 @@ export async function findTransitiveTransferServer(web3, utils, userOptions) {
       type: 'number',
       default: MAX_TRANSFER_STEPS,
     },
-    pathfinderMethod: {
-      type: 'string',
-      default: 'compute_transfer',
-    },
   });
 
   try {
@@ -132,7 +133,7 @@ export async function findTransitiveTransferServer(web3, utils, userOptions) {
       method: 'POST',
       data: {
         id: Date.now(),
-        method: options.pathfinderMethod,
+        method: 'compute_transfer',
         params: {
           from: options.from,
           to: options.to,
@@ -422,10 +423,11 @@ export default function createTokenModule(
     },
 
     /**
-     * This algorithm makes use of the Ford-Fulkerson method which computes the
-     * maximum flow in a trust network between two users. It returns the
-     * maximum flow and the transfer steps in the graph for a value (when
-     * possible).
+     * Find Transitive Transfer Steps using either the cli or the server version
+     * of the pathfinder2.
+     * The algorithms compute the maximum flow in a trust network between
+     * two users. It returns the maximum flow and the transfer steps in the
+     * graph for a value (when possible).
      *
      * This method does not execute any real transactions.
      *
@@ -436,32 +438,14 @@ export default function createTokenModule(
      * @param {string} userOptions.from - sender Safe address
      * @param {string} userOptions.to - receiver Safe address
      * @param {BN} userOptions.value - value for transactions path
+     * @param {number} userOptions.hops - max number of trust hops away from 'from' to find transfer steps. Ignored if pathfinderType is 'server'
+     * @param {number} userOptions.maxTransfers - limit of steps returned by the pathfinder service. Ignored if pathfinderType is 'cli'
      *
      * @return {Object} - maximum possible Circles value and transactions path
      */
-    // findTransitiveTransfer(web3, utils, userOptions)
     findTransitiveTransfer: async (account, userOptions) => {
       checkAccount(web3, account);
-      return await findTransitiveTransfer(web3, utils, userOptions);
-    },
-
-    /**
-     * Find Transitive Transfer Steps using either the cli or the server version
-     * of the pathfinder2
-     *
-     * @namespace core.token.requestTransferSteps
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - search arguments
-     * @param {string} userOptions.from - sender Safe address
-     * @param {string} userOptions.to - receiver Safe address
-     * @param {BN} userOptions.value - value for transactions path
-     *
-     * @return {Object} - maximum possible Circles value and transactions path
-     */
-    requestTransferSteps: async (account, userOptions) => {
-      checkAccount(web3, account);
-      return await requestTransferSteps(
+      return await findTransitiveTransfer(
         web3,
         utils,
         userOptions,
@@ -503,6 +487,7 @@ export default function createTokenModule(
      * @param {BN} userOptions.value - value
      * @param {string} userOptions.paymentNote - optional payment note stored in API
      * @param {number} userOptions.hops - maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
+     * @param {number} userOptions.maxTransfers - limit of steps returned by the pathfinder service. Ignored if pathfinderType is 'cli'
      *
      * @return {string} - transaction hash
      */
@@ -548,10 +533,6 @@ export default function createTokenModule(
             type: 'number',
             default: MAX_TRANSFER_STEPS,
           },
-          pathfinderMethod: {
-            type: 'string',
-            default: 'compute_transfer',
-          },
         };
       }
       const options = checkOptions(userOptions, fieldObject);
@@ -592,7 +573,7 @@ export default function createTokenModule(
           // find transitive transfer path
           let response;
           try {
-            response = await requestTransferSteps(
+            response = await findTransitiveTransfer(
               web3,
               utils,
               options,

@@ -165,7 +165,7 @@ const executeTests = (core) => {
     describe('Find transitive transfer steps', () => {
       it(`should return max flow and possible path when using ${testPathfinderName} pathfinder.`, async () => {
         const value = new web3.utils.BN(core.utils.toFreckles(1));
-        const result = await core.token.requestTransferSteps(accounts[0], {
+        const result = await core.token.findTransitiveTransfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
           value,
@@ -190,7 +190,7 @@ const executeTests = (core) => {
       });
       it(`should return max flow and possible path when using ${transferStepsProperty} parameter in ${testPathfinderName} pathfinder`, async () => {
         const value = new web3.utils.BN(core.utils.toFreckles(1));
-        const result = await core.token.requestTransferSteps(accounts[0], {
+        const result = await core.token.findTransitiveTransfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
           value,
@@ -216,7 +216,7 @@ const executeTests = (core) => {
       });
       it(`should return 0 max flow and no path when using too low ${transferStepsProperty} parameter in ${testPathfinderName} pathfinder`, async () => {
         const value = new web3.utils.BN(core.utils.toFreckles(1));
-        const result = await core.token.requestTransferSteps(accounts[0], {
+        const result = await core.token.findTransitiveTransfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
           value,
