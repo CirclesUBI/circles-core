@@ -385,16 +385,6 @@
               
                 
                 <li><a
-                  href='#coretokenrequesttransfersteps'
-                  class="">
-                  core.token.requestTransferSteps
-                  
-                </a>
-                
-                </li>
-              
-                
-                <li><a
                   href='#coretokenupdatetransfersteps'
                   class="">
                   core.token.updateTransferSteps
@@ -4156,10 +4146,11 @@ a Token contract.</p>
   </div>
   
 
-  <p>This algorithm makes use of the Ford-Fulkerson method which computes the
-maximum flow in a trust network between two users. It returns the
-maximum flow and the transfer steps in the graph for a value (when
-possible).</p>
+  <p>Find Transitive Transfer Steps using either the cli or the server version
+of the pathfinder2.
+The algorithms compute the maximum flow in a trust network between
+two users. It returns the maximum flow and the transfer steps in the
+graph for a value (when possible).</p>
 <p>This method does not execute any real transactions.</p>
 
     <div class='pre p1 fill-light mt0'>core.token.findTransitiveTransfer</div>
@@ -4233,126 +4224,19 @@ possible).</p>
 
 
               
-            </tbody>
-          </table>
-          
-        </div>
-      
-    </div>
-  
-
-  
-
-  
-    
-      <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>:
-        maximum possible Circles value and transactions path
-
-      
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-</section>
-
-          
-        
-          
-          <section class='p2 mb2 clearfix bg-white minishadow'>
-
-  
-  <div class='clearfix'>
-    
-    <h3 class='fl m0' id='coretokenrequesttransfersteps'>
-      core.token.requestTransferSteps
-    </h3>
-    
-    
-  </div>
-  
-
-  <p>Find Transitive Transfer Steps using either the cli or the server version
-of the pathfinder2</p>
-
-    <div class='pre p1 fill-light mt0'>core.token.requestTransferSteps</div>
-  
-  
-
-  
-  
-  
-  
-  
-  
-
-  
-    <div class='py1 quiet mt1 prose-big'>Parameters</div>
-    <div class='prose'>
-      
-        <div class='space-bottom0'>
-          <div>
-            <span class='code bold'>account</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
-	    web3 account instance
-
-          </div>
-          
-        </div>
-      
-        <div class='space-bottom0'>
-          <div>
-            <span class='code bold'>userOptions</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
-	    search arguments
-
-          </div>
-          
-          <table class='mt1 mb2 fixed-table h5 col-12'>
-            <colgroup>
-              <col width='30%' />
-              <col width='70%' />
-            </colgroup>
-            <thead>
-              <tr class='bold fill-light'>
-                <th>Name</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody class='mt1'>
-              
                 <tr>
-  <td class='break-word'><span class='code bold'>userOptions.from</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  <td class='break-word'><span class='code bold'>userOptions.hops</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a></code>
   </td>
-  <td class='break-word'><span>sender Safe address
+  <td class='break-word'><span>max number of trust hops away from 'from' to find transfer steps. Ignored if pathfinderType is 'server'
 </span></td>
 </tr>
 
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>userOptions.to</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  <td class='break-word'><span class='code bold'>userOptions.maxTransfers</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a></code>
   </td>
-  <td class='break-word'><span>receiver Safe address
-</span></td>
-</tr>
-
-
-              
-                <tr>
-  <td class='break-word'><span class='code bold'>userOptions.value</span> <code class='quiet'>BN</code>
-  </td>
-  <td class='break-word'><span>value for transactions path
+  <td class='break-word'><span>limit of steps returned by the pathfinder service. Ignored if pathfinderType is 'cli'
 </span></td>
 </tr>
 
@@ -4630,6 +4514,15 @@ an amount of Circles.</p>
   <td class='break-word'><span class='code bold'>userOptions.hops</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a></code>
   </td>
   <td class='break-word'><span>maximum number of trust hops away from them sending user inside the trust network for finding transaction steps
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.maxTransfers</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a></code>
+  </td>
+  <td class='break-word'><span>limit of steps returned by the pathfinder service. Ignored if pathfinderType is 'cli'
 </span></td>
 </tr>
 
