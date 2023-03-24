@@ -1,7 +1,7 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop from './helpers/loop';
 import web3 from './helpers/web3';
+import isContractDeployed from './helpers/isContractDeployed';
 import { deploySafeAndToken } from './helpers/transactions';
 
 describe('Organization', () => {
@@ -30,8 +30,13 @@ describe('Organization', () => {
       safeAddress,
     });
 
-    await loop('Wait until Safe for organization got deployed', () =>
-      web3.eth.getCode(safeAddress),
+    await core.utils.loop(
+      () => web3.eth.getCode(safeAddress),
+      isContractDeployed,
+      {
+        label: 'Wait until Safe for organization got deployed',
+        retryDelay: 4000,
+      },
     );
 
     // Then deploy other users Safe .. to test trust connections
@@ -40,8 +45,7 @@ describe('Organization', () => {
   });
 
   it('should check if safe has enough funds for organization to be created', async () => {
-    const value = await loop(
-      'Wait for organization to be funded',
+    const value = await core.utils.loop(
       async () => {
         return await core.organization.isFunded(account, {
           safeAddress,
@@ -50,6 +54,7 @@ describe('Organization', () => {
       (isFunded) => {
         return isFunded;
       },
+      { label: 'Wait for organization to be funded' },
     );
 
     expect(value).toBe(true);
@@ -69,14 +74,14 @@ describe('Organization', () => {
     expect(web3.utils.isHexStrict(txHash)).toBe(true);
 
     // isOrganization should be true now
-    isOrganization = await loop(
-      'Wait for newly added address to show up as Safe owner',
+    isOrganization = await core.utils.loop(
       () => {
         return core.organization.isOrganization(account, {
           safeAddress,
         });
       },
       (isOrg) => isOrg,
+      { label: 'Wait for newly added address to show up as Safe owner' },
     );
     expect(isOrganization).toBe(true);
   });
@@ -94,8 +99,7 @@ describe('Organization', () => {
       web3.utils.toWei(value.toString(), 'ether'),
     );
 
-    const result = await loop(
-      'Wait for organization to own some ether',
+    const result = await core.utils.loop(
       async () => {
         return await core.token.listAllTokens(account, {
           safeAddress,
@@ -104,6 +108,7 @@ describe('Organization', () => {
       (tokens) => {
         return tokens.length > 0 && tokens[0].amount.eq(expectedValue);
       },
+      { label: 'Wait for organization to own some ether' },
     );
 
     expect(result[0].amount.eq(expectedValue)).toBe(true);

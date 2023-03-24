@@ -1,7 +1,7 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop from './helpers/loop';
 import web3 from './helpers/web3';
+import isContractDeployed from './helpers/isContractDeployed';
 import {
   addTrustConnection,
   deploySafeAndToken,
@@ -85,8 +85,13 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await loop('Wait until Safe got deployed', () =>
-        web3.eth.getCode(safeAddress),
+      await core.utils.loop(
+        () => web3.eth.getCode(safeAddress),
+        isContractDeployed,
+        {
+          label: 'Wait until Safe got deployed',
+          retryDelay: 4000,
+        },
       );
 
       // Deploy Token as well to pay our fees later
@@ -157,8 +162,13 @@ describe('Safe', () => {
       });
 
       // .. wait for Relayer to really deploy Safe
-      await loop('Wait until Safe got deployed', () =>
-        web3.eth.getCode(safeAddress),
+      await core.utils.loop(
+        () => web3.eth.getCode(safeAddress),
+        isContractDeployed,
+        {
+          label: 'Wait until Safe got deployed',
+          retryDelay: 4000,
+        },
       );
 
       // Deploy Token
@@ -197,28 +207,28 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await loop(
-        'Wait for newly added address to show up as Safe owner',
+      const owners = await core.utils.loop(
         () => {
           return core.safe.getOwners(accounts[0], {
             safeAddress,
           });
         },
         (owners) => owners.length === 2,
+        { label: 'Wait for newly added address to show up as Safe owner' },
       );
 
       expect(owners[0]).toBe(accounts[1].address);
       expect(owners[1]).toBe(accounts[0].address);
       expect(owners.length).toBe(2);
 
-      await loop(
-        'Wait for newly added address to show up as Safe owner',
+      await core.utils.loop(
         () => {
           return core.safe.getAddresses(accounts[0], {
             ownerAddress: accounts[1].address,
           });
         },
         (addresses) => addresses.includes(safeAddress),
+        { label: 'Wait for newly added address to show up as Safe owner' },
       );
     });
 
@@ -230,14 +240,14 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await loop(
-        'Wait for newly added address to show up as Safe owner',
+      const owners = await core.utils.loop(
         () => {
           return core.safe.getOwners(accounts[0], {
             safeAddress,
           });
         },
         (owners) => owners.length === 1,
+        { label: 'Wait for newly added address to show up as Safe owner' },
       );
 
       expect(owners[0]).toBe(accounts[0].address);
@@ -340,28 +350,28 @@ describe('Safe', () => {
 
       expect(web3.utils.isHexStrict(response)).toBe(true);
 
-      const owners = await loop(
-        'Wait for newly added address to show up as Safe owner',
+      const owners = await core.utils.loop(
         () => {
           return core.safe.getOwners(accounts[0], {
             safeAddress: CRCVersionSafeAddress,
           });
         },
         (owners) => owners.length === 2,
+        { label: 'Wait for newly added address to show up as Safe owner' },
       );
 
       expect(owners[0]).toBe(accounts[1].address);
       expect(owners[1]).toBe(ownerCRCVersion.address);
       expect(owners.length).toBe(2);
 
-      await loop(
-        'Wait for newly added address to show up as Safe owner',
+      await core.utils.loop(
         () => {
           return core.safe.getAddresses(accounts[0], {
             ownerAddress: accounts[1].address,
           });
         },
         (addresses) => addresses.includes(CRCVersionSafeAddress),
+        { label: 'Wait for newly added address to show up as Safe owner' },
       );
     });
   });

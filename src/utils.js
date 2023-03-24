@@ -602,6 +602,21 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   return {
     /**
+     * Iterate on a request until a response condition is met and then, returns the response.
+     *
+     * @namespace core.utils.loop
+     *
+     * @param {function} request - request to iterate on
+     * @param {function} condition - condition function that checks if request will be call again
+     * @param {Object} [options] - options
+     * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
+     * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
+     * @param {number} [options.retryDelay=2000] - Delay time between attemps in milliseconds
+     *
+     * @return {*} - response of the target request
+     */
+    loop,
+    /**
      * Detect an Ethereum address in any string.
      *
      * @namespace core.utils.matchAddress
