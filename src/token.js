@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
 
 import CoreError, { TransferError, ErrorCodes } from '~/common/error';
@@ -132,7 +134,7 @@ async function findTransitiveTransferServer(web3, utils, userOptions) {
     const response = await utils.requestPathfinderAPI({
       method: 'POST',
       data: {
-        id: Date.now(),
+        id: randomUUID(),
         method: 'compute_transfer',
         params: {
           from: options.from,
