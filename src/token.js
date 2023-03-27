@@ -131,7 +131,6 @@ async function findTransitiveTransferServer(web3, utils, userOptions) {
   });
 
   try {
-    console.log({id});
     const response = await utils.requestPathfinderAPI({
       method: 'POST',
       data: {
