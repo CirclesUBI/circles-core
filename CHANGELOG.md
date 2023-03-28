@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2023-03-28
+
+### Changed
+
+- New feature: the core can request the pathfinder service API instead of the `circles-api`. The pathfinder service is used by default. Methods affected: `core.token.transfer` and `core.token.findTransitiveTransfer`. New parameters for instantiating the core are needed: `pathfinderType` (`cli` or `server`, by defalut `server`) and `pathfinderServiceEndpoint`. Use `randomUUID()` for the pathfinder server requests ids [#165](https://github.com/CirclesUBI/circles-core/pull/165) [#169](https://github.com/CirclesUBI/circles-core/pull/169) [#175](https://github.com/CirclesUBI/circles-core/pull/175)
+- Update all dependencies [#171](https://github.com/CirclesUBI/circles-core/pull/171)
+
 ## [3.2.1] - 2023-02-11
 
 ### Changed
