@@ -15,9 +15,7 @@ const MODULE_NAME = 'CirclesCore';
 function rollupPlugins(isUglified = false) {
   const plugins = [
     json(),
-    builtins({
-      crypto: true,
-    }),
+    builtins(),
     resolve({
       extensions: ['.js', '.json'],
       preferBuiltins: true,

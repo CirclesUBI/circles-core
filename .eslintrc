@@ -10,5 +10,8 @@
   "plugins": ["prettier"],
   "rules": {
     "no-console": "error"
+  },
+  "globals": {
+    "globalThis": false
   }
 }
