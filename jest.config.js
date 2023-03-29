@@ -1,5 +1,5 @@
 require('dotenv').config();
-if (!("crypto" in globalThis)) globalThis.crypto = require("crypto");
+if (!('crypto' in globalThis)) globalThis.crypto = require('crypto');
 
 module.exports = {
   testEnvironment: 'node',
