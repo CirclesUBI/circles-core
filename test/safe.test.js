@@ -90,7 +90,6 @@ describe('Safe', () => {
         isContractDeployed,
         {
           label: 'Wait until Safe got deployed',
-          retryDelay: 4000,
         },
       );
 
@@ -267,7 +266,7 @@ describe('Safe', () => {
       safeAddress = result.safeAddress;
 
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
-      ownerCRCVersion = getAccount(8);
+      ownerCRCVersion = accounts[3];
       CRCVersionSafeInstance = await deployCRCVersionSafe(ownerCRCVersion);
       CRCVersionSafeAddress = CRCVersionSafeInstance.options.address;
       await fundSafe(accounts[0], CRCVersionSafeAddress);

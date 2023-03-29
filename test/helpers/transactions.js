@@ -39,7 +39,6 @@ export async function deploySafe(core, account) {
     isContractDeployed,
     {
       label: `Wait until Safe ${safeAddress} got deployed`,
-      retryDelay: 6000,
     },
   );
 
@@ -58,7 +57,6 @@ export async function deployToken(core, account, userOptions) {
     },
     {
       label: `Wait until token ${account} is deployed`,
-      retryDelay: 6000,
     },
   );
 

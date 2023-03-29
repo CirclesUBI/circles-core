@@ -54,7 +54,7 @@ describe('Organization', () => {
       (isFunded) => {
         return isFunded;
       },
-      { label: 'Wait for organization to be funded' },
+      { label: 'Wait for organization to be funded', retryDelay: 4000 },
     );
 
     expect(value).toBe(true);
