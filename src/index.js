@@ -82,6 +82,15 @@ export default class CirclesCore {
         type: 'string',
         default: 'server',
       },
+      pathfinderMaxTransferSteps: {
+        type: 'number',
+        /* Due to block gas limit of 12.500.000 a transitive transaction can have a
+         * limited number of steps. The limit below gives a 50% buffer between the
+         * gas estimate and the block gas limit.
+         * For more information, see the Circles handbook.
+         */
+        default: 30,
+      },
     });
 
     // Expose error classes and constants
