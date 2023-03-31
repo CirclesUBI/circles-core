@@ -56,7 +56,7 @@ export async function deployToken(core, account, userOptions) {
       return address !== ZERO_ADDRESS;
     },
     {
-      label: `Wait until token ${account} is deployed`,
+      label: `Wait until token for safe ${userOptions.safeAddress} is deployed`,
     },
   );
 
