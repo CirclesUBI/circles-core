@@ -1,7 +1,7 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 
-const DEFAULT_USER_LIMIT_PERCENTAGE = 50;
+const DEFAULT_USER_LIMIT_PERCENTAGE = 100;
 const DEFAULT_ORG_LIMIT_PERCENTAGE = 100;
 
 const DEFAULT_TRUST_LIMIT = 3;
