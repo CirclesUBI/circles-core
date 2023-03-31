@@ -6,13 +6,6 @@ import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
 import { getVersion } from '~/safe';
 
-/* Due to block gas limit of 12.500.000 a transitive transaction can have a
- * limited number of steps. The limit below gives a 50% buffer between the
- * gas estimate and the block gas limit.
- * For more information, see the Circles handbook.
- */
-const MAX_TRANSFER_STEPS = 30;
-
 /**
  * Find maximumFlow and transfer steps through a trust graph from someone to
  * someone else to transitively send an amount of Circles using the binary
@@ -23,6 +16,8 @@ const MAX_TRANSFER_STEPS = 30;
  * @param {Web3} web3 - Web3 instance
  * @param {Object} utils - core utils
  * @param {Object} userOptions - search arguments
+ * @param {string} pathfinderType - pathfinder execution type
+ * @param {number} pathfinderMaxTransferSteps - default pathfinder server max transfer steps
  *
  * @return {Object[]} - transaction steps
  */
@@ -31,6 +26,7 @@ export async function findTransitiveTransfer(
   utils,
   userOptions,
   pathfinderType,
+  pathfinderMaxTransferSteps,
 ) {
   let result;
   if (pathfinderType == 'cli') {
@@ -38,7 +34,12 @@ export async function findTransitiveTransfer(
     result = await findTransitiveTransferCli(web3, utils, userOptions);
   } else if (pathfinderType == 'server') {
     // call server
-    result = await findTransitiveTransferServer(web3, utils, userOptions);
+    result = await findTransitiveTransferServer(
+      web3,
+      utils,
+      userOptions,
+      pathfinderMaxTransferSteps,
+    );
   }
   return result;
 }
@@ -111,7 +112,12 @@ async function findTransitiveTransferCli(web3, utils, userOptions) {
  *
  * @return {Object[]} - transaction steps
  */
-async function findTransitiveTransferServer(web3, utils, userOptions) {
+async function findTransitiveTransferServer(
+  web3,
+  utils,
+  userOptions,
+  pathfinderMaxTransferSteps,
+) {
   const options = checkOptions(userOptions, {
     from: {
       type: web3.utils.checkAddressChecksum,
@@ -124,7 +130,7 @@ async function findTransitiveTransferServer(web3, utils, userOptions) {
     },
     maxTransfers: {
       type: 'number',
-      default: MAX_TRANSFER_STEPS,
+      default: pathfinderMaxTransferSteps,
     },
   });
 
@@ -219,7 +225,7 @@ export default function createTokenModule(
   globalOptions,
 ) {
   const { hub } = contracts;
-  const { pathfinderType } = globalOptions;
+  const { pathfinderType, pathfinderMaxTransferSteps } = globalOptions;
   return {
     /**
      * Returns true if there are enough balance on this Safe address to deploy
@@ -450,6 +456,7 @@ export default function createTokenModule(
         utils,
         userOptions,
         pathfinderType,
+        pathfinderMaxTransferSteps,
       );
     },
 
@@ -531,7 +538,7 @@ export default function createTokenModule(
           },
           maxTransfers: {
             type: 'number',
-            default: MAX_TRANSFER_STEPS,
+            default: pathfinderMaxTransferSteps,
           },
         };
       }
@@ -578,6 +585,7 @@ export default function createTokenModule(
               utils,
               options,
               pathfinderType,
+              pathfinderMaxTransferSteps,
             );
             if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
               throw new TransferError(
@@ -589,7 +597,7 @@ export default function createTokenModule(
                 },
               );
             }
-            if (response.transferSteps.length > MAX_TRANSFER_STEPS) {
+            if (response.transferSteps.length > pathfinderMaxTransferSteps) {
               throw new TransferError(
                 'Too many transfer steps',
                 ErrorCodes.TOO_COMPLEX_TRANSFER,
