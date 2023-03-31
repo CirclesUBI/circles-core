@@ -1,6 +1,6 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop, { getTrustConnection, isReady } from './helpers/loop';
+import getTrustConnection from './helpers/getTrustConnection';
 import web3 from './helpers/web3';
 import { deploySafeAndToken } from './helpers/transactions';
 
@@ -17,15 +17,15 @@ beforeAll(async () => {
 });
 
 describe('Trust', () => {
-  beforeAll(async () => {
-    await Promise.all([
-      await deploySafeAndToken(core, account),
-      await deploySafeAndToken(core, otherAccount),
+  beforeAll(() =>
+    Promise.all([
+      deploySafeAndToken(core, account),
+      deploySafeAndToken(core, otherAccount),
     ]).then((result) => {
       safeAddress = result[0].safeAddress;
       otherSafeAddress = result[1].safeAddress;
-    });
-  });
+    }),
+  );
 
   it('should trust someone', async () => {
     const response = await core.trust.addConnection(account, {
@@ -36,12 +36,12 @@ describe('Trust', () => {
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    const connection = await loop(
-      'Wait for the graph to index newly added trust connection',
+    const connection = await core.utils.loop(
       () => {
         return getTrustConnection(core, account, safeAddress, otherSafeAddress);
       },
-      isReady,
+      (isReady) => isReady,
+      { label: 'Wait for the graph to index newly added trust connection' },
     );
 
     expect(connection.safeAddress).toBe(otherSafeAddress);
@@ -50,8 +50,7 @@ describe('Trust', () => {
     expect(connection.limitPercentageIn).toBe(44);
     expect(connection.limitPercentageOut).toBe(0);
 
-    let otherConnection = await loop(
-      'Wait for trust connection to be indexed by the graph',
+    let otherConnection = await core.utils.loop(
       () => {
         return getTrustConnection(
           core,
@@ -60,7 +59,8 @@ describe('Trust', () => {
           safeAddress,
         );
       },
-      isReady,
+      (isReady) => isReady,
+      { label: 'Wait for trust connection to be indexed by the graph' },
     );
 
     expect(otherConnection.safeAddress).toBe(safeAddress);
@@ -76,8 +76,7 @@ describe('Trust', () => {
       limitPercentage: 72,
     });
 
-    otherConnection = await loop(
-      'Wait for trust connection to be indexed by the Graph',
+    otherConnection = await core.utils.loop(
       () => {
         return getTrustConnection(
           core,
@@ -89,6 +88,7 @@ describe('Trust', () => {
       ({ isIncoming, isOutgoing }) => {
         return isIncoming && isOutgoing;
       },
+      { label: 'Wait for trust connection to be indexed by the Graph' },
     );
 
     expect(otherConnection.safeAddress).toBe(safeAddress);
@@ -130,14 +130,14 @@ describe('Trust', () => {
       canSendTo: otherSafeAddress,
     });
 
-    const network = await loop(
-      'Wait for trust network to be empty after untrusting user',
+    const network = await core.utils.loop(
       async () => {
         return await core.trust.getNetwork(account, {
           safeAddress,
         });
       },
       (network) => network.length === 0,
+      { label: 'Wait for trust network to be empty after untrusting user' },
     );
 
     expect(network.length).toBe(0);

@@ -1,31 +1,36 @@
 import CoreError, { ErrorCodes } from '~/common/error';
 
-const LOOP_INTERVAL = 6000;
-const MAX_ATTEMPTS = 100;
-
-export default async function loop(request, condition) {
+export default async function loop(
+  request,
+  condition,
+  { label, maxAttempts = 10, retryDelay = 2000 } = {},
+) {
   return new Promise((resolve, reject) => {
     let attempt = 0;
 
-    const interval = setInterval(async () => {
-      try {
-        const response = await request();
+    const run = () => {
+      if (attempt > maxAttempts) {
+        throw new CoreError(
+          `Tried too many times waiting for condition${
+            label && `: "${label}"`
+          }`,
+          ErrorCodes.TOO_MANY_ATTEMPTS,
+        );
+      }
 
-        attempt += 1;
+      return request().then((data) => {
+        if (condition(data)) {
+          return data;
+        } else {
+          attempt += 1;
 
-        if (condition(response)) {
-          clearInterval(interval);
-          resolve(response);
-        } else if (attempt > MAX_ATTEMPTS) {
-          throw new CoreError(
-            'Tried too many times waiting for condition',
-            ErrorCodes.TOO_MANY_ATTEMPTS,
+          return new Promise((resolve) => setTimeout(resolve, retryDelay)).then(
+            run,
           );
         }
-      } catch (error) {
-        clearInterval(interval);
-        reject(error);
-      }
-    }, LOOP_INTERVAL);
+      });
+    };
+
+    run().then(resolve).catch(reject);
   });
 }

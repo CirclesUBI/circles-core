@@ -1,8 +1,6 @@
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop from './helpers/loop';
 import web3 from './helpers/web3';
-
 import {
   deploySafeAndToken,
   addTrustConnection,
@@ -66,8 +64,7 @@ describe('Activity', () => {
       ownerAddress: secondOwnerAccount.address,
     });
 
-    await loop(
-      'Wait for graph to index latest activities',
+    await core.utils.loop(
       () => {
         return core.activity.getLatest(account, {
           safeAddress,
@@ -76,6 +73,7 @@ describe('Activity', () => {
       (result) => {
         return findOwnerActivity(secondOwnerAccount.address, result.activities);
       },
+      { label: 'Wait for graph to index latest activities' },
     );
 
     // Get activities!
@@ -126,8 +124,7 @@ describe('Activity', () => {
 
     let activity;
 
-    const latest = await loop(
-      'Wait for the graph to index activity of newly added Safe owner',
+    const latest = await core.utils.loop(
       () => {
         // The last two activities have the same timestamp, but one is filtered out
         // because it's a transfer (actually the payment to the relayer)
@@ -139,6 +136,9 @@ describe('Activity', () => {
       (result) => {
         expect(result.activities.length).toBe(1);
         return findOwnerActivity(thirdOwnerAccount.address, result.activities);
+      },
+      {
+        label: 'Wait for the graph to index activity of newly added Safe owner',
       },
     );
 

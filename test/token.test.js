@@ -3,10 +3,9 @@ import { execSync } from 'child_process';
 import { getTokenContract } from '~/common/getContracts';
 import getContracts from '~/common/getContracts';
 import { ZERO_ADDRESS } from '~/common/constants';
-
 import createCore from './helpers/core';
 import getAccount from './helpers/account';
-import loop from './helpers/loop';
+
 import web3 from './helpers/web3';
 import {
   deploySafe,
@@ -271,8 +270,7 @@ const executeTests = (core) => {
 
         expect(web3.utils.isHexStrict(response)).toBe(true);
 
-        const accountBalance = await loop(
-          'Wait for balance to be lower after user transferred Circles',
+        const accountBalance = await core.utils.loop(
           () => {
             return core.token.getBalance(accounts[indexFrom], {
               safeAddress: safeAddresses[indexFrom],
@@ -283,6 +281,10 @@ const executeTests = (core) => {
               (core.utils.fromFreckles(balance) + 1).toString() ===
               (core.utils.fromFreckles(signupBonus) - sentCircles).toString()
             );
+          },
+          {
+            label:
+              'Wait for balance to be lower after user transferred Circles',
           },
         );
 

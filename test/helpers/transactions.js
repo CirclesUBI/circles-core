@@ -1,13 +1,13 @@
 const Safe = require('@circles/safe-contracts/build/contracts/GnosisSafe.json');
 const ProxyFactory = require('@circles/safe-contracts/build/contracts/ProxyFactory.json');
 
-import loop, { getTrustConnection, isReady } from './loop';
-import web3 from './web3';
-import { formatTypedData, signTypedData } from './typedData';
 import { ZERO_ADDRESS } from '~/common/constants';
+import web3 from './web3';
+import getTrustConnection from './getTrustConnection';
+import isContractDeployed from './isContractDeployed';
+import { formatTypedData, signTypedData } from './typedData';
 
 const SAFE_DEPLOYMENT_GAS = web3.utils.toWei('0.01', 'ether');
-
 let counter = 0;
 
 export async function fundSafe(account, safeAddress) {
@@ -34,8 +34,12 @@ export async function deploySafe(core, account) {
     safeAddress,
   });
 
-  await loop(`Wait until Safe ${safeAddress} got deployed`, () =>
-    web3.eth.getCode(safeAddress),
+  await core.utils.loop(
+    () => web3.eth.getCode(safeAddress),
+    isContractDeployed,
+    {
+      label: `Wait until Safe ${safeAddress} got deployed`,
+    },
   );
 
   return safeAddress;
@@ -44,17 +48,17 @@ export async function deploySafe(core, account) {
 export async function deployToken(core, account, userOptions) {
   await core.token.deploy(account, userOptions);
 
-  // Wait until token deployed
-  await loop(
+  const tokenAddress = await core.utils.loop(
     () => {
-      return core.token.getAddress(core, account, userOptions.safeAddress);
+      return core.token.getAddress(account, userOptions);
     },
     (address) => {
       return address !== ZERO_ADDRESS;
     },
+    {
+      label: `Wait until token ${account} is deployed`,
+    },
   );
-
-  const tokenAddress = await core.token.getAddress(account, userOptions);
 
   return tokenAddress;
 }
@@ -72,8 +76,7 @@ export async function deploySafeAndToken(core, account) {
 export async function addTrustConnection(core, account, userOptions) {
   const transactionHash = await core.trust.addConnection(account, userOptions);
 
-  await loop(
-    `Wait for trust connection between ${userOptions.canSendTo} and ${userOptions.user} to show up in the Graph`,
+  await core.utils.loop(
     () => {
       return getTrustConnection(
         core,
@@ -82,7 +85,10 @@ export async function addTrustConnection(core, account, userOptions) {
         userOptions.user,
       );
     },
-    isReady,
+    (isReady) => isReady,
+    {
+      label: `Wait for trust connection between ${userOptions.canSendTo} and ${userOptions.user} to show up in the Graph`,
+    },
   );
 
   return transactionHash;
@@ -91,8 +97,7 @@ export async function addTrustConnection(core, account, userOptions) {
 export async function addSafeOwner(core, account, userOptions) {
   const transactionHash = await core.safe.addOwner(account, userOptions);
 
-  await loop(
-    'Wait for newly added address to be listed as Safe owner',
+  await core.utils.loop(
     () => {
       return core.safe.getOwners(account, {
         safeAddress: userOptions.safeAddress,
@@ -101,6 +106,7 @@ export async function addSafeOwner(core, account, userOptions) {
     (owners) => {
       return owners.includes(userOptions.ownerAddress);
     },
+    { label: 'Wait for newly added address to be listed as Safe owner' },
   );
 
   return transactionHash;
