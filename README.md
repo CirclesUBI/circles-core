@@ -92,9 +92,9 @@ const core = new CirclesCore(web3, {
   safeMasterAddress: '0x59d3631c86BbE35EF041872d502F218A39FBa150',
   apiServiceEndpoint: 'http://api.circles.local',
   pathfinderServiceEndpoint: 'http://pathfinder.circles.local',
-  pathfinderType: 'server',
+  pathfinderType: 'server', // other option: 'cli'
   graphNodeEndpoint: 'http://graph.circles.local',
-  databaseSource: 'graph',
+  databaseSource: 'graph', // other options:
   relayServiceEndpoint: 'http://relay.circles.local',
   subgraphName: 'circlesubi/circles-subgraph',
   fallbackHandlerAddress: '0x67B5656d60a809915323Bf2C40A8bEF15A152e3e',
