@@ -8,6 +8,7 @@ jobs:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
+
     steps:
       - name: Add hosts to /etc/hosts
         run: |
@@ -27,7 +28,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: 'circles-core/.nvmrc'
           cache: 'npm'
 
       - name: Get circles-docker repository and copy configs
