@@ -8,7 +8,6 @@ jobs:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
-
     steps:
       - name: Add hosts to /etc/hosts
         run: |
@@ -25,25 +24,11 @@ jobs:
         working-directory: circles-core
         run: cp .env.example .env
 
-      - name: Read node version from .nvmrc
-        working-directory: circles-core
-        id: nvmrc
-        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_OUTPUT
-
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: '${{ steps.nvmrc.outputs.NODE_VERSION }}'
-
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS.
-          path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v3
