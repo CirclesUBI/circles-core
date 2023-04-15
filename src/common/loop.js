@@ -11,7 +11,8 @@ export default async function loop(
     const run = () => {
       if (attempt > maxAttempts) {
         throw new CoreError(
-          `Tried too many times waiting for condition${label && `: "${label}"`
+          `Tried too many times waiting for condition${
+            label && `: "${label}"`
           }`,
           ErrorCodes.TOO_MANY_ATTEMPTS,
         );
