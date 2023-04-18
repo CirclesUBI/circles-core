@@ -611,7 +611,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {Object} [options] - options
      * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
      * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
-     * @param {number} [options.retryDelay=2000] - Delay time between attemps in milliseconds
+     * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
      *
      * @return {*} - response of the target request
      */

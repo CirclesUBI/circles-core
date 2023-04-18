@@ -3,7 +3,7 @@ import CoreError, { ErrorCodes } from '~/common/error';
 export default async function loop(
   request,
   condition,
-  { label, maxAttempts = 10, retryDelay = 2000 } = {},
+  { label, maxAttempts = 10, retryDelay = 6000 } = {},
 ) {
   return new Promise((resolve, reject) => {
     let attempt = 0;
