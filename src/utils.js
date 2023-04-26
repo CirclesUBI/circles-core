@@ -62,20 +62,25 @@ async function request(endpoint, userOptions) {
   try {
     return fetch(url, request).then((response) => {
       const contentType = response.headers.get('Content-Type');
-
+      const transferEncoding = response.headers.get('Transfer-Encoding');
       if (contentType && contentType.includes('application/json')) {
         return response.json().then((json) => {
           if (response.status >= 400) {
             throw new RequestError(url, json, response.status);
           }
-
           return json;
         });
       } else {
         if (response.status >= 400) {
           throw new RequestError(url, response.body, response.status);
         }
-
+        if (transferEncoding && transferEncoding.includes('chunked')) {
+          console.log("chunked");
+          return response.text().then((text) => {
+            console.log(text.toString());
+            return JSON.parse(text.toString());
+          });
+        }
         return response.body;
       }
     });
