@@ -310,7 +310,7 @@ function getBalancesStatus(
       query = {
         query: `{
           safe(id: "${safeAddress.toLowerCase()}") {
-            balances {
+            balances(first: 1000) {
               token {
                 id
               }
@@ -559,7 +559,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         {
           query: `{
             safe(id: "${safeAddress.toLowerCase()}") {
-              balances {
+              balances(first: 1000) {
                 token {
                   id
                   owner {
