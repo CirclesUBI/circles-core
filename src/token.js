@@ -18,6 +18,7 @@ import { getVersion } from '~/safe';
  * @param {Object} userOptions - search arguments
  * @param {string} pathfinderType - pathfinder execution type
  * @param {number} pathfinderMaxTransferSteps - default pathfinder server max transfer steps
+ * @param {Boolean} returnIterativeFirstMatch - if true, the pathfinder service iteratively optimizes the result and returns the first match with 'value'. Only available when pathfinderType is 'cli'
  *
  * @return {Object[]} - transaction steps
  */
@@ -27,6 +28,7 @@ export async function findTransitiveTransfer(
   userOptions,
   pathfinderType,
   pathfinderMaxTransferSteps,
+  returnIterativeFirstMatch = false,
 ) {
   let result;
   if (pathfinderType == 'cli') {
@@ -39,6 +41,7 @@ export async function findTransitiveTransfer(
       utils,
       userOptions,
       pathfinderMaxTransferSteps,
+      returnIterativeFirstMatch,
     );
   }
   return result;
@@ -109,6 +112,7 @@ async function findTransitiveTransferCli(web3, utils, userOptions) {
  * @param {string} userOptions.to - receiver Safe address
  * @param {BN} userOptions.value - value of Circles tokens
  * @param {number} userOptions.maxTransfers - limit of steps returned by the pathfinder service
+ * @param {Boolean} returnIterativeFirstMatch - if true, the pathfinder service iteratively optimizes the result and returns the first match with 'value'. Only available when pathfinderType is 'cli'
  *
  * @return {Object[]} - transaction steps
  */
@@ -117,6 +121,7 @@ async function findTransitiveTransferServer(
   utils,
   userOptions,
   pathfinderMaxTransferSteps,
+  returnIterativeFirstMatch,
 ) {
   const options = checkOptions(userOptions, {
     from: {
@@ -136,7 +141,6 @@ async function findTransitiveTransferServer(
 
   try {
     const response = await utils.requestPathfinderAPI({
-      method: 'POST',
       data: {
         id: crypto.randomUUID(),
         method: 'compute_transfer',
@@ -145,9 +149,9 @@ async function findTransitiveTransferServer(
           to: options.to,
           value: options.value.toString(),
           max_transfers: options.maxTransfers,
+          iterative: returnIterativeFirstMatch,
         },
       },
-      isTrailingSlash: false,
     });
     return response.result;
   } catch (error) {
@@ -586,6 +590,7 @@ export default function createTokenModule(
               options,
               pathfinderType,
               pathfinderMaxTransferSteps,
+              true,
             );
             if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
               throw new TransferError(
