@@ -36,60 +36,68 @@ async function processResponseJson(response) {
       }
       resolve(response.body);
     }
-  })
+  });
 }
 
 async function processResponseNdjson(response, data) {
-  let buffer = ''
-  let jsons = []
-  let final
-  return new Promise((resolve, reject) => {
-    resolve(response.body)
-  })
-  .then(res => {
+  let buffer = '';
+  let jsons = [];
+  let final;
+  return new Promise((resolve) => {
+    resolve(response.body);
+  }).then((res) => {
     return new Promise((resolve, reject) => {
       res.on('readable', () => {
-        console.log("readable...*");
-        let result
-        const decoder = new TextDecoder()
+        // console.log('readable...*');
+        let result;
+        const decoder = new TextDecoder();
         while (null !== (result = res.read())) {
-          buffer += decoder.decode(result)
-          let idx = buffer.indexOf("\n")
-          while(idx !== -1) {
-            const text = buffer.substring(0, idx)
+          buffer += decoder.decode(result);
+          let idx = buffer.indexOf('\n');
+          while (idx !== -1) {
+            const text = buffer.substring(0, idx);
             try {
-              const jsonText = JSON.parse(text)
-              console.log(jsonText)
-              jsons.push(jsonText)
+              const jsonText = JSON.parse(text);
+              // console.log(jsonText);
+              jsons.push(jsonText);
               if (jsonText.result.maxFlowValue === data.params.value) {
-                final = jsonText
-                res.destroy()
+                final = jsonText;
+                res.destroy();
               }
-            } catch(error) {
-              console.warn(text)
+            } catch (error) {
+              // console.warn(text);
+              reject(error);
             }
-            buffer = buffer.substring(idx + 1)
-            idx = buffer.indexOf("\n")
+            buffer = buffer.substring(idx + 1);
+            idx = buffer.indexOf('\n');
           }
         }
-      })
-      res.on('end', () => { // If haven't received a matching result yet, then return the last result
-        console.log("END!");
-        console.log({final});
-        console.log({jsons});
-        resolve(jsons.pop())
       });
-      res.on("close", function (err) {
-        console.log("Stream has been destroyed and file has been closed");
-        console.log({final});
-        console.log({jsons});
-        resolve(final ? final : jsons.pop())
-      })
-    })
-  })
+      res.on('end', () => {
+        // If haven't received a matching result yet, then return the last result
+        // console.log('END!');
+        // console.log({ final });
+        // console.log({ jsons });
+        resolve(jsons.pop());
+      });
+      res.on('close', function (err) {
+        // console.log('Stream has been destroyed and file has been closed');
+        // console.log({ final });
+        // console.log({ jsons });
+        if (err) {
+          reject(err);
+        }
+        resolve(final);
+      });
+    });
+  });
 }
 
-async function request(endpoint, userOptions, processResponse = processResponseJson) {
+async function request(
+  endpoint,
+  userOptions,
+  processResponse = processResponseJson,
+) {
   const options = checkOptions(userOptions, {
     path: {
       type: 'array',
@@ -132,7 +140,9 @@ async function request(endpoint, userOptions, processResponse = processResponseJ
   const url = `${endpoint}/${path.join('/')}${slash}${paramsStr}`;
 
   try {
-    return fetch(url, request).then(response => processResponse(response, data));
+    return fetch(url, request).then((response) =>
+      processResponse(response, data),
+    );
   } catch (err) {
     throw new RequestError(url, err.message);
   }
@@ -1185,12 +1195,16 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           default: {},
         },
       });
-      return request(pathfinderServiceEndpoint, {
-        data: options.data,
-        method: 'POST',
-        path: [],
-        isTrailingSlash: false,
-      }, processResponseNdjson);
+      return request(
+        pathfinderServiceEndpoint,
+        {
+          data: options.data,
+          method: 'POST',
+          path: [],
+          isTrailingSlash: false,
+        },
+        processResponseNdjson,
+      );
     },
 
     /**
