@@ -16,6 +16,9 @@
     "type": "git",
     "url": "git://github.com/CirclesUBI/circles-core.git"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "build": "npm run clear && rollup -c --bundleConfigAsCjs",
     "clear": "rimraf ./lib",
