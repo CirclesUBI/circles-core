@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Increase user trust limit value from 50% to 100% [#151](https://github.com/CirclesUBI/circles-core/issues/151)
+- Increase user trust limit value from 50% to 100% [#181](https://github.com/CirclesUBI/circles-core/pull/181)
 
 ## [4.3.1] - 2023-04-18
 
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Increase user trust limit value from 50% to 100% [#151](https://github.com/CirclesUBI/circles-core/issues/151)
+- Increase user trust limit value from 50% to 100% [#181](https://github.com/CirclesUBI/circles-core/pull/181)
 
 ## [4.1.0] - 2023-03-31
 
