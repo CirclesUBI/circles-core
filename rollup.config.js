@@ -6,7 +6,7 @@ import cleanup from 'rollup-plugin-cleanup';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import resolve from '@rollup/plugin-node-resolve';
-import { uglify } from 'rollup-plugin-uglify';
+import terser from '@rollup/plugin-terser';
 
 const FOLDER_DIST = 'lib';
 const FOLDER_INPUT = 'src';
@@ -28,7 +28,7 @@ function rollupPlugins(isUglified = false) {
     cleanup(),
   ];
 
-  return isUglified ? plugins.concat(uglify()) : plugins;
+  return isUglified ? plugins.concat(terser()) : plugins;
 }
 
 function buildOptions(customOptions = {}) {
