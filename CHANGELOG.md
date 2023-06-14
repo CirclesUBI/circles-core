@@ -5,17 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2023-06-14
+
+### Changed
+
+- Update to Node v16 [#199](https://github.com/CirclesUBI/circles-core/pull/199)
+- Update dependencies [#199](https://github.com/CirclesUBI/circles-core/pull/199)
+
+### Added
+
+- Run lint before commit [#197](https://github.com/CirclesUBI/circles-core/pull/197)
+
 ## [4.4.2] - 2023-05-03
 
 ### Fixed
 
-- Subgraph balances limit increase to 1000 results per pagination [#194](https://github.com/CirclesUBI/circles-core/issues/194)
+- Subgraph balances limit increase to 1000 results per pagination [#194](https://github.com/CirclesUBI/circles-core/pull/194)
 
 ## [4.4.1] - 2023-05-02
 
 ### Fixed
 
-- Increase loop default retries from 10 to 30 [#192](https://github.com/CirclesUBI/circles-core/issues/192)
+- Increase loop default retries from 10 to 30 [#192](https://github.com/CirclesUBI/circles-core/pull/192)
 
 ## [4.4.0] - 2023-05-02
 
@@ -27,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Increase default delay retry timing for loop utils method [#186](https://github.com/CirclesUBI/circles-core/issues/186)
+- Increase default delay retry timing for loop utils method [#186](https://github.com/CirclesUBI/circles-core/pull/186)
 
 ## [4.3.0] - 2023-04-18
 
