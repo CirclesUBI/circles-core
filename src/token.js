@@ -343,7 +343,7 @@ export default function createTokenModule(
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - address of Token owner
      *
-     * @return {string} - Token address
+     * @return {string} - Token address (when not deployed returns zero address)
      */
     getAddress: async (account, userOptions) => {
       checkAccount(web3, account);
