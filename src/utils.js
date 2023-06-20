@@ -337,7 +337,7 @@ function getTrustNetworkStatus(
     default:
       query = {
         query: `{
-          trusts(where: { userAddress: "${safeAddress}" }) {
+          trusts(first: 1000, where: { userAddress: "${safeAddress}" }) {
             id
             limitPercentage
           }
@@ -362,12 +362,12 @@ function getTrustLimitsStatus(
       query = {
         query: `{
           safe(id: "${safeAddress}") {
-            outgoing {
+            outgoing(first: 1000) {
               limitPercentage
               userAddress
               canSendToAddress
             }
-            incoming {
+            incoming(first: 1000) {
               limitPercentage
               userAddress
               user {
