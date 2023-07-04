@@ -1,3 +1,6 @@
+import checkOptions from '~/common/checkOptions';
+import { CIRCLES_INCEPTION_TIMESTAMP } from '~/common/constants';
+
 /**
  * Activity submodule to get latest news log events.
  *
@@ -20,7 +23,39 @@ export default function createNewsModule(utils) {
      * @return {Object} List of latest activities
      */
     getLatestNews: async (userOptions) => {
-      return [];
-    }
-  }
+      const options = checkOptions(userOptions, {
+        afterDate: {
+          type: 'string',
+          default: CIRCLES_INCEPTION_TIMESTAMP.toString(),
+        },
+        isActive: {
+          type: 'boolean',
+          default: true,
+        },
+        limit: {
+          type: 'number',
+          default: 10,
+        },
+        offset: {
+          type: 'number',
+          default: 0,
+        },
+      });
+
+      const { afterDate, isActive, limit, offset } = options;
+      const response = await utils.requestAPI({
+        path: ['news'],
+        method: 'GET',
+        data: {
+          afterDate,
+          isActive,
+          limit,
+          offset,
+        },
+      });
+
+      return response?.data;
+      // or whole response?
+    },
+  };
 }
