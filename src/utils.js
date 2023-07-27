@@ -215,7 +215,7 @@ function getNotificationsStatus(
     default:
       query = {
         query: `{
-          notifications(first: 1000 ${parameters}) {
+          notifications(${parameters}) {
             id
             transactionHash
             safeAddress
