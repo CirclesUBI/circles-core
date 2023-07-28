@@ -1,4 +1,5 @@
 import fetch from 'isomorphic-fetch';
+import { SafeFactory, Web3Adapter } from '@safe-global/protocol-kit';
 
 import CoreError, { RequestError, ErrorCodes } from '~/common/error';
 import TransactionQueue from '~/common/queue';
@@ -13,6 +14,7 @@ import {
   signTypedData,
 } from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
+import safeContractAbis from '~/common/safeContractAbis';
 
 /** @access private */
 const transactionQueue = new TransactionQueue();
@@ -70,6 +72,14 @@ async function request(endpoint, userOptions) {
           }
 
           return json;
+        });
+      } else if (contentType && contentType.includes('text/plain')) {
+        return response.text().then((text) => {
+          if (response.status >= 400) {
+            throw new RequestError(url, text, response.status);
+          }
+
+          return text;
         });
       } else {
         if (response.status >= 400) {
@@ -529,6 +539,11 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     graphNodeEndpoint,
     relayServiceEndpoint,
     subgraphName,
+    proxyFactoryAddress,
+    safeMasterAddress,
+    fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
   } = globalOptions;
 
   const { hub } = contracts;
@@ -600,6 +615,31 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     });
   }
 
+  const getCustomContracts = () => ({
+    safeMasterCopyAddress: safeMasterAddress,
+    safeProxyFactoryAddress: proxyFactoryAddress,
+    fallbackHandlerAddress: fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
+    ...safeContractAbis,
+  });
+
+  const getContractNetworks = () =>
+    web3.eth.getChainId().then((chainId) => ({
+      [chainId]: getCustomContracts(),
+    }));
+
+  const createEthAdapter = (signerAddress) =>
+    new Web3Adapter({ web3, signerAddress });
+
+  const createSafeFactory = (signerAddress) =>
+    getContractNetworks().then((contractNetworks) =>
+      SafeFactory.create({
+        ethAdapter: createEthAdapter(signerAddress),
+        contractNetworks,
+      }),
+    );
+
   return {
     /**
      * Iterate on a request until a response condition is met and then, returns the response.
@@ -661,6 +701,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     fromFreckles: (value) => {
       return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
     },
+
+    // TODO: docs
+    requestNewRelayer: (userOptions) =>
+      request(relayServiceEndpoint, userOptions),
+    createEthAdapter,
+    createSafeFactory,
+    getCustomContracts,
+    getContractNetworks,
 
     /**
      * Send an API request to the Gnosis Relayer.

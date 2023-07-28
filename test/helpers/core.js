@@ -14,6 +14,8 @@ export default function createCore(opts) {
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
     safeMasterAddress: process.env.SAFE_ADDRESS,
     subgraphName: process.env.SUBGRAPH_NAME,
+    multiSendAddress: process.env.MULTI_SEND_ADDRESS,
+    multiSendCallOnlyAddress: process.env.MULTI_SEND_CALL_ONLY_ADDRESS,
     ...opts,
   });
 }

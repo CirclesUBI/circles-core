@@ -59,6 +59,12 @@ export default class CirclesCore {
       fallbackHandlerAddress: {
         type: web3.utils.checkAddressChecksum,
       },
+      multiSendAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      multiSendCallOnlyAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
       graphNodeEndpoint: {
         type: 'string',
       },
