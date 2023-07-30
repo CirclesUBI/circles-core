@@ -96,7 +96,6 @@ describe('Activity', () => {
     });
 
     mutualActivities = mutualLatest.activities;
-    //mutualActivities.map((a) => console.log('mutual - ', a));
   });
 
   it('orders the activities by timestamp', () => {
@@ -109,7 +108,7 @@ describe('Activity', () => {
     });
   });
 
-  xit('filters them by type', async () => {
+  it('filters them by type', async () => {
     const result = await core.activity.getLatest(account, {
       safeAddress,
       filter: core.activity.ActivityFilterTypes.TRANSFERS,
@@ -126,12 +125,24 @@ describe('Activity', () => {
   });
 
   it('return mutual activities', async () => {
-    //console.log("MUTUAL RESULT ", mutualActivities);
-
-    expect(mutualActivities.length).toBe(5); // tmp test - this is not actually expected
+    expect(mutualActivities.length).toBe(2); // tmp test - this is not actually expected
   });
 
-  xit('returns activities based on pagination arguments', async () => {
+  it('returns mutual activities connected with trust action', async () => {
+    const foundTransferItems = mutualActivities.filter(
+      (item) => item.type === core.activity.ActivityTypes.TRANSFER,
+    );
+    expect(foundTransferItems.length).toEqual(1);
+  });
+
+  it('returns mutual activities connected with transfer action', async () => {
+    const foundTrustItems = mutualActivities.filter(
+      (item) => item.type === core.activity.ActivityTypes.ADD_CONNECTION,
+    );
+    expect(foundTrustItems.length).toEqual(1);
+  });
+
+  it('returns activities based on pagination arguments', async () => {
     const transactionHash = await addSafeOwner(core, account, {
       safeAddress,
       ownerAddress: thirdOwnerAccount.address,
@@ -170,7 +181,7 @@ describe('Activity', () => {
     expect(activity).toBeUndefined();
   });
 
-  xit('returns the first added owner event', async () => {
+  it('returns the first added owner event', async () => {
     const activity = activities.find(({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -182,7 +193,7 @@ describe('Activity', () => {
     expect(activity).toBeDefined();
   });
 
-  xit('returns the second added owner event', async () => {
+  it('returns the second added owner event', async () => {
     const activity = activities.find(({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -194,7 +205,7 @@ describe('Activity', () => {
     expect(activity).toBeDefined();
   });
 
-  xit('returns the trust event for both Safes', async () => {
+  it('returns the trust event for both Safes', async () => {
     const query = ({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_CONNECTION &&
@@ -207,7 +218,7 @@ describe('Activity', () => {
     expect(otherActivities.find(query)).toBeDefined();
   });
 
-  xit('returns the hub transfer event for both Safes', async () => {
+  it('returns the hub transfer event for both Safes', async () => {
     const query = ({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.HUB_TRANSFER &&

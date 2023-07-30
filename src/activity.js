@@ -147,20 +147,20 @@ export default function createActivityModule(web3, contracts, utils) {
           `;
 
           parameters = `
-            orderBy: "time", 
-            orderDirection: "desc", 
+            orderBy: "time",
+            orderDirection: "desc",
             first: ${options.limit},
-            skip: ${options.offset}, 
-            where: { 
+            skip: ${options.offset},
+            where: {
               or: [
-                ${
-                  filterString === TYPE_TRUST || !filterString
-                    ? mutualTrustParams
-                    : ''
-                }
                 ${
                   filterString === TYPE_TRANSFER || !filterString
                     ? mutualTransferParams
+                    : ''
+                },
+                ${
+                  filterString === TYPE_TRUST || !filterString
+                    ? mutualTrustParams
                     : ''
                 }
               ]
@@ -255,7 +255,11 @@ export default function createActivityModule(web3, contracts, utils) {
 
           // Filter transfer events which are not UBI payout as we have them
           // covered through HUB_TRANSFER events
-          if (type === ActivityTypes.TRANSFER && data.from !== ZERO_ADDRESS) {
+          if (
+            type === ActivityTypes.TRANSFER &&
+            data.from !== ZERO_ADDRESS &&
+            options.otherSafeAddress === ZERO_ADDRESS
+          ) {
             return acc;
           }
 
