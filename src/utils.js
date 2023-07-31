@@ -371,7 +371,7 @@ function getTrustLimitsStatus(
               limitPercentage
               userAddress
               user {
-                outgoing {
+                outgoing (first: 1000) {
                   canSendToAddress
                   limitPercentage
                 }
