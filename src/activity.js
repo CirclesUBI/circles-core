@@ -97,10 +97,77 @@ export default function createActivityModule(web3, contracts, utils) {
           },
           default: ActivityFilterTypes.DISABLED,
         },
+        otherSafeAddress: {
+          type: web3.utils.checkAddressChecksum,
+          default: ZERO_ADDRESS,
+        },
       });
 
       const getNotifications = async (filterString) => {
-        const parameters = `
+        let parameters;
+        if (options.otherSafeAddress != ZERO_ADDRESS) {
+          // if other address is specified use the following parameters to filter
+          // mutual transactions and connections
+          const mutualTrustParams = `
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRUST,
+              trust_: {
+                user: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRUST,
+              trust_: {
+                canSendTo: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+          `;
+
+          const mutualTransferParams = `
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRANSFER,
+              transfer_: {
+                to: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRANSFER,
+              transfer_: {
+                from: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+          `;
+
+          parameters = `
+            orderBy: "time",
+            orderDirection: "desc",
+            first: ${options.limit},
+            skip: ${options.offset},
+            where: {
+              or: [
+                ${
+                  filterString === TYPE_TRANSFER || !filterString
+                    ? mutualTransferParams
+                    : ''
+                },
+                ${
+                  filterString === TYPE_TRUST || !filterString
+                    ? mutualTrustParams
+                    : ''
+                }
+              ]
+            }
+          `;
+        } else {
+          parameters = `
             orderBy: "time",
             orderDirection: "desc",
             first: ${options.limit},
@@ -110,7 +177,8 @@ export default function createActivityModule(web3, contracts, utils) {
               safeAddress: "${options.safeAddress.toLowerCase()}",
               ${filterString ? `type: ${filterString}` : ''}
             }
-        `;
+          `;
+        }
 
         const response = await utils.requestIndexedDB(
           'activity_stream',
@@ -187,7 +255,11 @@ export default function createActivityModule(web3, contracts, utils) {
 
           // Filter transfer events which are not UBI payout as we have them
           // covered through HUB_TRANSFER events
-          if (type === ActivityTypes.TRANSFER && data.from !== ZERO_ADDRESS) {
+          if (
+            type === ActivityTypes.TRANSFER &&
+            data.from !== ZERO_ADDRESS &&
+            options.otherSafeAddress === ZERO_ADDRESS
+          ) {
             return acc;
           }
 
@@ -227,6 +299,7 @@ export default function createActivityModule(web3, contracts, utils) {
         } else if (options.filter === ActivityFilterTypes.OWNERS) {
           filterString = TYPE_TRANSFER;
         }
+        // filterString is undefined if ActivtyFilterType is DISABLED
         activities = await getNotifications(filterString);
       }
 
