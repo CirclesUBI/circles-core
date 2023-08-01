@@ -51,6 +51,9 @@ jobs:
         working-directory: circles-docker
         run: ./scripts/migrate-contracts.sh
 
+      - name: Create dummy data for news table in api
+        working-directory: circles-docker
+        run: ./scripts/insert-news.sh
 
       - name: Try starting failed services
         working-directory: circles-docker
@@ -59,10 +62,6 @@ jobs:
       - name: Container setup via docker-compose for pathfinder
         working-directory: circles-docker
         run: docker compose -f docker-compose.pathfinder-pull.yml -p circles up --detach --build
-
-      - name: Create dummy data for news table in api
-        working-directory: circles-docker
-        run: ./scripts/insert-news.sh
 
       - name: Install dependencies
         working-directory: circles-core
