@@ -17,7 +17,8 @@ export default function createNewsModule(utils) {
      *
      * @param {number} userOptions.limit - pagination page size
      * @param {number} userOptions.offset - pagination start index
-     * @param {number} userOptions.timestamp - show only messages after this time
+     * @param {string} userOptions.afterDate - show only messages after this time
+     * @param {boolean} userOptions.isActive - show only active items
      * @param {symbol} userOptions.filter - optional filter for message types
      *
      * @return {Object} List of latest activities
@@ -55,7 +56,6 @@ export default function createNewsModule(utils) {
       });
 
       return response?.data;
-      // or whole response?
     },
   };
 }
