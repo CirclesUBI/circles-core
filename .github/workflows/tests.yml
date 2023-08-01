@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: CirclesUBI/circles-docker.git
-          ref: main
+          ref: test-iterative
           path: circles-docker
 
       - name: Setup docker repo
@@ -45,7 +45,7 @@ jobs:
 
       - name: Container setup via docker-compose without pathfinder
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
@@ -53,7 +53,7 @@ jobs:
 
       - name: Try starting failed services
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles up --detach --remove-orphans --build
       
       - name: Container setup via docker-compose for pathfinder
         working-directory: circles-docker
