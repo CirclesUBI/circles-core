@@ -19,7 +19,6 @@ export default function createNewsModule(utils) {
      * @param {number} userOptions.offset - pagination start index
      * @param {string} userOptions.afterDate - show only messages after this time
      * @param {boolean} userOptions.isActive - show only active items
-     * @param {symbol} userOptions.filter - optional filter for message types
      *
      * @return {Object} List of latest activities
      */

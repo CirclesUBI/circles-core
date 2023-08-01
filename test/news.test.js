@@ -5,8 +5,6 @@ let core;
 
 beforeAll(async () => {
   core = createCore();
-
-  // TODO add news to api??
 });
 
 describe('News - get latest items', () => {
