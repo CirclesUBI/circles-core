@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: CirclesUBI/circles-docker.git
-          ref: main 
+          ref: main
           path: circles-docker
 
       - name: Setup docker repo
