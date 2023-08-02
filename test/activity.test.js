@@ -19,6 +19,7 @@ let thirdOwnerAccount;
 
 let activities;
 let otherActivities;
+let mutualActivities;
 
 const findOwnerActivity = (accountAddress, items) => {
   return items.find(({ type, data }) => {
@@ -88,6 +89,13 @@ describe('Activity', () => {
     });
 
     otherActivities = otherLatest.activities;
+
+    const mutualLatest = await core.activity.getLatest(account, {
+      safeAddress,
+      otherSafeAddress,
+    });
+
+    mutualActivities = mutualLatest.activities;
   });
 
   it('orders the activities by timestamp', () => {
@@ -114,6 +122,24 @@ describe('Activity', () => {
     });
 
     expect(wrongResult).toBeUndefined();
+  });
+
+  it('return mutual activities', async () => {
+    expect(mutualActivities.length).toBe(2); // tmp test - this is not actually expected
+  });
+
+  it('returns mutual activities connected with trust action', async () => {
+    const foundTransferItems = mutualActivities.filter(
+      (item) => item.type === core.activity.ActivityTypes.TRANSFER,
+    );
+    expect(foundTransferItems.length).toEqual(1);
+  });
+
+  it('returns mutual activities connected with transfer action', async () => {
+    const foundTrustItems = mutualActivities.filter(
+      (item) => item.type === core.activity.ActivityTypes.ADD_CONNECTION,
+    );
+    expect(foundTrustItems.length).toEqual(1);
   });
 
   it('returns activities based on pagination arguments', async () => {
