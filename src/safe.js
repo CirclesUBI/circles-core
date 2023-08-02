@@ -92,7 +92,7 @@ export default function createSafeModule(
       );
     }
 
-    const initializer = await safeMaster.methods
+    const initializer = safeMaster.methods
       .setup(
         [ownerAddress],
         1,
@@ -104,7 +104,7 @@ export default function createSafeModule(
         ZERO_ADDRESS,
       )
       .encodeABI();
-    const data = await proxyFactory.methods
+    const data = proxyFactory.methods
       .createProxyWithNonce(safeMasterAddress, initializer, nonce)
       .encodeABI();
 
@@ -296,7 +296,6 @@ export default function createSafeModule(
         isTrailingSlash: false,
         data: {
           target: safeAddress,
-          chainId: await web3.eth.getChainId(),
           data,
         },
       });
@@ -350,7 +349,6 @@ export default function createSafeModule(
         isTrailingSlash: false,
         data: {
           target: safeAddress,
-          chainId: await web3.eth.getChainId(),
           data,
         },
       });
@@ -423,15 +421,12 @@ export default function createSafeModule(
      *
      * @namespace core.safe.getVersion
      *
-     * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {number} userOptions.safeAddress - address of the Gnosis Safe
      *
      * @return {string} - transaction hash
      */
-    getVersion: (account, userOptions) => {
-      checkAccount(web3, account);
-
+    getVersion: (userOptions) => {
       const { safeAddress } = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
@@ -455,13 +450,13 @@ export default function createSafeModule(
     updateToLastVersion: async (account, userOptions) => {
       checkAccount(web3, account);
 
-      const options = checkOptions(userOptions, {
+      const { safeAddress } = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      const safeVersion = await getVersion(options.safeAddress);
+      const safeVersion = await getVersion(safeAddress);
       let txHashChangeMasterCopy;
       let txHashFallbackHandler;
 
@@ -471,48 +466,88 @@ export default function createSafeModule(
         // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
 
         // Get the Safe contract with version v1.1.1+Circles
-        const safeInstance = getSafeCRCVersionContract(
-          web3,
-          options.safeAddress,
-        );
+        const safeInstance = getSafeCRCVersionContract(web3, safeAddress);
+        const signerAddress = account.address;
+        const safeSdk = await getSafe({
+          safeAddress,
+          signerAddress: account.address,
+        });
 
         // First we change the Master Copy to v1.3.0
         // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-        const updateSafeTxData = safeInstance.methods
-          .changeMasterCopy(safeMaster.options.address)
-          .encodeABI();
-        txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: updateSafeTxData,
-          isCRCVersion: true,
+        txHashChangeMasterCopy = await utils.requestNewRelayer({
+          path: ['transactions'],
+          method: 'POST',
+          isTrailingSlash: false,
+          data: {
+            target: safeAddress,
+            data: await safeSdk
+              .createTransaction({
+                safeTransactionData: {
+                  to: safeAddress,
+                  value: 0,
+                  data: safeInstance.methods
+                    .changeMasterCopy(safeMaster.options.address)
+                    .encodeABI(),
+                },
+              })
+              .then((tx) => safeSdk.signTransaction(tx))
+              .then((signedSafeTx) =>
+                encodeSafeTransaction({
+                  signedSafeTx,
+                  signerAddress,
+                  safeVersion,
+                }),
+              ),
+          },
         });
+
         if (!txHashChangeMasterCopy) {
           throw new CoreError(
             `Safe with version ${safeVersion} failed to change the Master Copy`,
           );
         }
 
+        txHashFallbackHandler = await utils.requestNewRelayer({
+          path: ['transactions'],
+          method: 'POST',
+          isTrailingSlash: false,
+          data: {
+            target: safeAddress,
+            data: await safeSdk
+              .createTransaction({
+                safeTransactionData: {
+                  to: safeAddress,
+                  value: 0,
+                  data: safeInstance.methods
+                    .setFallbackHandler(fallbackHandlerAddress)
+                    .encodeABI(),
+                },
+              })
+              .then((tx) => safeSdk.signTransaction(tx))
+              .then((signedSafeTx) =>
+                encodeSafeTransaction({
+                  signedSafeTx,
+                  signerAddress,
+                  safeVersion,
+                }),
+              ),
+          },
+        });
+
+        if (!txHashFallbackHandler) {
+          throw new CoreError(
+            `Safe with version ${safeVersion} failed to change the FallbackHandler`,
+          );
+        }
+
         // Wait to check that the version is updated
         await loop(
-          () => {
-            return getVersion(options.safeAddress);
-          },
-          (version) => {
-            return version == SAFE_LAST_VERSION;
-          },
+          () => getVersion(safeAddress),
+          (version) => version === SAFE_LAST_VERSION,
         );
-
-        // Then we setup the fallbackHandler
-        const fallbackHandlerTxData = safeInstance.methods
-          .setFallbackHandler(fallbackHandlerAddress)
-          .encodeABI();
-        txHashFallbackHandler = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: fallbackHandlerTxData,
-        });
       }
+
       return { txHashChangeMasterCopy, txHashFallbackHandler };
     },
   };
