@@ -51,9 +51,9 @@ jobs:
         working-directory: circles-docker
         run: ./scripts/migrate-contracts.sh
 
-      # - name: Create dummy data for news table in api
-      #   working-directory: circles-docker
-      #   run: ./scripts/insert-news.sh
+      - name: Create dummy data for news table in api
+        working-directory: circles-docker
+        run: ./scripts/insert-news.sh
 
       - name: Try starting failed services
         working-directory: circles-docker
