@@ -115,13 +115,9 @@ describe('Safe', () => {
         .updateToLastVersion(CRCSafeOwner, {
           safeAddress: CRCSafeAddress,
         })
-        .then(() =>
-          core.safe.getVersion({
-            safeAddress: CRCSafeAddress,
-          }),
-        )
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
+    // TODO: this cannot be done yet
     // it('I should be able to trust', async () => {
     //   // The newly created Safe trusts the migrated Safe
     //   const trustTransactionHash = await addTrustConnection(core, accounts[0], {
