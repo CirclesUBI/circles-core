@@ -29,6 +29,13 @@ describe('Safe', () => {
         .getVersion({ safeAddress })
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
+    it('should get the safe address of the owner', () =>
+      core.safe
+        .getAddresses(accounts[0], {
+          ownerAddress: accounts[0].address,
+        })
+        .then((safeAddresses) => expect(safeAddresses).toContain(safeAddress)));
+
     it('should throw error when trying to deploy twice with same nonce', () =>
       expect(() =>
         core.safe.deploySafe(accounts[0], { nonce }),
@@ -49,44 +56,44 @@ describe('Safe', () => {
         .getOwners(accounts[0], { safeAddress })
         .then((owners) => expect(owners).toEqual([accounts[0].address])));
 
-    it('should add owner to the Safe', async () => {
-      const response = await core.safe.addOwner(accounts[0], {
-        safeAddress,
-        ownerAddress: accounts[1].address,
-      });
+    it('should add owner to the Safe', () =>
+      core.safe
+        .addOwner(accounts[0], {
+          safeAddress,
+          ownerAddress: accounts[1].address,
+        })
+        .then(() => core.safe.getOwners(accounts[0], { safeAddress }))
+        .then((owners) => {
+          expect(owners).toContain(accounts[1].address);
+          expect(owners).toHaveLength(2);
 
-      expect(typeof response.taskId).toBe('string');
+          return core.safe.getAddresses(accounts[0], {
+            ownerAddress: accounts[1].address,
+          });
+        })
+        .then((safeAddresses) => expect(safeAddresses).toContain(safeAddress)));
 
-      const owners = await core.utils.loop(
-        () => core.safe.getOwners(accounts[0], { safeAddress }),
-        (owners) => owners.length === 2,
-        { label: 'Wait for new owner to be added' },
-      );
+    it('should remove owner from the Safe', () =>
+      core.safe
+        .removeOwner(accounts[0], {
+          safeAddress,
+          ownerAddress: accounts[1].address,
+        })
+        .then(() => core.safe.getOwners(accounts[0], { safeAddress }))
+        .then((owners) => {
+          expect(owners).not.toContain(accounts[1].address);
+          expect(owners).toHaveLength(1);
 
-      expect(owners).toContain(accounts[1].address);
-      expect(owners).toHaveLength(2);
-    });
-
-    it('should remove owner from the Safe', async () => {
-      const response = await core.safe.removeOwner(accounts[0], {
-        safeAddress,
-        ownerAddress: accounts[1].address,
-      });
-
-      expect(typeof response.taskId).toBe('string');
-
-      const owners = await core.utils.loop(
-        () => core.safe.getOwners(accounts[0], { safeAddress }),
-        (owners) => owners.length === 1,
-        { label: 'Wait for new owner to be added' },
-      );
-
-      expect(owners).not.toContain(accounts[1].address);
-      expect(owners).toHaveLength(1);
-    });
+          return core.safe.getAddresses(accounts[0], {
+            ownerAddress: accounts[1].address,
+          });
+        })
+        .then((safeAddresses) =>
+          expect(safeAddresses).not.toContain(safeAddress),
+        ));
   });
 
-  describe('when I want to update the CRC Safe version', () => {
+  describe('when updating a CRC Safe to latest version', () => {
     let CRCSafeAddress;
     const CRCSafeOwner = accounts[2];
 
@@ -103,7 +110,7 @@ describe('Safe', () => {
         })
         .then((version) => expect(version).toBe(SAFE_CRC_VERSION)));
 
-    it('should get the last version when update the Safe version of a deployed Safe', () =>
+    it('should get the lastest version of an updated CRC Safe', () =>
       core.safe
         .updateToLastVersion(CRCSafeOwner, {
           safeAddress: CRCSafeAddress,
