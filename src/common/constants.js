@@ -16,3 +16,6 @@ export const MAX_WEI = '99999999999999999999999';
 // Safe versions
 export const SAFE_LAST_VERSION = '1.3.0';
 export const SAFE_CRC_VERSION = '1.1.1';
+
+// Launch date
+export const CIRCLES_INCEPTION_TIMESTAMP = new Date('2020-10-15T00:00:00.000Z');
