@@ -5,7 +5,7 @@ import Safe, {
 } from '@safe-global/protocol-kit';
 
 import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
-import CoreError, { SafeDeployedError } from '~/common/error';
+import { SafeDeployedError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
@@ -473,12 +473,9 @@ export default function createSafeModule(
           type: web3.utils.checkAddressChecksum,
         },
       });
+      let safeVersion = await getVersion(safeAddress);
 
-      const safeVersion = await getVersion(safeAddress);
-      let txHashChangeMasterCopy;
-      let txHashFallbackHandler;
-
-      if (safeVersion != SAFE_LAST_VERSION) {
+      if (safeVersion !== SAFE_LAST_VERSION) {
         // References:
         // https://github.com/safe-global/web-core/blob/main/src/services/tx/safeUpdateParams.ts
         // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
@@ -492,7 +489,7 @@ export default function createSafeModule(
 
         // First we change the Master Copy to v1.3.0
         // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-        txHashChangeMasterCopy = await utils.sendTransaction({
+        await utils.sendTransaction({
           target: safeAddress,
           data: await safeSdk
             .createTransaction({
@@ -513,13 +510,7 @@ export default function createSafeModule(
             ),
         });
 
-        if (!txHashChangeMasterCopy) {
-          throw new CoreError(
-            `Safe with version ${safeVersion} failed to change the Master Copy`,
-          );
-        }
-
-        txHashFallbackHandler = await utils.sendTransaction({
+        await utils.sendTransaction({
           target: safeAddress,
           data: await safeSdk
             .createTransaction({
@@ -540,21 +531,15 @@ export default function createSafeModule(
             ),
         });
 
-        if (!txHashFallbackHandler) {
-          throw new CoreError(
-            `Safe with version ${safeVersion} failed to change the FallbackHandler`,
-          );
-        }
-
         // Wait to check that the version is updated
-        await loop(
+        safeVersion = await loop(
           () => getVersion(safeAddress),
           (version) => version === SAFE_LAST_VERSION,
           { label: 'Waiting for CRC Safe to upgrade version' },
         );
       }
 
-      return { txHashChangeMasterCopy, txHashFallbackHandler };
+      return safeVersion;
     },
   };
 }
