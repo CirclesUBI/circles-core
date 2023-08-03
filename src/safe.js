@@ -1,12 +1,16 @@
+import Safe, {
+  getSafeContract as _getSafeContract,
+  SafeFactory,
+  Web3Adapter,
+} from '@safe-global/protocol-kit';
+
 import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
 import CoreError, { SafeDeployedError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
 import loop from '~/common/loop';
-import Safe, {
-  getSafeContract as _getSafeContract,
-} from '@safe-global/protocol-kit';
+import safeContractAbis from '~/common/safeContractAbis';
 
 /**
  * Safe submodule to deploy and interact with the Gnosis Safe.
@@ -26,27 +30,77 @@ export default function createSafeModule(
   utils,
   globalOptions,
 ) {
-  const { fallbackHandlerAddress, proxyFactoryAddress, safeMasterAddress } =
-    globalOptions;
+  const {
+    proxyFactoryAddress,
+    safeMasterAddress,
+    fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
+  } = globalOptions;
   const { safeMaster, proxyFactory } = contracts;
 
-  /////////////////////////
-  /* Safe Module Methods */
-  /////////////////////////
-  const getSafe = ({
+  const customContracts = {
+    safeMasterCopyAddress: safeMasterAddress,
+    safeProxyFactoryAddress: proxyFactoryAddress,
+    fallbackHandlerAddress: fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
+    ...safeContractAbis,
+  };
+
+  const getContractNetworks = () =>
+    web3.eth.getChainId().then((chainId) => ({
+      [chainId]: customContracts,
+    }));
+
+  const createEthAdapter = (signerAddress) =>
+    new Web3Adapter({ web3, signerAddress });
+
+  const createSafeFactory = (signerAddress) =>
+    getContractNetworks().then((contractNetworks) =>
+      SafeFactory.create({
+        ethAdapter: createEthAdapter(signerAddress),
+        contractNetworks,
+      }),
+    );
+
+  const getSafeSdk = ({
     predictedSafe,
     safeAddress,
     signerAddress,
     params = {},
   }) =>
-    utils.getContractNetworks().then((contractNetworks) =>
+    getContractNetworks().then((contractNetworks) =>
       Safe.create({
-        ethAdapter: utils.createEthAdapter(signerAddress),
+        ethAdapter: createEthAdapter(signerAddress),
         contractNetworks,
         ...(predictedSafe && { predictedSafe }),
         ...(safeAddress && { safeAddress }),
         ...params,
       }),
+    );
+
+  const prepareSafeTransaction = async ({ safeSdk, safeTx, signerAddress }) =>
+    Promise.all([
+      _getSafeContract({
+        ethAdapter: createEthAdapter(signerAddress),
+        safeVersion: await safeSdk.getContractVersion(),
+        customContracts,
+      }),
+      safeSdk.signTransaction(safeTx),
+    ]).then(([safeSingletonContract, signedSafeTx]) =>
+      safeSingletonContract.encode('execTransaction', [
+        signedSafeTx.data.to,
+        signedSafeTx.data.value,
+        signedSafeTx.data.data,
+        signedSafeTx.data.operation,
+        signedSafeTx.data.safeTxGas,
+        signedSafeTx.data.baseGas,
+        signedSafeTx.data.gasPrice,
+        signedSafeTx.data.gasToken,
+        signedSafeTx.data.refundReceiver,
+        signedSafeTx.encodedSignatures(),
+      ]),
     );
 
   /**
@@ -60,7 +114,7 @@ export default function createSafeModule(
    * @return {string} - predicted Safe address
    */
   const predictAddress = (ownerAddress, nonce) =>
-    utils.createSafeFactory(ownerAddress).then((safeFactory) =>
+    createSafeFactory(ownerAddress).then((safeFactory) =>
       safeFactory.predictSafeAddress(
         {
           owners: [ownerAddress],
@@ -71,7 +125,7 @@ export default function createSafeModule(
     );
 
   const isSafeDeployed = (accountAddress, nonce) =>
-    getSafe({
+    getSafeSdk({
       predictedSafe: {
         safeAccountConfig: {
           owners: [accountAddress],
@@ -108,14 +162,9 @@ export default function createSafeModule(
       .createProxyWithNonce(safeMasterAddress, initializer, nonce)
       .encodeABI();
 
-    await utils.requestNewRelayer({
-      path: ['transactions'],
-      method: 'POST',
-      isTrailingSlash: false,
-      data: {
-        target: proxyFactoryAddress,
-        data,
-      },
+    await utils.sendTransaction({
+      target: proxyFactoryAddress,
+      data,
     });
 
     return predictAddress(ownerAddress, nonce);
@@ -131,7 +180,7 @@ export default function createSafeModule(
    * @return {string} - version of the Safe
    */
   const getVersion = (safeAddress) =>
-    getSafe({ safeAddress }).then((safeSdk) => safeSdk.getContractVersion());
+    getSafeSdk({ safeAddress }).then((safeSdk) => safeSdk.getContractVersion());
 
   /**
    * Helper method to receive a list of all Gnosis Safe owners.
@@ -143,31 +192,7 @@ export default function createSafeModule(
    * @return {string[]} - array of owner addresses
    */
   const getOwners = (safeAddress) =>
-    getSafe({ safeAddress }).then((safeSdk) => safeSdk.getOwners());
-
-  const encodeSafeTransaction = ({
-    signedSafeTx,
-    signerAddress,
-    safeVersion,
-  }) =>
-    _getSafeContract({
-      ethAdapter: utils.createEthAdapter(signerAddress),
-      safeVersion,
-      customContracts: utils.getCustomContracts(),
-    }).then((safeSingletonContract) =>
-      safeSingletonContract.encode('execTransaction', [
-        signedSafeTx.data.to,
-        signedSafeTx.data.value,
-        signedSafeTx.data.data,
-        signedSafeTx.data.operation,
-        signedSafeTx.data.safeTxGas,
-        signedSafeTx.data.baseGas,
-        signedSafeTx.data.gasPrice,
-        signedSafeTx.data.gasToken,
-        signedSafeTx.data.refundReceiver,
-        signedSafeTx.encodedSignatures(),
-      ]),
-    );
+    getSafeSdk({ safeAddress }).then((safeSdk) => safeSdk.getOwners());
 
   return {
     /**
@@ -275,30 +300,26 @@ export default function createSafeModule(
         },
       });
 
-      const safeSdk = await getSafe({
+      const safeSdk = await getSafeSdk({
         safeAddress,
         signerAddress: account.address,
       });
-      const data = await safeSdk
+
+      return safeSdk
         .createAddOwnerTx({ ownerAddress })
-        .then((addOwnerTx) => safeSdk.signTransaction(addOwnerTx))
-        .then(async (signedSafeTx) =>
-          encodeSafeTransaction({
-            signedSafeTx,
+        .then((safeTx) =>
+          prepareSafeTransaction({
+            safeTx,
+            safeSdk,
             signerAddress: account.address,
-            safeVersion: await safeSdk.getContractVersion(),
+          }),
+        )
+        .then((data) =>
+          utils.sendTransaction({
+            target: safeAddress,
+            data,
           }),
         );
-
-      return utils.requestNewRelayer({
-        path: ['transactions'],
-        method: 'POST',
-        isTrailingSlash: false,
-        data: {
-          target: safeAddress,
-          data,
-        },
-      });
     },
 
     /**
@@ -325,33 +346,29 @@ export default function createSafeModule(
         },
       });
 
-      const safeSdk = await getSafe({
+      const safeSdk = await getSafeSdk({
         safeAddress,
         signerAddress: account.address,
       });
-      const data = await safeSdk
+
+      return safeSdk
         .createRemoveOwnerTx({
           ownerAddress,
           threshold: await safeSdk.getThreshold(),
         })
-        .then((addOwnerTx) => safeSdk.signTransaction(addOwnerTx))
-        .then(async (signedSafeTx) =>
-          encodeSafeTransaction({
-            signedSafeTx,
+        .then((safeTx) =>
+          prepareSafeTransaction({
+            safeTx,
+            safeSdk,
             signerAddress: account.address,
-            safeVersion: await safeSdk.getContractVersion(),
+          }),
+        )
+        .then((data) =>
+          utils.sendTransaction({
+            target: safeAddress,
+            data,
           }),
         );
-
-      return utils.requestNewRelayer({
-        path: ['transactions'],
-        method: 'POST',
-        isTrailingSlash: false,
-        data: {
-          target: safeAddress,
-          data,
-        },
-      });
     },
 
     /**
@@ -367,6 +384,7 @@ export default function createSafeModule(
      *
      * @return {boolean} - returns true when successful
      */
+    // TODO: this method is missing to be implemented because it will be moved and replaced into organization.js
     deployForOrganization: async (account, userOptions) => {
       checkAccount(web3, account);
 
@@ -396,7 +414,7 @@ export default function createSafeModule(
      *
      * @return {string} - Safe address
      */
-    getAddresses: async (account, userOptions) => {
+    getAddresses: (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
@@ -405,15 +423,15 @@ export default function createSafeModule(
         },
       });
 
-      const response = await utils.requestIndexedDB('safe_addresses', options);
-
-      if (!response || !response.user) {
-        return [];
-      }
-
-      return response.user.safeAddresses.map((address) => {
-        return web3.utils.toChecksumAddress(address);
-      });
+      return utils
+        .requestIndexedDB('safe_addresses', options)
+        .then((response) =>
+          response && response.user
+            ? response.user.safeAddresses.map((address) =>
+                web3.utils.toChecksumAddress(address),
+              )
+            : [],
+        );
     },
 
     /**
@@ -467,39 +485,32 @@ export default function createSafeModule(
 
         // Get the Safe contract with version v1.1.1+Circles
         const safeInstance = getSafeCRCVersionContract(web3, safeAddress);
-        const signerAddress = account.address;
-        const safeSdk = await getSafe({
+        const safeSdk = await getSafeSdk({
           safeAddress,
           signerAddress: account.address,
         });
 
         // First we change the Master Copy to v1.3.0
         // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-        txHashChangeMasterCopy = await utils.requestNewRelayer({
-          path: ['transactions'],
-          method: 'POST',
-          isTrailingSlash: false,
-          data: {
-            target: safeAddress,
-            data: await safeSdk
-              .createTransaction({
-                safeTransactionData: {
-                  to: safeAddress,
-                  value: 0,
-                  data: safeInstance.methods
-                    .changeMasterCopy(safeMaster.options.address)
-                    .encodeABI(),
-                },
-              })
-              .then((tx) => safeSdk.signTransaction(tx))
-              .then((signedSafeTx) =>
-                encodeSafeTransaction({
-                  signedSafeTx,
-                  signerAddress,
-                  safeVersion,
-                }),
-              ),
-          },
+        txHashChangeMasterCopy = await utils.sendTransaction({
+          target: safeAddress,
+          data: await safeSdk
+            .createTransaction({
+              safeTransactionData: {
+                to: safeAddress,
+                value: 0,
+                data: safeInstance.methods
+                  .changeMasterCopy(safeMaster.options.address)
+                  .encodeABI(),
+              },
+            })
+            .then((safeTx) =>
+              prepareSafeTransaction({
+                safeTx,
+                safeSdk,
+                signerAddress: account.address,
+              }),
+            ),
         });
 
         if (!txHashChangeMasterCopy) {
@@ -508,31 +519,25 @@ export default function createSafeModule(
           );
         }
 
-        txHashFallbackHandler = await utils.requestNewRelayer({
-          path: ['transactions'],
-          method: 'POST',
-          isTrailingSlash: false,
-          data: {
-            target: safeAddress,
-            data: await safeSdk
-              .createTransaction({
-                safeTransactionData: {
-                  to: safeAddress,
-                  value: 0,
-                  data: safeInstance.methods
-                    .setFallbackHandler(fallbackHandlerAddress)
-                    .encodeABI(),
-                },
-              })
-              .then((tx) => safeSdk.signTransaction(tx))
-              .then((signedSafeTx) =>
-                encodeSafeTransaction({
-                  signedSafeTx,
-                  signerAddress,
-                  safeVersion,
-                }),
-              ),
-          },
+        txHashFallbackHandler = await utils.sendTransaction({
+          target: safeAddress,
+          data: await safeSdk
+            .createTransaction({
+              safeTransactionData: {
+                to: safeAddress,
+                value: 0,
+                data: safeInstance.methods
+                  .setFallbackHandler(fallbackHandlerAddress)
+                  .encodeABI(),
+              },
+            })
+            .then((safeTx) =>
+              prepareSafeTransaction({
+                safeTx,
+                safeSdk,
+                signerAddress: account.address,
+              }),
+            ),
         });
 
         if (!txHashFallbackHandler) {
@@ -545,6 +550,7 @@ export default function createSafeModule(
         await loop(
           () => getVersion(safeAddress),
           (version) => version === SAFE_LAST_VERSION,
+          { label: 'Waiting for CRC Safe to upgrade version' },
         );
       }
 
