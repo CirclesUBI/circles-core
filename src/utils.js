@@ -670,7 +670,14 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
     },
 
-    // TODO: docs
+    /**
+     * Send a transaction though the relayer to be funded
+     * @namespace core.utils.sendTransaction
+     * @param {SponsoredCallRequest} data - gelato request payload data
+     * @param {string} data.target - address of the target smart contract
+     * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
+     * @return {RelayResponse} - gelato response
+     */
     sendTransaction: (data) =>
       request(relayServiceEndpoint, {
         path: ['transactions'],

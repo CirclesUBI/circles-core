@@ -26,7 +26,7 @@ describe('Safe', () => {
 
     it('should get the last version of Safe Contract by default', () =>
       core.safe
-        .getVersion({ safeAddress })
+        .getVersion(accounts[0], { safeAddress })
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
     it('should get the safe address of the owner', () =>
@@ -105,7 +105,7 @@ describe('Safe', () => {
 
     it('should get the CRC version when deploying with CRC contract', () =>
       core.safe
-        .getVersion({
+        .getVersion(CRCSafeOwner, {
           safeAddress: CRCSafeAddress,
         })
         .then((version) => expect(version).toBe(SAFE_CRC_VERSION)));
