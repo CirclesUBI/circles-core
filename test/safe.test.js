@@ -20,7 +20,7 @@ describe('Safe', () => {
       expect(web3.utils.isAddress(safeAddress)).toBe(true);
 
       return core.safe
-        .isSafeDeployed(accounts[0], { nonce })
+        .isDeployed(accounts[0], { safeAddress })
         .then((isDeployed) => expect(isDeployed).toBe(true));
     });
 

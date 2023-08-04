@@ -124,23 +124,14 @@ export default function createSafeModule(
       ),
     );
 
-  const isSafeDeployed = (accountAddress, nonce) =>
-    getSafeSdk({
-      predictedSafe: {
-        safeAccountConfig: {
-          owners: [accountAddress],
-          threshold: 1,
-        },
-        safeDeploymentConfig: {
-          saltNonce: nonce,
-        },
-      },
-    }).then((safeSdk) => safeSdk.isSafeDeployed());
+  const isDeployed = (safeAddress) =>
+    createEthAdapter().isContractDeployed(safeAddress);
 
   const deploySafe = async (ownerAddress, nonce) => {
-    const isDeployed = await isSafeDeployed(ownerAddress, nonce);
+    const safeAddress = await predictAddress(ownerAddress, nonce);
+    const isSafeDeployed = await isDeployed(safeAddress);
 
-    if (isDeployed) {
+    if (isSafeDeployed) {
       throw new SafeDeployedError(
         `Safe with nonce ${nonce} is already deployed.`,
       );
@@ -167,7 +158,7 @@ export default function createSafeModule(
       data,
     });
 
-    return predictAddress(ownerAddress, nonce);
+    return safeAddress;
   };
 
   /**
@@ -241,16 +232,16 @@ export default function createSafeModule(
       return deploySafe(account.address, nonce);
     },
 
-    isSafeDeployed: (account, userOptions) => {
+    isDeployed: (account, userOptions) => {
       checkAccount(web3, account);
 
-      const { nonce } = checkOptions(userOptions, {
-        nonce: {
-          type: 'number',
+      const { safeAddress } = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
         },
       });
 
-      return isSafeDeployed(account.address, nonce);
+      return isDeployed(safeAddress);
     },
 
     /**
