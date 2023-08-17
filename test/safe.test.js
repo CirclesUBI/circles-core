@@ -1,23 +1,59 @@
 import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
-import { SafeDeployedError } from '~/common/error';
+import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 
 import createCore from './helpers/core';
-import accounts from './helpers/accounts';
-import web3 from './helpers/web3';
+import getAccounts from './helpers/getAccounts';
 import { deployCRCVersionSafe } from './helpers/transactions';
 import generateSaltNonce from './helpers/generateSaltNonce';
+import setupAccount from './helpers/setupAccount';
+import setupWeb3 from './helpers/setupWeb3';
+// Temporary method for adding trusts with new relayer since trusts functionality is not yet migrated
+import addTrust from './helpers/addTrust';
 
 describe('Safe', () => {
-  const core = createCore();
+  const { web3, provider } = setupWeb3();
+  const core = createCore(web3);
+  const accounts = getAccounts(web3);
+  let predeployedSafes;
+
+  afterAll(() => provider.engine.stop());
+  beforeAll(async () => {
+    // Predeploy manually 3 accounts because of the minimun trusting requirement
+    predeployedSafes = await Promise.all(
+      Array.from(Array(3).keys()).map((index) =>
+        setupAccount(
+          { account: accounts[index + 1], nonce: generateSaltNonce() },
+          core,
+        ),
+      ),
+    );
+  });
 
   describe('when a new Safe gets manually created', () => {
     const nonce = generateSaltNonce();
     let safeAddress;
 
     it('should deploy a Safe successfully', async () => {
-      safeAddress = await core.safe.deploySafe(accounts[0], { nonce });
+      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
 
       expect(web3.utils.isAddress(safeAddress)).toBe(true);
+
+      // Let's make the trust connections needed to get the Safe deployed
+      await Promise.all(
+        predeployedSafes.map((predeployedAddress, index) =>
+          addTrust(
+            {
+              account: accounts[index + 1],
+              safeAddress: predeployedAddress,
+              safeAddressToTrust: safeAddress,
+              limitPercentage: 50,
+            },
+            core,
+          ),
+        ),
+      );
+
+      await core.safe.deploySafe(accounts[0], { nonce });
 
       return core.safe
         .isDeployed(accounts[0], { safeAddress })
@@ -39,15 +75,39 @@ describe('Safe', () => {
     it('should throw error when trying to deploy twice with same nonce', () =>
       expect(() =>
         core.safe.deploySafe(accounts[0], { nonce }),
-      ).rejects.toThrow(SafeDeployedError));
+      ).rejects.toThrow(SafeAlreadyDeployedError));
+
+    it('should throw error when trying to deploy without minimun required trusts', () =>
+      expect(() =>
+        core.safe.deploySafe(accounts[0], { nonce: generateSaltNonce() }),
+      ).rejects.toThrow(SafeNotTrustError));
   });
 
   describe('when managing the owners of a Safe', () => {
     let safeAddress;
 
     beforeAll(async () => {
-      safeAddress = await core.safe.deploySafe(accounts[0], {
-        nonce: generateSaltNonce(),
+      const nonce = generateSaltNonce();
+
+      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
+
+      // Let's make the trust connections needed to get the Safe deployed
+      await Promise.all(
+        predeployedSafes.map((predeployedAddress, index) =>
+          addTrust(
+            {
+              account: accounts[index + 1],
+              safeAddress: predeployedAddress,
+              safeAddressToTrust: safeAddress,
+              limitPercentage: 50,
+            },
+            core,
+          ),
+        ),
+      );
+
+      await core.safe.deploySafe(accounts[0], {
+        nonce,
       });
     });
 
@@ -99,7 +159,10 @@ describe('Safe', () => {
 
     beforeAll(async () => {
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
-      const CRCSafeContractInstance = await deployCRCVersionSafe(CRCSafeOwner);
+      const CRCSafeContractInstance = await deployCRCVersionSafe(
+        web3,
+        CRCSafeOwner,
+      );
       CRCSafeAddress = CRCSafeContractInstance.options.address;
     });
 
