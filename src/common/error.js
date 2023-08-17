@@ -7,6 +7,7 @@ export const ErrorCodes = createSymbolObject([
   'INVALID_OPTIONS',
   'INVALID_TRANSFER',
   'SAFE_NOT_FOUND',
+  'SAFE_NOT_TRUST',
   'SAFE_ALREADY_DEPLOYED',
   'TOKEN_NOT_FOUND',
   'TOO_COMPLEX_TRANSFER',
@@ -60,7 +61,12 @@ export class TransferError extends CoreError {
   }
 }
 
-export const SafeDeployedError = createErrorType(
-  'SafeDeployedError',
+export const SafeAlreadyDeployedError = createErrorType(
+  'SafeAlreadyDeployedError',
   ErrorCodes.SAFE_ALREADY_DEPLOYED,
+);
+
+export const SafeNotTrustError = createErrorType(
+  'SafeNotTrustError',
+  ErrorCodes.SAFE_NOT_TRUST,
 );
