@@ -3,7 +3,6 @@ if (!('crypto' in globalThis)) globalThis.crypto = require('crypto');
 
 module.exports = {
   collectCoverage: true,
-  globalTeardown: '<rootDir>/teardown.js',
   // Resolve modules with alias
   moduleNameMapper: {
     '^~(.*)$': '<rootDir>/src$1',

@@ -1,8 +1,6 @@
 import CirclesCore from '~';
 
-import web3 from './web3';
-
-export default function createCore(opts) {
+export default function createCore(web3, opts) {
   return new CirclesCore(web3, {
     apiServiceEndpoint: process.env.API_SERVICE_ENDPOINT,
     fallbackHandlerAddress: process.env.SAFE_DEFAULT_CALLBACK_HANDLER,
