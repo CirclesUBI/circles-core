@@ -5,7 +5,7 @@ import Safe, {
 } from '@safe-global/protocol-kit';
 
 import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
-import { SafeDeployedError } from '~/common/error';
+import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
@@ -21,6 +21,7 @@ import safeContractAbis from '~/common/safeContractAbis';
 export default function createSafeModule({
   web3,
   contracts: { safeMaster, proxyFactory },
+  trust,
   utils,
   options: {
     proxyFactoryAddress,
@@ -126,6 +127,38 @@ export default function createSafeModule({
     );
 
   /**
+   * Create the data needed to send a Safe transaction
+   * @access private
+   * @param {Object} options - options
+   * @param {string} options.safeAddress - Safe address
+   * @param {string} options.signerAddress - Safe owner address
+   * @param {string} options.data - Transaction data to be sent
+   * @return {string} - Encoded and signed transaction data
+   */
+  const _createTransaction = async ({ safeAddress, signerAddress, data }) => {
+    const safeSdk = await _getSafeSdk({
+      safeAddress,
+      signerAddress,
+    });
+
+    return safeSdk
+      .createTransaction({
+        safeTransactionData: {
+          to: safeAddress,
+          value: 0,
+          data,
+        },
+      })
+      .then((safeTx) =>
+        _prepareSafeTransaction({
+          safeTx,
+          safeSdk,
+          signerAddress,
+        }),
+      );
+  };
+
+  /**
    * Predict a Safe address
    * @access private
    * @param {string} ownerAddress - Safe owner address
@@ -207,12 +240,41 @@ export default function createSafeModule({
   };
 
   /**
+   * Create the data needed to send a Safe transaction
+   * @namespace core.safe.createTransaction
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.data - Transaction data to be sent
+   * @return {string} - Encoded and signed transaction data
+   */
+  const createTransaction = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress, data } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      data: {
+        type: 'string',
+      },
+    });
+
+    return _createTransaction({
+      safeAddress,
+      signerAddress: account.address,
+      data,
+    });
+  };
+
+  /**
    * Deploy a new Safe
    * @namespace core.safe.deploySafe
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.nonce - nonce to predict address
-   * @throws {SafeDeployedError} - Safe must not exist
+   * @throws {SafeAlreadyDeployedError} - Safe must not exist
+   * @throws {SafeNotTrustError} - Safe must be trusted
    * @return {string} - Safe address
    */
   const deploySafe = async (account, userOptions) => {
@@ -228,9 +290,17 @@ export default function createSafeModule({
     const isSafeDeployed = await _isDeployed(safeAddress);
 
     if (isSafeDeployed) {
-      throw new SafeDeployedError(
+      throw new SafeAlreadyDeployedError(
         `Safe with nonce ${nonce} is already deployed.`,
       );
+    }
+
+    const { isTrusted } = await trust.isTrusted(account, {
+      safeAddress,
+    });
+
+    if (!isTrusted) {
+      throw new SafeNotTrustError(`The Safe has no minimun required trusts.`);
     }
 
     const initializer = safeMaster.methods
@@ -303,6 +373,19 @@ export default function createSafeModule({
     });
 
     return _getSafeSdk({ safeAddress }).then((safeSdk) => safeSdk.getOwners());
+  };
+
+  /**
+   * Instantiate a Safe
+   * @namespace core.safe.getSafeSdk
+   * @param {Object} account - web3 account instance
+   * @param {SafeConfig} userOptions - Params to overwrite the Safe.create method
+   * @return {Safe} - Instance of a Safe
+   */
+  const getSafeSdk = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    return _getSafeSdk({ signerAddress: account.address, ...userOptions });
   };
 
   /**
@@ -437,53 +520,29 @@ export default function createSafeModule({
 
       // Get the Safe contract with version v1.1.1+Circles
       const safeInstance = getSafeCRCVersionContract(web3, safeAddress);
-      const safeSdk = await _getSafeSdk({
-        safeAddress,
-        signerAddress: account.address,
-      });
 
       // First we change the Master Copy to v1.3.0
       // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
       await utils.sendTransaction({
         target: safeAddress,
-        data: await safeSdk
-          .createTransaction({
-            safeTransactionData: {
-              to: safeAddress,
-              value: 0,
-              data: safeInstance.methods
-                .changeMasterCopy(safeMaster.options.address)
-                .encodeABI(),
-            },
-          })
-          .then((safeTx) =>
-            _prepareSafeTransaction({
-              safeTx,
-              safeSdk,
-              signerAddress: account.address,
-            }),
-          ),
+        data: await _createTransaction({
+          safeAddress,
+          signerAddress: account.address,
+          data: safeInstance.methods
+            .changeMasterCopy(safeMaster.options.address)
+            .encodeABI(),
+        }),
       });
 
       await utils.sendTransaction({
         target: safeAddress,
-        data: await safeSdk
-          .createTransaction({
-            safeTransactionData: {
-              to: safeAddress,
-              value: 0,
-              data: safeInstance.methods
-                .setFallbackHandler(fallbackHandlerAddress)
-                .encodeABI(),
-            },
-          })
-          .then((safeTx) =>
-            _prepareSafeTransaction({
-              safeTx,
-              safeSdk,
-              signerAddress: account.address,
-            }),
-          ),
+        data: await _createTransaction({
+          safeAddress,
+          signerAddress: account.address,
+          data: safeInstance.methods
+            .setFallbackHandler(fallbackHandlerAddress)
+            .encodeABI(),
+        }),
       });
 
       // Wait to check that the version is updated
@@ -532,10 +591,12 @@ export default function createSafeModule({
 
   return {
     addOwner,
+    createTransaction,
     deployForOrganization,
     deploySafe,
     getAddresses,
     getOwners,
+    getSafeSdk,
     getVersion,
     isDeployed,
     predictAddress,
