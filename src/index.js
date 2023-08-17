@@ -127,12 +127,7 @@ export default class CirclesCore {
       this.utils,
     );
     /** @type {Object} - safe module */
-    this.safe = createSafeModule(
-      web3,
-      this.contracts,
-      this.utils,
-      this.options,
-    );
+    this.safe = createSafeModule(this);
     /** @type {Object} - token module */
     this.token = createTokenModule(
       web3,
