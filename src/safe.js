@@ -15,27 +15,21 @@ import safeContractAbis from '~/common/safeContractAbis';
 /**
  * Module to manage Gnosis Safes
  * @access private
- * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
- * @param {Object} utils - utils module instance
- * @param {Object} globalOptions - global core options
- * @return {Object} - safe module instance
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - Safe module instance
  */
-export default function createSafeModule(
+export default function createSafeModule({
   web3,
-  contracts,
+  contracts: { safeMaster, proxyFactory },
   utils,
-  globalOptions,
-) {
-  const {
+  options: {
     proxyFactoryAddress,
     safeMasterAddress,
     fallbackHandlerAddress,
     multiSendAddress,
     multiSendCallOnlyAddress,
-  } = globalOptions;
-  const { safeMaster, proxyFactory } = contracts;
-
+  },
+}) {
   /**
    * Custom contracts configuration
    * @access private
@@ -84,26 +78,18 @@ export default function createSafeModule(
     );
 
   /**
-   * Create a Safe instance
+   * Instantiate a Safe
    * @access private
-   * @param {PredictedSafeProps} config.predictedSafe - Config for a predicted Safe
-   * @param {string} config.safeAddress - Address of the Safe if it is an existing one
-   * @param {string} config.signerAddress - Address of the transactions signer for the adapter
-   * @param {Object} config.params - Params to overwrite the Safe.create method
+   * @param {Object} config - options
+   * @param {string} config.signerAddress - Address of a signer for transactions if needed
+   * @param {SafeConfig} config.params - Params to overwrite the Safe.create method
    * @return {Safe} - Instance of a Safe
    */
-  const _getSafeSdk = ({
-    predictedSafe,
-    safeAddress,
-    signerAddress,
-    params = {},
-  }) =>
+  const _getSafeSdk = ({ signerAddress, ...params }) =>
     _getContractNetworks().then((contractNetworks) =>
       Safe.create({
         ethAdapter: _createEthAdapter(signerAddress),
         contractNetworks,
-        ...(predictedSafe && { predictedSafe }),
-        ...(safeAddress && { safeAddress }),
         ...params,
       }),
     );
