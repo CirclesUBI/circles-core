@@ -126,10 +126,10 @@ export default class CirclesCore {
       this.contracts,
       this.utils,
     );
-    /** @type {Object} - trust module */
-    this.trust = createTrustModule(web3, this.contracts, this.utils);
     /** @type {Object} - safe module */
     this.safe = createSafeModule(this);
+    /** @type {Object} - trust module */
+    this.trust = createTrustModule(this);
     /** @type {Object} - token module */
     this.token = createTokenModule(
       web3,
