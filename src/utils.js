@@ -6,7 +6,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+import { CALL_OP, NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import {
   formatTypedData,
   formatTypedDataCRCVersion,
@@ -345,7 +345,7 @@ function getTrustNetworkStatus(
     default:
       query = {
         query: `{
-          trusts(where: { userAddress: "${safeAddress}" }) {
+          trusts(where: { userAddress: "${safeAddress}", limitPercentage_not: ${NO_LIMIT_PERCENTAGE} }) {
             id
             limitPercentage
           }
@@ -370,16 +370,16 @@ function getTrustLimitsStatus(
       query = {
         query: `{
           safe(id: "${safeAddress}") {
-            outgoing {
+            outgoing (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, canSendToAddress_not: "${safeAddress}" }) {
               limitPercentage
               userAddress
               canSendToAddress
             }
-            incoming {
+            incoming (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, userAddress_not: "${safeAddress}" }) {
               limitPercentage
               userAddress
               user {
-                outgoing {
+                outgoing (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, canSendToAddress_not: "${safeAddress}" }) {
                   canSendToAddress
                   limitPercentage
                 }

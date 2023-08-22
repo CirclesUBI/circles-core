@@ -1,19 +1,20 @@
-import Safe, {
-  getSafeContract as _getSafeContract,
-  SafeFactory,
-  Web3Adapter,
-} from '@safe-global/protocol-kit';
+import Safe, { SafeFactory, Web3Adapter } from '@safe-global/protocol-kit';
 
-import { SAFE_LAST_VERSION, ZERO_ADDRESS } from '~/common/constants';
+import {
+  DEFAULT_TRUST_LIMIT,
+  SAFE_LAST_VERSION,
+  ZERO_ADDRESS,
+} from '~/common/constants';
 import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
 import loop from '~/common/loop';
 import safeContractAbis from '~/common/safeContractAbis';
+import { getSafeContract } from '~/common/getContracts';
 
 /**
- * Module to manage Gnosis Safes
+ * Module to manage safes
  * @access private
  * @param {CirclesCore} context - CirclesCore instance
  * @return {Object} - Safe module instance
@@ -21,7 +22,6 @@ import safeContractAbis from '~/common/safeContractAbis';
 export default function createSafeModule({
   web3,
   contracts: { safeMaster, proxyFactory },
-  trust,
   utils,
   options: {
     proxyFactoryAddress,
@@ -96,34 +96,32 @@ export default function createSafeModule({
     );
 
   /**
-   * Prepare a Safe transaction to be funded. The transaction is signed and then encoded
+   * Prepare a transaction to be executed by a Safe while being funded
    * @access private
+   * @param {string} config.safeAddress - Safe address
    * @param {Safe} config.safeSdk - Safe instance
-   * @param {SafeTransaction} config.SafeTx - Params to overwrite the Safe.create method
-   * @param {string} config.signerAddress - Address of the transactions signer for the adapter
-   * @return {string} - Encoded signed transaction
+   * @param {SafeTransaction} config.SafeTx - Safe transaction to prepare
+   * @return {string} - Signed transaction execution data
    */
-  const _prepareSafeTransaction = async ({ safeSdk, safeTx, signerAddress }) =>
+  const _prepareSafeTransaction = async ({ safeAddress, safeSdk, safeTx }) =>
     Promise.all([
-      _getSafeContract({
-        ethAdapter: _createEthAdapter(signerAddress),
-        safeVersion: await safeSdk.getContractVersion(),
-        customContracts: _customContracts,
-      }),
+      getSafeContract(web3, safeAddress),
       safeSdk.signTransaction(safeTx),
-    ]).then(([safeSingletonContract, signedSafeTx]) =>
-      safeSingletonContract.encode('execTransaction', [
-        signedSafeTx.data.to,
-        signedSafeTx.data.value,
-        signedSafeTx.data.data,
-        signedSafeTx.data.operation,
-        signedSafeTx.data.safeTxGas,
-        signedSafeTx.data.baseGas,
-        signedSafeTx.data.gasPrice,
-        signedSafeTx.data.gasToken,
-        signedSafeTx.data.refundReceiver,
-        signedSafeTx.encodedSignatures(),
-      ]),
+    ]).then(([safeContract, signedSafeTx]) =>
+      safeContract.methods
+        .execTransaction(
+          signedSafeTx.data.to,
+          signedSafeTx.data.value,
+          signedSafeTx.data.data,
+          signedSafeTx.data.operation,
+          signedSafeTx.data.safeTxGas,
+          signedSafeTx.data.baseGas,
+          signedSafeTx.data.gasPrice,
+          signedSafeTx.data.gasToken,
+          signedSafeTx.data.refundReceiver,
+          signedSafeTx.encodedSignatures(),
+        )
+        .encodeABI(),
     );
 
   /**
@@ -135,25 +133,24 @@ export default function createSafeModule({
    * @param {string} options.data - Transaction data to be sent
    * @return {string} - Encoded and signed transaction data
    */
-  const _createTransaction = async ({ safeAddress, signerAddress, data }) => {
+  const _createTransaction = async ({
+    safeAddress,
+    signerAddress,
+    data,
+    to,
+  }) => {
     const safeSdk = await _getSafeSdk({
       safeAddress,
       signerAddress,
     });
 
     return safeSdk
-      .createTransaction({
-        safeTransactionData: {
-          to: safeAddress,
-          value: 0,
-          data,
-        },
-      })
+      .createTransaction({ safeTransactionData: { to, data, value: 0 } })
       .then((safeTx) =>
         _prepareSafeTransaction({
-          safeTx,
+          safeAddress,
           safeSdk,
-          signerAddress,
+          safeTx,
         }),
       );
   };
@@ -226,9 +223,9 @@ export default function createSafeModule({
       .createAddOwnerTx({ ownerAddress })
       .then((safeTx) =>
         _prepareSafeTransaction({
-          safeTx,
+          safeAddress,
           safeSdk,
-          signerAddress: account.address,
+          safeTx,
         }),
       )
       .then((data) =>
@@ -245,14 +242,18 @@ export default function createSafeModule({
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.to - Target address to send the transaction
    * @param {string} userOptions.data - Transaction data to be sent
    * @return {string} - Encoded and signed transaction data
    */
   const createTransaction = (account, userOptions) => {
     checkAccount(web3, account);
 
-    const { safeAddress, data } = checkOptions(userOptions, {
+    const { safeAddress, to, data } = checkOptions(userOptions, {
       safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      to: {
         type: web3.utils.checkAddressChecksum,
       },
       data: {
@@ -261,8 +262,9 @@ export default function createSafeModule({
     });
 
     return _createTransaction({
-      safeAddress,
       signerAddress: account.address,
+      safeAddress,
+      to,
       data,
     });
   };
@@ -295,9 +297,9 @@ export default function createSafeModule({
       );
     }
 
-    const { isTrusted } = await trust.isTrusted(account, {
-      safeAddress,
-    });
+    const isTrusted = await utils
+      .requestIndexedDB('trust_network', safeAddress.toLowerCase())
+      .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
 
     if (!isTrusted) {
       throw new SafeNotTrustError(`The Safe has no minimun required trusts.`);
@@ -481,9 +483,9 @@ export default function createSafeModule({
       })
       .then((safeTx) =>
         _prepareSafeTransaction({
-          safeTx,
+          safeAddress,
           safeSdk,
-          signerAddress: account.address,
+          safeTx,
         }),
       )
       .then((data) =>
@@ -526,8 +528,9 @@ export default function createSafeModule({
       await utils.sendTransaction({
         target: safeAddress,
         data: await _createTransaction({
-          safeAddress,
           signerAddress: account.address,
+          safeAddress,
+          to: safeAddress,
           data: safeInstance.methods
             .changeMasterCopy(safeMaster.options.address)
             .encodeABI(),
@@ -537,8 +540,9 @@ export default function createSafeModule({
       await utils.sendTransaction({
         target: safeAddress,
         data: await _createTransaction({
-          safeAddress,
           signerAddress: account.address,
+          safeAddress,
+          to: safeAddress,
           data: safeInstance.methods
             .setFallbackHandler(fallbackHandlerAddress)
             .encodeABI(),
