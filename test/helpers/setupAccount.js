@@ -12,6 +12,7 @@ export default async function setupAccount({ account, nonce }, core) {
       safeMasterAddress,
     },
     safe,
+    utils,
     web3,
   } = core;
   const safeAddress = await safe.predictAddress(account, { nonce });
@@ -19,11 +20,9 @@ export default async function setupAccount({ account, nonce }, core) {
 
   return (
     // Deploy manually a Safe
-    web3.eth
+    utils
       .sendTransaction({
-        from: account.address,
-        to: proxyFactoryAddress,
-        value: 0,
+        target: proxyFactoryAddress,
         data: proxyFactory.methods
           .createProxyWithNonce(
             safeMasterAddress,
@@ -60,10 +59,8 @@ export default async function setupAccount({ account, nonce }, core) {
       .then((safeTx) => safeSdk.signTransaction(safeTx))
       // Execute manually the transaction
       .then((signedSafeTx) =>
-        web3.eth.sendTransaction({
-          from: account.address,
-          to: safeAddress,
-          value: 0,
+        utils.sendTransaction({
+          target: safeAddress,
           data: getSafeContract(web3, safeAddress)
             .methods.execTransaction(
               signedSafeTx.data.to,
