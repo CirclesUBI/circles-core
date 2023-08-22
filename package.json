@@ -27,7 +27,7 @@
     "docs:serve": "documentation serve --watch ./src/**",
     "docs:lint": "documentation lint ./src/**",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern lib .",
-    "test": "jest --runInBand",
+    "test": "jest",
     "test:watch": "npm run test -- --watch"
   },
   "devDependencies": {

@@ -7,8 +7,6 @@ import { deployCRCVersionSafe } from './helpers/transactions';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import setupAccount from './helpers/setupAccount';
 import setupWeb3 from './helpers/setupWeb3';
-// Temporary method for adding trusts with new relayer since trusts functionality is not yet migrated
-import addTrust from './helpers/addTrust';
 
 describe('Safe', () => {
   const { web3, provider } = setupWeb3();
@@ -41,15 +39,10 @@ describe('Safe', () => {
       // Let's make the trust connections needed to get the Safe deployed
       await Promise.all(
         predeployedSafes.map((predeployedAddress, index) =>
-          addTrust(
-            {
-              account: accounts[index + 1],
-              safeAddress: predeployedAddress,
-              safeAddressToTrust: safeAddress,
-              limitPercentage: 50,
-            },
-            core,
-          ),
+          core.trust.addConnection(accounts[index + 1], {
+            canSendTo: predeployedAddress,
+            user: safeAddress,
+          }),
         ),
       );
 
@@ -94,15 +87,10 @@ describe('Safe', () => {
       // Let's make the trust connections needed to get the Safe deployed
       await Promise.all(
         predeployedSafes.map((predeployedAddress, index) =>
-          addTrust(
-            {
-              account: accounts[index + 1],
-              safeAddress: predeployedAddress,
-              safeAddressToTrust: safeAddress,
-              limitPercentage: 50,
-            },
-            core,
-          ),
+          core.trust.addConnection(accounts[index + 1], {
+            canSendTo: predeployedAddress,
+            user: safeAddress,
+          }),
         ),
       );
 
