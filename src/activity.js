@@ -159,7 +159,7 @@ export default function createActivityModule(web3, contracts, utils) {
               hubTransfer_: {
                 from: "${options.otherSafeAddress.toLowerCase()}",
               }
-            ,
+            },
           `;
 
           parameters = `
