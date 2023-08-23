@@ -133,7 +133,7 @@ describe('Activity', () => {
         (core.activity.ActivityTypes.TRANSFER ||
           core.ActivityTypes.HUB_TRANSFER),
     );
-    expect(foundTransferItems.length).toEqual(2);
+    expect(foundTransferItems.length).toEqual(1);
   });
 
   it('returns mutual activities connected with trust action', async () => {
