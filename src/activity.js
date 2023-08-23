@@ -106,8 +106,8 @@ export default function createActivityModule(web3, contracts, utils) {
       const getNotifications = async (filterString) => {
         let parameters;
         if (options.otherSafeAddress != ZERO_ADDRESS) {
-          // if other address is specified use the following parameters to filter
-          // mutual transactions and connections
+          // if other address is specified use the following parameters to
+          // filter mutual transactions and connections
           const mutualTrustParams = `
             {
               time_gt: ${options.timestamp},
@@ -143,7 +143,7 @@ export default function createActivityModule(web3, contracts, utils) {
               transfer_: {
                 from: "${options.otherSafeAddress.toLowerCase()}",
               }
-            }
+            },
             {
               time_gt: ${options.timestamp},
               safeAddress: "${options.safeAddress.toLowerCase()}",
