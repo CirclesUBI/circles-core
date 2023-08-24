@@ -111,16 +111,11 @@ describe('Activity', () => {
   it('filters them by type', async () => {
     const result = await core.activity.getLatest(account, {
       safeAddress,
-      filter:
-        core.activity.ActivityFilterTypes.TRANSFERS ||
-        core.activity.ActivityFilterTypes.HUB_TRANSFER,
+      filter: core.activity.ActivityFilterTypes.HUB_TRANSFER,
     });
 
     const wrongResult = result.activities.find(({ type }) => {
-      return (
-        type !== core.activity.ActivityTypes.HUB_TRANSFER &&
-        type !== core.activity.ActivityTypes.TRANSFER
-      );
+      return type !== core.activity.ActivityTypes.HUB_TRANSFER;
     });
 
     expect(wrongResult).toBeUndefined();
@@ -128,10 +123,7 @@ describe('Activity', () => {
 
   it('returns mutual activities connected with transfer action', async () => {
     const foundTransferItems = mutualActivities.filter(
-      (item) =>
-        item.type ===
-        (core.activity.ActivityTypes.TRANSFER ||
-          core.ActivityTypes.HUB_TRANSFER),
+      (item) => item.type === core.ActivityTypes.HUB_TRANSFER,
     );
     expect(foundTransferItems.length).toEqual(1);
   });

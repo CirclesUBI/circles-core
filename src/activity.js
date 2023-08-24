@@ -131,22 +131,6 @@ export default function createActivityModule(web3, contracts, utils) {
             {
               time_gt: ${options.timestamp},
               safeAddress: "${options.safeAddress.toLowerCase()}",
-              type: TRANSFER,
-              transfer_: {
-                to: "${options.otherSafeAddress.toLowerCase()}",
-              }
-            },
-            {
-              time_gt: ${options.timestamp},
-              safeAddress: "${options.safeAddress.toLowerCase()}",
-              type: TRANSFER,
-              transfer_: {
-                from: "${options.otherSafeAddress.toLowerCase()}",
-              }
-            },
-            {
-              time_gt: ${options.timestamp},
-              safeAddress: "${options.safeAddress.toLowerCase()}",
               type: HUB_TRANSFER,
               hubTransfer_: {
                 to: "${options.otherSafeAddress.toLowerCase()}",
