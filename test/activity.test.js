@@ -111,7 +111,7 @@ describe('Activity', () => {
   it('filters them by type', async () => {
     const result = await core.activity.getLatest(account, {
       safeAddress,
-      filter: core.activity.ActivityFilterTypes.HUB_TRANSFER,
+      filter: core.activity.ActivityTypes.HUB_TRANSFER,
     });
 
     const wrongResult = result.activities.find(({ type }) => {
