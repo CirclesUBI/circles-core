@@ -126,7 +126,7 @@ describe('Activity', () => {
 
   it('returns mutual activities connected with transfer action', async () => {
     const foundTransferItems = mutualActivities.filter(
-      (item) => item.type === core.ActivityTypes.TRANSFER,
+      (item) => item.type === core.activity.ActivityTypes.HUB_TRANSFER,
     );
     expect(foundTransferItems.length).toEqual(1);
   });
