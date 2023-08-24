@@ -111,7 +111,9 @@ describe('Activity', () => {
   it('filters them by type', async () => {
     const result = await core.activity.getLatest(account, {
       safeAddress,
-      filter: core.activity.ActivityFilterTypes.TRANSFERS,
+      filter:
+        core.activity.ActivityFilterTypes.TRANSFERS ||
+        core.activity.ActivityFilterTypes.HUB_TRANSFER,
     });
 
     const wrongResult = result.activities.find(({ type }) => {
@@ -124,18 +126,17 @@ describe('Activity', () => {
     expect(wrongResult).toBeUndefined();
   });
 
-  it('return mutual activities', async () => {
-    expect(mutualActivities.length).toBe(2); // tmp test - this is not actually expected
-  });
-
-  it('returns mutual activities connected with trust action', async () => {
+  it('returns mutual activities connected with transfer action', async () => {
     const foundTransferItems = mutualActivities.filter(
-      (item) => item.type === core.activity.ActivityTypes.TRANSFER,
+      (item) =>
+        item.type ===
+        (core.activity.ActivityTypes.TRANSFER ||
+          core.ActivityTypes.HUB_TRANSFER),
     );
     expect(foundTransferItems.length).toEqual(1);
   });
 
-  it('returns mutual activities connected with transfer action', async () => {
+  it('returns mutual activities connected with trust action', async () => {
     const foundTrustItems = mutualActivities.filter(
       (item) => item.type === core.activity.ActivityTypes.ADD_CONNECTION,
     );
