@@ -131,13 +131,12 @@ export default function createSafeModule({
    * @param {string} options.safeAddress - Safe address
    * @param {string} options.signerAddress - Safe owner address
    * @param {string} options.data - Transaction data to be sent
-   * @return {string} - Encoded and signed transaction data
+   * @return {Object} - Relay response
    */
   const _createTransaction = async ({
     safeAddress,
     signerAddress,
-    data,
-    to,
+    ...transactionData
   }) => {
     const safeSdk = await _getSafeSdk({
       safeAddress,
@@ -145,7 +144,9 @@ export default function createSafeModule({
     });
 
     return safeSdk
-      .createTransaction({ safeTransactionData: { to, data, value: 0 } })
+      .createTransaction({
+        safeTransactionData: { value: 0, ...transactionData },
+      })
       .then((safeTx) =>
         _prepareSafeTransaction({
           safeAddress,
@@ -154,6 +155,33 @@ export default function createSafeModule({
         }),
       );
   };
+
+  /**
+   * Prepare and send a Safe transaction
+   * @access private
+   * @param {Object} options - options
+   * @param {string} options.safeAddress - Safe address
+   * @param {string} options.signerAddress - Safe owner address
+   * @param {string} options.target - Target address to send the transaction through the Relayer
+   * @param {string} options.transactionData - Transaction data to be sent through Safe
+   * @return {Object} - Relay response
+   */
+  const _sendTransaction = ({
+    safeAddress,
+    signerAddress,
+    target,
+    transactionData,
+  }) =>
+    _createTransaction({
+      signerAddress,
+      safeAddress,
+      ...transactionData,
+    }).then((data) =>
+      utils.sendTransaction({
+        target: target || safeAddress,
+        data,
+      }),
+    );
 
   /**
    * Predict a Safe address
@@ -244,7 +272,7 @@ export default function createSafeModule({
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.to - Target address to send the transaction
    * @param {string} userOptions.data - Transaction data to be sent
-   * @return {string} - Encoded and signed transaction data
+   * @return {Object} - Relay response
    */
   const createTransaction = (account, userOptions) => {
     checkAccount(web3, account);
@@ -497,6 +525,40 @@ export default function createSafeModule({
   };
 
   /**
+   * Prepare and send a Safe transaction
+   * @namespace core.safe.sendTransaction
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.target - Target address to send the transaction through the Relayer
+   * @param {string} userOptions.transactionData - Transaction data to be sent through Safe
+   * @return {Object} - Relay response
+   */
+  const sendTransaction = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress, target, transactionData } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      target: {
+        type: web3.utils.checkAddressChecksum,
+        default: ZERO_ADDRESS,
+      },
+      transactionData: {
+        type: 'object',
+      },
+    });
+
+    return _sendTransaction({
+      signerAddress: account.address,
+      safeAddress,
+      transactionData,
+      ...(target !== ZERO_ADDRESS && { target }),
+    });
+  };
+
+  /**
    * Update Safe version to the last version (v1.3.0) by
    * changing the Master Copy and setting the Fallback Handler
    * @namespace core.safe.updateToLastVersion
@@ -525,28 +587,26 @@ export default function createSafeModule({
 
       // First we change the Master Copy to v1.3.0
       // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-      await utils.sendTransaction({
-        target: safeAddress,
-        data: await _createTransaction({
-          signerAddress: account.address,
-          safeAddress,
+      await _sendTransaction({
+        signerAddress: account.address,
+        safeAddress,
+        transactionData: {
           to: safeAddress,
           data: safeInstance.methods
             .changeMasterCopy(safeMaster.options.address)
             .encodeABI(),
-        }),
+        },
       });
 
-      await utils.sendTransaction({
-        target: safeAddress,
-        data: await _createTransaction({
-          signerAddress: account.address,
-          safeAddress,
+      await _sendTransaction({
+        signerAddress: account.address,
+        safeAddress,
+        transactionData: {
           to: safeAddress,
           data: safeInstance.methods
             .setFallbackHandler(fallbackHandlerAddress)
             .encodeABI(),
-        }),
+        },
       });
 
       // Wait to check that the version is updated
@@ -605,6 +665,7 @@ export default function createSafeModule({
     isDeployed,
     predictAddress,
     removeOwner,
+    sendTransaction,
     updateToLastVersion,
   };
 }
