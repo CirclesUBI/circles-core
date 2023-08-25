@@ -111,9 +111,7 @@ describe('Activity', () => {
   it('filters them by type', async () => {
     const result = await core.activity.getLatest(account, {
       safeAddress,
-      filter:
-        core.activity.ActivityFilterTypes.TRANSFERS ||
-        core.activity.ActivityFilterTypes.HUB_TRANSFER,
+      filter: core.activity.ActivityFilterTypes.TRANSFERS,
     });
 
     const wrongResult = result.activities.find(({ type }) => {
@@ -128,10 +126,7 @@ describe('Activity', () => {
 
   it('returns mutual activities connected with transfer action', async () => {
     const foundTransferItems = mutualActivities.filter(
-      (item) =>
-        item.type ===
-        (core.activity.ActivityTypes.TRANSFER ||
-          core.ActivityTypes.HUB_TRANSFER),
+      (item) => item.type === core.activity.ActivityTypes.HUB_TRANSFER,
     );
     expect(foundTransferItems.length).toEqual(1);
   });

@@ -128,22 +128,7 @@ export default function createActivityModule(web3, contracts, utils) {
           `;
 
           const mutualTransferParams = `
-            {
-              time_gt: ${options.timestamp},
-              safeAddress: "${options.safeAddress.toLowerCase()}",
-              type: TRANSFER,
-              transfer_: {
-                to: "${options.otherSafeAddress.toLowerCase()}",
-              }
-            },
-            {
-              time_gt: ${options.timestamp},
-              safeAddress: "${options.safeAddress.toLowerCase()}",
-              type: TRANSFER,
-              transfer_: {
-                from: "${options.otherSafeAddress.toLowerCase()}",
-              }
-            },
+
             {
               time_gt: ${options.timestamp},
               safeAddress: "${options.safeAddress.toLowerCase()}",
