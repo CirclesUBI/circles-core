@@ -1,25 +1,18 @@
 import { ZERO_ADDRESS } from '~/common/constants';
-import { getSafeContract } from '~/common/getContracts';
 
 // Set up manually a Safe for being fully usable in Circles
 export default async function setupAccount({ account, nonce }, core) {
   const {
-    contracts: { safeMaster, hub, proxyFactory },
-    options: {
-      fallbackHandlerAddress,
-      hubAddress,
-      proxyFactoryAddress,
-      safeMasterAddress,
-    },
+    contracts: { safeMaster, proxyFactory },
+    options: { fallbackHandlerAddress, proxyFactoryAddress, safeMasterAddress },
     safe,
+    token,
     utils,
-    web3,
   } = core;
   const safeAddress = await safe.predictAddress(account, { nonce });
-  let safeSdk;
 
   return (
-    // Deploy manually a Safe
+    // Deploy manually a Safe bypassing the 3 trust connections check
     utils
       .sendTransaction({
         target: proxyFactoryAddress,
@@ -42,41 +35,14 @@ export default async function setupAccount({ account, nonce }, core) {
           )
           .encodeABI(),
       })
-      // Instantiate deployed Safe
-      .then(async () => {
-        safeSdk = await safe.getSafeSdk(account, { safeAddress });
-      })
-      // Prepare transaction for Safe to be signed up
-      .then(() =>
-        safeSdk.createTransaction({
-          safeTransactionData: {
-            to: hubAddress,
-            value: 0,
-            data: hub.methods.signup().encodeABI(),
-          },
-        }),
-      )
-      .then((safeTx) => safeSdk.signTransaction(safeTx))
-      // Execute manually the transaction
-      .then((signedSafeTx) =>
-        utils.sendTransaction({
-          target: safeAddress,
-          data: getSafeContract(web3, safeAddress)
-            .methods.execTransaction(
-              signedSafeTx.data.to,
-              signedSafeTx.data.value,
-              signedSafeTx.data.data,
-              signedSafeTx.data.operation,
-              signedSafeTx.data.safeTxGas,
-              signedSafeTx.data.baseGas,
-              signedSafeTx.data.gasPrice,
-              signedSafeTx.data.gasToken,
-              signedSafeTx.data.refundReceiver,
-              signedSafeTx.encodedSignatures(),
-            )
-            .encodeABI(),
-        }),
-      )
-      .then(() => safeAddress)
+      // Sign up Safe
+      .then(() => token.deploy(account, { safeAddress }))
+      // Retrieve Token address for Safe
+      .then(() => token.getAddress(account, { safeAddress }))
+      // Return all stuff deployed
+      .then((tokenAddress) => ({
+        safeAddress,
+        tokenAddress,
+      }))
   );
 }
