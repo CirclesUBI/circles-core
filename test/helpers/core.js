@@ -1,8 +1,6 @@
 import CirclesCore from '~';
 
-import web3 from './web3';
-
-export default function createCore(opts) {
+export default function createCore(web3, opts) {
   return new CirclesCore(web3, {
     apiServiceEndpoint: process.env.API_SERVICE_ENDPOINT,
     fallbackHandlerAddress: process.env.SAFE_DEFAULT_CALLBACK_HANDLER,
@@ -14,6 +12,8 @@ export default function createCore(opts) {
     relayServiceEndpoint: process.env.RELAY_SERVICE_ENDPOINT,
     safeMasterAddress: process.env.SAFE_ADDRESS,
     subgraphName: process.env.SUBGRAPH_NAME,
+    multiSendAddress: process.env.MULTI_SEND_ADDRESS,
+    multiSendCallOnlyAddress: process.env.MULTI_SEND_CALL_ONLY_ADDRESS,
     ...opts,
   });
 }

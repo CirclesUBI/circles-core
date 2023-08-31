@@ -1,574 +1,610 @@
+import Safe, { SafeFactory, Web3Adapter } from '@safe-global/protocol-kit';
+
 import {
+  DEFAULT_TRUST_LIMIT,
   SAFE_LAST_VERSION,
-  SAFE_THRESHOLD,
-  SENTINEL_ADDRESS,
+  ZERO_ADDRESS,
 } from '~/common/constants';
-import CoreError from '~/common/error';
+import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-import {
-  getSafeContract,
-  getSafeCRCVersionContract,
-} from '~/common/getContracts';
+import { getSafeCRCVersionContract } from '~/common/getContracts';
 import loop from '~/common/loop';
+import safeContractAbis from '~/common/safeContractAbis';
+import { getSafeContract } from '~/common/getContracts';
 
 /**
- * Helper method to receive a list of all Gnosis Safe owners.
- *
+ * Module to manage safes
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {string} safeAddress
- *
- * @return {string[]} - array of owner addresses
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - Safe module instance
  */
-export async function getOwners(web3, safeAddress) {
-  // Get Safe at given address
-  const safe = getSafeContract(web3, safeAddress);
-
-  // Call 'getOwners' method and return list of owners
-  return await safe.methods.getOwners().call();
-}
-
-/**
- * Helper method to get the Safe version.
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {string} safeAddress
- *
- * @return {string} - version of the Safe
- */
-export async function getVersion(web3, safeAddress) {
-  // Get Safe at given address
-  const safe = getSafeContract(web3, safeAddress);
-
-  // Call 'VERSION' method and return it
-  return await safe.methods.VERSION().call();
-}
-
-/**
- * Predict Safe address
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} utils - utils module instance
- * @param {number} nonce - Safe creation salt nonce
- * @param {string} address - Safe owner address
- *
- * @return {string} - predicted Safe address
- */
-async function predictAddress(web3, utils, nonce, address) {
-  const { safe } = await utils.requestRelayer({
-    path: ['safes', 'predict'],
-    version: 3,
-    method: 'POST',
-    data: {
-      saltNonce: nonce,
-      owners: [address],
-      threshold: SAFE_THRESHOLD,
-    },
-  });
-
-  return web3.utils.toChecksumAddress(safe);
-}
-
-/**
- * Returns if the Safe is created and / or deployed.
- *
- * @access private
- *
- * @param {Object} utils - utils module instance
- * @param {string} safeAddress - Safe address
- *
- * @return {Object} - Safe status
- */
-async function getSafeStatus(utils, safeAddress) {
-  let isCreated = false;
-  let isDeployed = false;
-
-  try {
-    const { txHash } = await utils.requestRelayer({
-      path: ['safes', safeAddress, 'funded'],
-      version: 2,
-    });
-    isCreated = true;
-    isDeployed = txHash !== null;
-  } catch (error) {
-    // Ignore Not Found errors
-    if (!error.request || error.request.status !== 404) {
-      throw error;
-    }
-  }
-
-  return {
-    isCreated,
-    isDeployed,
-  };
-}
-
-/**
- * Safe submodule to deploy and interact with the Gnosis Safe.
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
- * @param {Object} utils - utils module instance
- * @param {Object} globalOptions - global core options
- *
- * @return {Object} - safe module instance
- */
-export default function createSafeModule(
+export default function createSafeModule({
   web3,
-  contracts,
+  contracts: { safeMaster, proxyFactory },
   utils,
-  globalOptions,
-) {
-  const { fallbackHandlerAddress } = globalOptions;
-  const { safeMaster } = contracts;
+  options: {
+    proxyFactoryAddress,
+    safeMasterAddress,
+    fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
+  },
+}) {
+  /**
+   * Custom contracts configuration
+   * @access private
+   * @type {ContractNetworkConfig}
+   */
+  const _customContracts = {
+    safeMasterCopyAddress: safeMasterAddress,
+    safeProxyFactoryAddress: proxyFactoryAddress,
+    fallbackHandlerAddress: fallbackHandlerAddress,
+    multiSendAddress,
+    multiSendCallOnlyAddress,
+    ...safeContractAbis,
+  };
+
+  /**
+   * Prepare the contract networks data for the safe-core-sdk
+   * @access private
+   * @return {ContractNetworksConfig} - contract networks data
+   */
+  const _getContractNetworks = () =>
+    web3.eth.getChainId().then((chainId) => ({
+      [chainId]: _customContracts,
+    }));
+
+  /**
+   * Create the ethAdapter for the safe-core-sdk
+   * @access private
+   * @param {string} signerAddress - Address of the transactions signer
+   * @return {Web3Adapter} - ethAdapter
+   */
+  const _createEthAdapter = (signerAddress) =>
+    new Web3Adapter({ web3, signerAddress });
+
+  /**
+   * Create a Safe factory
+   * @access private
+   * @param {string} signerAddress - Address of the transactions signer
+   * @return {SafeFactory} - Safe factory
+   */
+  const _createSafeFactory = (signerAddress) =>
+    _getContractNetworks().then((contractNetworks) =>
+      SafeFactory.create({
+        ethAdapter: _createEthAdapter(signerAddress),
+        contractNetworks,
+      }),
+    );
+
+  /**
+   * Instantiate a Safe
+   * @access private
+   * @param {Object} config - options
+   * @param {string} config.signerAddress - Address of a signer for transactions if needed
+   * @param {SafeConfig} config.params - Params to overwrite the Safe.create method
+   * @return {Safe} - Instance of a Safe
+   */
+  const _getSafeSdk = ({ signerAddress, ...params }) =>
+    _getContractNetworks().then((contractNetworks) =>
+      Safe.create({
+        ethAdapter: _createEthAdapter(signerAddress),
+        contractNetworks,
+        ...params,
+      }),
+    );
+
+  /**
+   * Prepare a transaction to be executed by a Safe while being funded
+   * @access private
+   * @param {string} config.safeAddress - Safe address
+   * @param {Safe} config.safeSdk - Safe instance
+   * @param {SafeTransaction} config.SafeTx - Safe transaction to prepare
+   * @return {string} - Signed transaction execution data
+   */
+  const _prepareSafeTransaction = async ({ safeAddress, safeSdk, safeTx }) =>
+    Promise.all([
+      getSafeContract(web3, safeAddress),
+      safeSdk.signTransaction(safeTx),
+    ]).then(([safeContract, signedSafeTx]) =>
+      safeContract.methods
+        .execTransaction(
+          signedSafeTx.data.to,
+          signedSafeTx.data.value,
+          signedSafeTx.data.data,
+          signedSafeTx.data.operation,
+          signedSafeTx.data.safeTxGas,
+          signedSafeTx.data.baseGas,
+          signedSafeTx.data.gasPrice,
+          signedSafeTx.data.gasToken,
+          signedSafeTx.data.refundReceiver,
+          signedSafeTx.encodedSignatures(),
+        )
+        .encodeABI(),
+    );
+
+  /**
+   * Create the data needed to send a Safe transaction
+   * @access private
+   * @param {Object} options - options
+   * @param {string} options.safeAddress - Safe address
+   * @param {string} options.signerAddress - Safe owner address
+   * @param {string} options.data - Transaction data to be sent
+   * @return {string} - Encoded and signed transaction data
+   */
+  const _createTransaction = async ({
+    safeAddress,
+    signerAddress,
+    data,
+    to,
+  }) => {
+    const safeSdk = await _getSafeSdk({
+      safeAddress,
+      signerAddress,
+    });
+
+    return safeSdk
+      .createTransaction({ safeTransactionData: { to, data, value: 0 } })
+      .then((safeTx) =>
+        _prepareSafeTransaction({
+          safeAddress,
+          safeSdk,
+          safeTx,
+        }),
+      );
+  };
+
+  /**
+   * Predict a Safe address
+   * @access private
+   * @param {string} ownerAddress - Safe owner address
+   * @param {number} nonce - Safe saltNonce for deterministic address generation
+   * @return {string} - predicted Safe address
+   */
+  const _predictAddress = (ownerAddress, nonce) =>
+    _createSafeFactory(ownerAddress).then((safeFactory) =>
+      safeFactory.predictSafeAddress(
+        {
+          owners: [ownerAddress],
+          threshold: 1,
+        },
+        nonce,
+      ),
+    );
+
+  /**
+   * Check if a Safe address is deployed
+   * @access private
+   * @param {string} safeAddress - Safe address
+   * @return {boolean} - if Safe is deployed
+   */
+  const _isDeployed = (safeAddress) =>
+    _createEthAdapter().isContractDeployed(safeAddress);
+
+  /**
+   * Get Safe version
+   * @access private
+   * @param {string} safeAddress
+   * @return {string} - version of the Safe
+   */
+  const _getVersion = (safeAddress) =>
+    _getSafeSdk({ safeAddress }).then((safeSdk) =>
+      safeSdk.getContractVersion(),
+    );
+
+  /**
+   * Add an owner to a Safe
+   * @namespace core.safe.addOwner
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.ownerAddress - owner address to be added
+   * @return {RelayResponse} - transaction response
+   */
+  const addOwner = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress, ownerAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      ownerAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    const safeSdk = await _getSafeSdk({
+      safeAddress,
+      signerAddress: account.address,
+    });
+
+    return safeSdk
+      .createAddOwnerTx({ ownerAddress })
+      .then((safeTx) =>
+        _prepareSafeTransaction({
+          safeAddress,
+          safeSdk,
+          safeTx,
+        }),
+      )
+      .then((data) =>
+        utils.sendTransaction({
+          target: safeAddress,
+          data,
+        }),
+      );
+  };
+
+  /**
+   * Create the data needed to send a Safe transaction
+   * @namespace core.safe.createTransaction
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.to - Target address to send the transaction
+   * @param {string} userOptions.data - Transaction data to be sent
+   * @return {string} - Encoded and signed transaction data
+   */
+  const createTransaction = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress, to, data } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      to: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      data: {
+        type: 'string',
+      },
+    });
+
+    return _createTransaction({
+      signerAddress: account.address,
+      safeAddress,
+      to,
+      data,
+    });
+  };
+
+  /**
+   * Deploy a new Safe
+   * @namespace core.safe.deploySafe
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {number} userOptions.nonce - nonce to predict address
+   * @throws {SafeAlreadyDeployedError} - Safe must not exist
+   * @throws {SafeNotTrustError} - Safe must be trusted
+   * @return {string} - Safe address
+   */
+  const deploySafe = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { nonce } = checkOptions(userOptions, {
+      nonce: {
+        type: 'number',
+      },
+    });
+
+    const safeAddress = await _predictAddress(account.address, nonce);
+    const isSafeDeployed = await _isDeployed(safeAddress);
+
+    if (isSafeDeployed) {
+      throw new SafeAlreadyDeployedError(
+        `Safe with nonce ${nonce} is already deployed.`,
+      );
+    }
+
+    const isTrusted = await utils
+      .requestIndexedDB('trust_network', safeAddress.toLowerCase())
+      .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
+
+    if (!isTrusted) {
+      throw new SafeNotTrustError(`The Safe has no minimun required trusts.`);
+    }
+
+    const initializer = safeMaster.methods
+      .setup(
+        [account.address],
+        1,
+        ZERO_ADDRESS,
+        '0x',
+        fallbackHandlerAddress,
+        ZERO_ADDRESS,
+        0,
+        ZERO_ADDRESS,
+      )
+      .encodeABI();
+    const data = proxyFactory.methods
+      .createProxyWithNonce(safeMasterAddress, initializer, nonce)
+      .encodeABI();
+
+    await utils.sendTransaction({
+      target: proxyFactoryAddress,
+      data,
+    });
+
+    return safeAddress;
+  };
+
+  /**
+   * List all Safe addresses of an owner
+   * @namespace core.safe.getAddresses
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.ownerAddress - Safe owner address
+   * @return {string[]} - List of Safe addresses
+   */
+  const getAddresses = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const options = checkOptions(userOptions, {
+      ownerAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return utils
+      .requestIndexedDB('safe_addresses', options)
+      .then((response) =>
+        response && response.user
+          ? response.user.safeAddresses.map((address) =>
+              web3.utils.toChecksumAddress(address),
+            )
+          : [],
+      );
+  };
+
+  /**
+   * Get all Safe owners
+   * @namespace core.safe.getOwners
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @return {string[]} - list of owner addresses
+   */
+  const getOwners = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return _getSafeSdk({ safeAddress }).then((safeSdk) => safeSdk.getOwners());
+  };
+
+  /**
+   * Instantiate a Safe
+   * @namespace core.safe.getSafeSdk
+   * @param {Object} account - web3 account instance
+   * @param {SafeConfig} userOptions - Params to overwrite the Safe.create method
+   * @return {Safe} - Instance of a Safe
+   */
+  const getSafeSdk = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    return _getSafeSdk({ signerAddress: account.address, ...userOptions });
+  };
+
+  /**
+   * Get Safe version
+   * @namespace core.safe.getVersion
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @return {string} - Safe version
+   */
+  const getVersion = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return _getVersion(safeAddress);
+  };
+
+  /**
+   * Check if a Safe address is deployed
+   * @namespace core.safe.isDeployed
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @return {boolean} - if Safe is deployed
+   */
+  const isDeployed = (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return _isDeployed(safeAddress);
+  };
+
+  /**
+   * Predict a Safe address
+   * @namespace core.safe.predictAddress
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {number} userOptions.nonce - nonce to predict address
+   * @return {string} - predicted Safe address
+   */
+  const predictAddress = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { nonce } = checkOptions(userOptions, {
+      nonce: {
+        type: 'number',
+      },
+    });
+
+    return _predictAddress(account.address, nonce);
+  };
+
+  /**
+   * Remove an owner from a Safe
+   * @namespace core.safe.removeOwner
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @param {string} userOptions.ownerAddress - owner address to be removed
+   * @return {RelayResponse} - transaction response
+   */
+  const removeOwner = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress, ownerAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      ownerAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    const safeSdk = await _getSafeSdk({
+      safeAddress,
+      signerAddress: account.address,
+    });
+
+    return safeSdk
+      .createRemoveOwnerTx({
+        ownerAddress,
+        threshold: await safeSdk.getThreshold(),
+      })
+      .then((safeTx) =>
+        _prepareSafeTransaction({
+          safeAddress,
+          safeSdk,
+          safeTx,
+        }),
+      )
+      .then((data) =>
+        utils.sendTransaction({
+          target: safeAddress,
+          data,
+        }),
+      );
+  };
+
+  /**
+   * Update Safe version to the last version (v1.3.0) by
+   * changing the Master Copy and setting the Fallback Handler
+   * @namespace core.safe.updateToLastVersion
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address
+   * @return {string} - Safe version
+   */
+  const updateToLastVersion = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const { safeAddress } = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+    let safeVersion = await _getVersion(safeAddress);
+
+    if (safeVersion !== SAFE_LAST_VERSION) {
+      // References:
+      // https://github.com/safe-global/web-core/blob/main/src/services/tx/safeUpdateParams.ts
+      // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
+
+      // Get the Safe contract with version v1.1.1+Circles
+      const safeInstance = getSafeCRCVersionContract(web3, safeAddress);
+
+      // First we change the Master Copy to v1.3.0
+      // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
+      await utils.sendTransaction({
+        target: safeAddress,
+        data: await _createTransaction({
+          signerAddress: account.address,
+          safeAddress,
+          to: safeAddress,
+          data: safeInstance.methods
+            .changeMasterCopy(safeMaster.options.address)
+            .encodeABI(),
+        }),
+      });
+
+      await utils.sendTransaction({
+        target: safeAddress,
+        data: await _createTransaction({
+          signerAddress: account.address,
+          safeAddress,
+          to: safeAddress,
+          data: safeInstance.methods
+            .setFallbackHandler(fallbackHandlerAddress)
+            .encodeABI(),
+        }),
+      });
+
+      // Wait to check that the version is updated
+      safeVersion = await loop(
+        () => _getVersion(safeAddress),
+        (version) => version === SAFE_LAST_VERSION,
+        { label: 'Waiting for CRC Safe to upgrade version' },
+      );
+    }
+
+    return safeVersion;
+  };
+
+  // TODO: this method is missing to be implemented because it will be moved and replaced into organization.js.
+  // Makes more sense to have it there.
+  /**
+   * Requests the relayer to deploy a Safe for an organization. The relayer
+   * funds the deployment of this Safe when the account is already known and
+   * verified / already has a deployed Safe from before.
+   *
+   * @namespace core.safe.deployForOrganization
+   *
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {number} userOptions.safeAddress - to-be-deployed Safe address
+   *
+   * @return {boolean} - returns true when successful
+   */
+  const deployForOrganization = async (account, userOptions) => {
+    checkAccount(web3, account);
+
+    const options = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    await utils.requestRelayer({
+      path: ['safes', options.safeAddress, 'organization'],
+      version: 2,
+      method: 'PUT',
+    });
+
+    return true;
+  };
+
   return {
-    /**
-     * Predict Safe address.
-     *
-     * @namespace core.safe.predictAddress
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.nonce - nonce to predict address
-     *
-     * @return {string} - Predicted Gnosis Safe address
-     */
-    predictAddress: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        nonce: {
-          type: 'number',
-        },
-      });
-
-      return await predictAddress(web3, utils, options.nonce, account.address);
-    },
-
-    /**
-     * Returns status of a Safe in the system. Is it created or already
-     * deployed?
-     *
-     * @namespace core.safe.getSafeStatus
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - Safe address
-     *
-     * @return {Object} - Safe status
-     */
-    getSafeStatus: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      return await getSafeStatus(utils, options.safeAddress);
-    },
-
-    /**
-     * Register a to-be-created Safe in the Relayer and receive a predicted
-     * Safe address.
-     *
-     * @namespace core.safe.prepareDeploy
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.nonce - nonce to predict address
-     *
-     * @return {string} - Predicted Gnosis Safe address
-     */
-    prepareDeploy: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        nonce: {
-          type: 'number',
-        },
-      });
-
-      // Check if Safe already exists
-      const predictedSafeAddress = await predictAddress(
-        web3,
-        utils,
-        options.nonce,
-        account.address,
-      );
-
-      // Return predicted Safe address when Safe is already in the system
-      const status = await getSafeStatus(utils, predictedSafeAddress);
-      if (status.isCreated) {
-        return predictedSafeAddress;
-      }
-
-      // .. otherwise start creation of Safe
-      const { safe } = await utils.requestRelayer({
-        path: ['safes'],
-        version: 3,
-        method: 'POST',
-        data: {
-          saltNonce: options.nonce,
-          owners: [account.address],
-          threshold: SAFE_THRESHOLD,
-        },
-      });
-
-      return web3.utils.toChecksumAddress(safe);
-    },
-
-    /**
-     * Returns true if there are enough balance on this address to deploy
-     * a Safe.
-     *
-     * @namespace core.safe.isFunded
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - user arguments
-     * @param {string} userOptions.safeAddress - safe address to check
-     *
-     * @return {boolean} - has enough funds
-     */
-    isFunded: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      try {
-        const result = await utils.requestRelayer({
-          path: ['safes', 'estimates'],
-          data: {
-            numberOwners: 1,
-          },
-          version: 3,
-          method: 'POST',
-        });
-
-        const balance = await web3.eth.getBalance(options.safeAddress);
-
-        return web3.utils.toBN(balance).gte(web3.utils.toBN(result[0].payment));
-      } catch {
-        return false;
-      }
-    },
-
-    /**
-     * Requests the relayer to not wait for the Safe deployment task.
-     * This might still fail when the Safe is not funded or does not
-     * have enough trust connections yet.
-     *
-     * @namespace core.safe.deploy
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - to-be-deployed Safe address
-     *
-     * @return {boolean} - returns true when successful
-     */
-    deploy: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      await utils.requestRelayer({
-        path: ['safes', options.safeAddress, 'funded'],
-        version: 2,
-        method: 'PUT',
-      });
-
-      return true;
-    },
-
-    /**
-     * Requests the relayer to deploy a Safe for an organization. The relayer
-     * funds the deployment of this Safe when the account is already known and
-     * verified / already has a deployed Safe from before.
-     *
-     * @namespace core.safe.deployForOrganization
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - to-be-deployed Safe address
-     *
-     * @return {boolean} - returns true when successful
-     */
-    deployForOrganization: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      await utils.requestRelayer({
-        path: ['safes', options.safeAddress, 'organization'],
-        version: 2,
-        method: 'PUT',
-      });
-
-      return true;
-    },
-
-    /**
-     * Finds the Safe addresses of an owner.
-     *
-     * @namespace core.safe.getAddresses
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.ownerAddress - address of the Safe owner
-     *
-     * @return {string} - Safe address
-     */
-    getAddresses: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        ownerAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      const response = await utils.requestIndexedDB('safe_addresses', options);
-
-      if (!response || !response.user) {
-        return [];
-      }
-
-      return response.user.safeAddresses.map((address) => {
-        return web3.utils.toChecksumAddress(address);
-      });
-    },
-
-    /**
-     * Returns a list of all owners of the given Gnosis Safe.
-     *
-     * @namespace core.safe.getOwners
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     *
-     * @return {string[]} - array of owner addresses
-     */
-    getOwners: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      return await getOwners(web3, options.safeAddress);
-    },
-
-    /**
-     * Add an address as an owner of a given Gnosis Safe.
-     *
-     * @namespace core.safe.addOwner
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     * @param {number} userOptions.ownerAddress - owner address to be added
-     *
-     * @return {string} - transaction hash
-     */
-    addOwner: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        ownerAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      // Get Safe at given address
-      const safe = getSafeContract(web3, options.safeAddress);
-
-      // Prepare 'addOwnerWithThreshold' method
-      const txData = safe.methods
-        .addOwnerWithThreshold(options.ownerAddress, SAFE_THRESHOLD)
-        .encodeABI();
-
-      // Call method and return result
-      return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.safeAddress,
-        to: options.safeAddress,
-        txData,
-      });
-    },
-
-    /**
-     * Remove owner of a given Gnosis Safe.
-     *
-     * @namespace core.safe.removeOwner
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     * @param {number} userOptions.ownerAddress - owner address to be removed
-     *
-     * @return {string} - transaction hash
-     */
-    removeOwner: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        ownerAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      // Get Safe at given address
-      const safe = getSafeContract(web3, options.safeAddress);
-
-      // We need the list of owners before ...
-      const owners = await getOwners(web3, options.safeAddress);
-
-      // .. to find out which previous owner in the list is pointing at the one we want to remove
-      const ownerIndex = owners.findIndex(
-        (owner) => owner === options.ownerAddress,
-      );
-
-      const prevOwner =
-        ownerIndex > 0 ? owners[ownerIndex - 1] : SENTINEL_ADDRESS;
-
-      // Prepare 'removeOwner' method by passing pointing owner and the owner to be removed
-      const txData = await safe.methods
-        .removeOwner(prevOwner, options.ownerAddress, SAFE_THRESHOLD)
-        .encodeABI();
-
-      // Call method and return result
-      return await utils.executeTokenSafeTx(account, {
-        safeAddress: options.safeAddress,
-        to: options.safeAddress,
-        txData,
-      });
-    },
-
-    /**
-     * Get Safe version.
-     *
-     * @namespace core.safe.getVersion
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     *
-     * @return {string} - transaction hash
-     */
-    getVersion: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      return await getVersion(web3, options.safeAddress);
-    },
-
-    /**
-     * Update Safe version to the last version (v1.3.0) by changing the the Master Copy.
-     *
-     * @namespace core.safe.updateSafeVersion
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {number} userOptions.safeAddress - address of the Gnosis Safe
-     *
-     * @return {string} - transaction hash
-     */
-    updateToLastVersion: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      const safeVersion = await getVersion(web3, options.safeAddress);
-      let txHashChangeMasterCopy;
-      let txHashFallbackHandler;
-
-      if (safeVersion != SAFE_LAST_VERSION) {
-        // References:
-        // https://github.com/safe-global/web-core/blob/main/src/services/tx/safeUpdateParams.ts
-        // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
-
-        // Get the Safe contract with version v1.1.1+Circles
-        const safeInstance = getSafeCRCVersionContract(
-          web3,
-          options.safeAddress,
-        );
-
-        // First we change the Master Copy to v1.3.0
-        // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-        const updateSafeTxData = safeInstance.methods
-          .changeMasterCopy(safeMaster.options.address)
-          .encodeABI();
-        txHashChangeMasterCopy = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: updateSafeTxData,
-          isCRCVersion: true,
-        });
-        if (!txHashChangeMasterCopy) {
-          throw new CoreError(
-            `Safe with version ${safeVersion} failed to change the Master Copy`,
-          );
-        }
-
-        // Wait to check that the version is updated
-        await loop(
-          () => {
-            return getVersion(web3, options.safeAddress);
-          },
-          (version) => {
-            return version == SAFE_LAST_VERSION;
-          },
-        );
-
-        // Then we setup the fallbackHandler
-        const fallbackHandlerTxData = safeInstance.methods
-          .setFallbackHandler(fallbackHandlerAddress)
-          .encodeABI();
-        txHashFallbackHandler = await utils.executeTokenSafeTx(account, {
-          safeAddress: options.safeAddress,
-          to: options.safeAddress,
-          txData: fallbackHandlerTxData,
-        });
-      }
-      return { txHashChangeMasterCopy, txHashFallbackHandler };
-    },
+    addOwner,
+    createTransaction,
+    deployForOrganization,
+    deploySafe,
+    getAddresses,
+    getOwners,
+    getSafeSdk,
+    getVersion,
+    isDeployed,
+    predictAddress,
+    removeOwner,
+    updateToLastVersion,
   };
 }

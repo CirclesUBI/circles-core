@@ -60,6 +60,12 @@ export default class CirclesCore {
       fallbackHandlerAddress: {
         type: web3.utils.checkAddressChecksum,
       },
+      multiSendAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      multiSendCallOnlyAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
       graphNodeEndpoint: {
         type: 'string',
       },
@@ -117,19 +123,11 @@ export default class CirclesCore {
     this.activity = createActivityModule(web3, this.contracts, this.utils);
     /** @type {Object} - news module */
     this.news = createNewsModule(this.utils);
-    /** @type {Object} - organization module */
-    this.organization = createOrganizationModule(
-      web3,
-      this.contracts,
-      this.utils,
-    );
+
     /** @type {Object} - safe module */
-    this.safe = createSafeModule(
-      web3,
-      this.contracts,
-      this.utils,
-      this.options,
-    );
+    this.safe = createSafeModule(this);
+    /** @type {Object} - trust module */
+    this.trust = createTrustModule(this);
     /** @type {Object} - token module */
     this.token = createTokenModule(
       web3,
@@ -137,9 +135,9 @@ export default class CirclesCore {
       this.utils,
       this.options,
     );
-    /** @type {Object} - trust module */
-    this.trust = createTrustModule(web3, this.contracts, this.utils);
     /** @type {Object} - user module */
     this.user = createUserModule(web3, this.contracts, this.utils);
+    /** @type {Object} - organization module */
+    this.organization = createOrganizationModule(this);
   }
 }

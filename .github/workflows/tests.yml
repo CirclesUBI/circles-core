@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-      DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
+      DOCKER_COMPOSE: docker-compose -f docker-compose.yml -p circles
 
     steps:
       - name: Add hosts to /etc/hosts
@@ -45,7 +45,7 @@ jobs:
 
       - name: Container setup via docker-compose without pathfinder
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -f docker-compose.payment-api-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Download and migrate contracts
         working-directory: circles-docker
@@ -53,7 +53,7 @@ jobs:
 
       - name: Try starting failed services
         working-directory: circles-docker
-        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -p circles  up --detach --remove-orphans --build
+        run: docker compose -f docker-compose.yml -f docker-compose.relayer-pull.yml -f docker-compose.api-pull.yml -f docker-compose.payment-api-pull.yml -p circles  up --detach --remove-orphans --build
 
       - name: Container setup via docker-compose for pathfinder
         working-directory: circles-docker

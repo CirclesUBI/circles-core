@@ -6,7 +6,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+import { CALL_OP, NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import {
   formatTypedData,
   formatTypedDataCRCVersion,
@@ -70,6 +70,14 @@ async function request(endpoint, userOptions) {
           }
 
           return json;
+        });
+      } else if (contentType && contentType.includes('text/plain')) {
+        return response.text().then((text) => {
+          if (response.status >= 400) {
+            throw new RequestError(url, text, response.status);
+          }
+
+          return text;
         });
       } else {
         if (response.status >= 400) {
@@ -337,7 +345,7 @@ function getTrustNetworkStatus(
     default:
       query = {
         query: `{
-          trusts (first: 1000 where: { userAddress: "${safeAddress}" }) {
+          trusts(where: { userAddress: "${safeAddress}", limitPercentage_not: ${NO_LIMIT_PERCENTAGE} }) {
             id
             limitPercentage
           }
@@ -362,16 +370,16 @@ function getTrustLimitsStatus(
       query = {
         query: `{
           safe(id: "${safeAddress}") {
-            outgoing (first: 1000) {
+            outgoing (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, canSendToAddress_not: "${safeAddress}" }) {
               limitPercentage
               userAddress
               canSendToAddress
             }
-            incoming (first: 1000) {
+            incoming (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, userAddress_not: "${safeAddress}" }) {
               limitPercentage
               userAddress
               user {
-                outgoing (first: 1000) {
+                outgoing (where: { limitPercentage_not: ${NO_LIMIT_PERCENTAGE}, canSendToAddress_not: "${safeAddress}" }) {
                   canSendToAddress
                   limitPercentage
                 }
@@ -661,6 +669,22 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     fromFreckles: (value) => {
       return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
     },
+
+    /**
+     * Send a transaction though the relayer to be funded
+     * @namespace core.utils.sendTransaction
+     * @param {SponsoredCallRequest} data - gelato request payload data
+     * @param {string} data.target - address of the target smart contract
+     * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
+     * @return {RelayResponse} - gelato response
+     */
+    sendTransaction: (data) =>
+      request(relayServiceEndpoint, {
+        path: ['transactions'],
+        method: 'POST',
+        isTrailingSlash: false,
+        data,
+      }),
 
     /**
      * Send an API request to the Gnosis Relayer.
