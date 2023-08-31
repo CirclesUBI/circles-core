@@ -31,18 +31,13 @@ export default function createTrustModule({
    * @return {RelayResponse} - gelato response
    */
   const _trust = (account, { canSendTo, user, limitPercentage }) =>
-    safe
-      .createTransaction(account, {
-        safeAddress: canSendTo,
+    safe.sendTransaction(account, {
+      safeAddress: canSendTo,
+      transactionData: {
         to: hubAddress,
         data: hub.methods.trust(user, limitPercentage).encodeABI(),
-      })
-      .then((data) =>
-        utils.sendTransaction({
-          target: canSendTo,
-          data,
-        }),
-      );
+      },
+    });
 
   /**
    * Trust a safe allowing that user's token to circulate to/through you
