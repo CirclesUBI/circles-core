@@ -9,7 +9,7 @@ module.exports = {
   },
   modulePathIgnorePatterns: ['<rootDir>/test/helpers'],
   testEnvironment: 'node',
-  testMatch: ['**/safe.test.js', '**/trust.test.js'],
+  testMatch: ['**/safe.test.js', '**/trust.test.js', '**/token.test.js'],
   testTimeout: 30 * 1000,
   verbose: true,
 };

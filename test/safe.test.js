@@ -7,6 +7,7 @@ import { deployCRCVersionSafe } from './helpers/transactions';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import setupAccount from './helpers/setupAccount';
 import setupWeb3 from './helpers/setupWeb3';
+import getTrustConnection from './helpers/getTrustConnection';
 
 describe('Safe', () => {
   const { web3, provider } = setupWeb3();
@@ -22,7 +23,7 @@ describe('Safe', () => {
         setupAccount(
           { account: accounts[index + 1], nonce: generateSaltNonce() },
           core,
-        ),
+        ).then(({ safeAddress }) => safeAddress),
       ),
     );
   });
@@ -144,6 +145,8 @@ describe('Safe', () => {
   describe('when updating a CRC Safe to latest version', () => {
     let CRCSafeAddress;
     const CRCSafeOwner = accounts[2];
+    const otherAccount = accounts[1];
+    let otherSafeAddress;
 
     beforeAll(async () => {
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
@@ -152,6 +155,7 @@ describe('Safe', () => {
         CRCSafeOwner,
       );
       CRCSafeAddress = CRCSafeContractInstance.options.address;
+      otherSafeAddress = predeployedSafes[0];
     });
 
     it('should get the CRC version when deploying with CRC contract', () =>
@@ -168,74 +172,116 @@ describe('Safe', () => {
         })
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
-    // TODO: this cannot be done yet
-    // it('I should be able to trust', async () => {
-    //   // The newly created Safe trusts the migrated Safe
-    //   const trustTransactionHash = await addTrustConnection(core, accounts[0], {
-    //     user: CRCVersionSafeAddress,
-    //     canSendTo: safeAddress,
-    //     limitPercentage: 65,
-    //   });
-    //   expect(web3.utils.isHexStrict(trustTransactionHash)).toBe(true);
+    it('I should be able to trust', () =>
+      core.safe
+        .sendTransaction(CRCSafeOwner, {
+          safeAddress: CRCSafeAddress,
+          transactionData: {
+            to: core.options.hubAddress,
+            data: core.contracts.hub.methods.signup().encodeABI(),
+          },
+        })
+        .then(() =>
+          Promise.all([
+            // The newly created Safe trusts the migrated Safe
+            core.trust.addConnection(otherAccount, {
+              canSendTo: otherSafeAddress,
+              user: CRCSafeAddress,
+              limitPercentage: 65,
+            }),
+            // The migrated Safe trusts the newly created Safe
+            core.trust.addConnection(CRCSafeOwner, {
+              canSendTo: CRCSafeAddress,
+              user: otherSafeAddress,
+              limitPercentage: 65,
+            }),
+          ]),
+        )
+        .then(() =>
+          core.utils.loop(
+            () =>
+              getTrustConnection(
+                core,
+                CRCSafeOwner,
+                CRCSafeAddress,
+                otherSafeAddress,
+              ),
+            ({ isIncoming, isOutgoing }) => isIncoming && isOutgoing,
+            { label: 'Wait for trust connection to be indexed by the Graph' },
+          ),
+        )
+        .then((otherConnection) => {
+          expect(otherConnection.safeAddress).toBe(otherSafeAddress);
+          expect(otherConnection.isIncoming).toBe(true);
+          expect(otherConnection.isOutgoing).toBe(true);
+          expect(otherConnection.limitPercentageIn).toBe(65);
+          expect(otherConnection.limitPercentageOut).toBe(65);
+        }));
 
-    //   // The migrated Safe trusts the newly created Safe
-    //   const trustTransactionHash2 = await addTrustConnection(
-    //     core,
-    //     ownerCRCVersion,
-    //     {
-    //       user: safeAddress,
-    //       canSendTo: CRCVersionSafeAddress,
-    //       limitPercentage: 65,
-    //     },
-    //   );
-    //   expect(web3.utils.isHexStrict(trustTransactionHash2)).toBe(true);
-    // });
+    it('I should be able to send Circles to someone directly', async () => {
+      const sentCircles = 5;
+      const previousBalance = await core.token.getBalance(CRCSafeOwner, {
+        safeAddress: CRCSafeAddress,
+      });
+      const otherAccountPreviousBalance = await core.token.getBalance(
+        otherAccount,
+        {
+          safeAddress: otherSafeAddress,
+        },
+      );
+      // Transfer from the migrated Safe to the newly created Safe
+      const transferTransactionHash = await core.token.transfer(CRCSafeOwner, {
+        from: CRCSafeAddress,
+        to: otherSafeAddress,
+        value: web3.utils.toBN(core.utils.toFreckles(sentCircles)),
+      });
 
-    // it('I should be able to send Circles to someone directly', async () => {
-    //   // Transfer from the migrated Safe to the newly created Safe
-    //   const transferTransactionHash = await core.token.transfer(
-    //     ownerCRCVersion,
-    //     {
-    //       from: CRCVersionSafeAddress,
-    //       to: safeAddress,
-    //       value: web3.utils.toBN(core.utils.toFreckles(5)),
-    //     },
-    //   );
+      expect(web3.utils.isHexStrict(transferTransactionHash)).toBe(true);
 
-    //   expect(web3.utils.isHexStrict(transferTransactionHash)).toBe(true);
-    // });
+      const accountBalance = await core.utils.loop(
+        () =>
+          core.token.getBalance(CRCSafeOwner, {
+            safeAddress: CRCSafeAddress,
+          }),
+        (balance) =>
+          core.utils.fromFreckles(balance) ===
+          core.utils.fromFreckles(previousBalance) - sentCircles,
+        {
+          label: 'Wait for balance to be lower after user transferred Circles',
+        },
+      );
 
-    // it('I should be able to add a new owner', async () => {
-    //   const response = await core.safe.addOwner(ownerCRCVersion, {
-    //     safeAddress: CRCVersionSafeAddress,
-    //     ownerAddress: accounts[1].address,
-    //   });
+      const otherAccountBalance = await core.token.getBalance(otherAccount, {
+        safeAddress: otherSafeAddress,
+      });
 
-    //   expect(web3.utils.isHexStrict(response)).toBe(true);
+      expect(core.utils.fromFreckles(accountBalance)).toBe(
+        core.utils.fromFreckles(previousBalance) - sentCircles,
+      );
+      expect(core.utils.fromFreckles(otherAccountBalance)).toBe(
+        core.utils.fromFreckles(otherAccountPreviousBalance) + sentCircles,
+      );
+    });
 
-    //   const owners = await core.utils.loop(
-    //     () => {
-    //       return core.safe.getOwners(accounts[0], {
-    //         safeAddress: CRCVersionSafeAddress,
-    //       });
-    //     },
-    //     (owners) => owners.length === 2,
-    //     { label: 'Wait for newly added address to show up as Safe owner' },
-    //   );
+    it('I should be able to add a new owner', () =>
+      core.safe
+        .addOwner(CRCSafeOwner, {
+          safeAddress: CRCSafeAddress,
+          ownerAddress: otherAccount.address,
+        })
+        .then(() =>
+          core.safe.getOwners(CRCSafeOwner, { safeAddress: CRCSafeAddress }),
+        )
+        .then((owners) => {
+          expect(owners).toContain(otherAccount.address);
+          expect(owners).toHaveLength(2);
 
-    //   expect(owners[0]).toBe(accounts[1].address);
-    //   expect(owners[1]).toBe(ownerCRCVersion.address);
-    //   expect(owners.length).toBe(2);
-
-    //   await core.utils.loop(
-    //     () => {
-    //       return core.safe.getAddresses(accounts[0], {
-    //         ownerAddress: accounts[1].address,
-    //       });
-    //     },
-    //     (addresses) => addresses.includes(CRCVersionSafeAddress),
-    //     { label: 'Wait for newly added address to show up as Safe owner' },
-    //   );
-    // });
+          return core.safe.getAddresses(CRCSafeOwner, {
+            ownerAddress: otherAccount.address,
+          });
+        })
+        .then((safeAddresses) =>
+          expect(safeAddresses).toContain(CRCSafeAddress),
+        ));
   });
 });

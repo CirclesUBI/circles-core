@@ -17,8 +17,13 @@ describe('Trust', () => {
   afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     [safeAddress, otherSafeAddress] = await Promise.all([
-      setupAccount({ account, nonce: generateSaltNonce() }, core),
-      setupAccount({ account: otherAccount, nonce: generateSaltNonce() }, core),
+      setupAccount({ account, nonce: generateSaltNonce() }, core).then(
+        ({ safeAddress }) => safeAddress,
+      ),
+      setupAccount(
+        { account: otherAccount, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
     ]);
   });
 
