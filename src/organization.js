@@ -2,7 +2,6 @@ import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { ZERO_ADDRESS } from '~/common/constants';
-import { getOwners } from '~/safe';
 import { getTokenContract } from '~/common/getContracts';
 import loop from '~/common/loop';
 
@@ -22,7 +21,7 @@ export default function createOrganizationModule({
   options: { hubAddress },
 }) {
   /**
-   * Create a new organization account
+   * Create a new organization account (shared wallet)
    *
    * @namespace core.organization.deploy
    *
@@ -40,19 +39,13 @@ export default function createOrganizationModule({
       },
     });
 
-    const result = await safe
-      .createTransaction(account, {
-        safeAddress: options.safeAddress,
+    return safe.sendTransaction(account, {
+      safeAddress: options.safeAddress,
+      transactionData: {
         to: hubAddress,
         data: hub.methods.organizationSignup().encodeABI(),
-      })
-      .then((data) =>
-        utils.sendTransaction({
-          target: options.safeAddress,
-          data,
-        }),
-      );
-    return result;
+      },
+    });
   };
 
   /**
@@ -142,27 +135,14 @@ export default function createOrganizationModule({
 
     // Create a 100% trust connection from the organization to the user as
     // the transfer will take place in reverse direction
-    const txDataAddConnection = await hub.methods
-      .trust(options.from, 100)
-      .encodeABI();
 
-    // This first trust transaction is paid by the relayer
-    const txHashAddConnection = await safe
-      .createTransaction(account, {
-        safeAddress: options.to,
+    await safe.sendTransaction(account, {
+      safeAddress: options.to,
+      transactionData: {
         to: hub.options.address,
-        data: txDataAddConnection,
-      })
-      .then((data) =>
-        utils.sendTransaction({
-          target: options.to,
-          data,
-        }),
-      );
-
-    if (!txHashAddConnection) {
-      throw new CoreError('Organization failed to trust safe');
-    }
+        data: hub.methods.trust(options.from, 100).encodeABI(),
+      },
+    });
 
     // Wait for the trust connection to be effective
     await loop(
@@ -193,23 +173,14 @@ export default function createOrganizationModule({
       )
       .encodeABI();
 
-    const txHash = await safe
-      .createTransaction(account, {
-        safeAddress: options.from,
-        to: hub.options.address,
-        data: txData,
-      })
-      .then((data) => utils.sendTransaction({ target: options.to, data }));
-
-    if (!txHash) {
-      throw new CoreError('Failed transfer to fund organization');
-    }
-
-    return txHash;
+    return safe.sendTransaction(account, {
+      safeAddress: options.from,
+      transactionData: { to: hub.options.address, data: txData },
+    });
   };
 
   /**
-   * Returns a list of organization members.
+   * Returns a list of organization members
    *
    * @namespace core.organization.getMembers
    *
@@ -228,7 +199,9 @@ export default function createOrganizationModule({
       },
     });
 
-    const owners = await getOwners(web3, options.safeAddress);
+    const owners = await safe.getOwners(account, {
+      safeAddress: options.safeAddress,
+    });
 
     const promises = owners.map((ownerAddress) => {
       return utils.requestIndexedDB('organization_status', ownerAddress);
@@ -251,7 +224,6 @@ export default function createOrganizationModule({
           return acc;
         }, []),
       });
-
       return acc;
     }, []);
   };
@@ -262,4 +234,3 @@ export default function createOrganizationModule({
     getMembers,
   };
 }
-// }
