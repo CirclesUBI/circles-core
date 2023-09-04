@@ -5,7 +5,7 @@ import createCore from './helpers/core';
 import getAccounts from './helpers/getAccounts';
 import { deployCRCVersionSafe } from './helpers/transactions';
 import generateSaltNonce from './helpers/generateSaltNonce';
-import setupAccount from './helpers/setupAccount';
+import onboardAccountManually from './helpers/onboardAccountManually';
 import setupWeb3 from './helpers/setupWeb3';
 import getTrustConnection from './helpers/getTrustConnection';
 
@@ -20,7 +20,7 @@ describe('Safe', () => {
     // Predeploy manually 3 accounts because of the minimun trusting requirement
     predeployedSafes = await Promise.all(
       Array.from(Array(3).keys()).map((index) =>
-        setupAccount(
+        onboardAccountManually(
           { account: accounts[index + 1], nonce: generateSaltNonce() },
           core,
         ).then(({ safeAddress }) => safeAddress),

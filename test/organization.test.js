@@ -2,8 +2,8 @@ import createCore from './helpers/core';
 import getAccounts from './helpers/getAccounts';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import setupWeb3 from './helpers/setupWeb3';
-import setupAccount from './helpers/setupAccount';
-import setupAccountManual from './helpers/setupAccountManual';
+import onboardAccountManually from './helpers/onboardAccountManually';
+import deploySafeManually from './helpers/deploySafeManually';
 import getTrustConnection from './helpers/getTrustConnection';
 
 describe('Organization', () => {
@@ -17,17 +17,18 @@ describe('Organization', () => {
   beforeAll(async () => {
     // Predeploy manually accounts (safes and token)
     [userSafeAddress, otherUserSafeAddress] = await Promise.all([
-      setupAccount({ account, nonce: generateSaltNonce() }, core).then(
-        ({ safeAddress }) => safeAddress,
-      ),
-      setupAccount(
+      onboardAccountManually(
+        { account, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually(
         { account: otherAccount, nonce: generateSaltNonce() },
         core,
       ).then(({ safeAddress }) => safeAddress),
     ]);
 
     // Prepare address to deploy safe manually for organisation
-    safeAddress = await setupAccountManual(
+    safeAddress = await deploySafeManually(
       {
         account: account,
         nonce: generateSaltNonce(),
