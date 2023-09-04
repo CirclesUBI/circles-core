@@ -15,6 +15,7 @@ module.exports = {
     '**/token.test.js',
     '**/organization.test.js',
     '**/user.test.js',
+    '**/utils.test.js',
   ],
   testTimeout: 30 * 1000,
   verbose: true,
