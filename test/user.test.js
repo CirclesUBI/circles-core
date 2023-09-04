@@ -1,29 +1,27 @@
 import createCore from './helpers/core';
-import getAccount from './helpers/account';
-import { deploySafeAndToken } from './helpers/transactions';
+import setupWeb3 from './helpers/setupWeb3';
+import getAccounts from './helpers/getAccounts';
+import onboardAccountManually from './helpers/onboardAccountManually';
+import generateSaltNonce from './helpers/generateSaltNonce';
 
-let account;
-let core;
-let safeAddress;
-let safeCreationNonce;
-let username;
-let email;
-let deployedSafe;
+describe('User', () => {
+  const { web3, provider } = setupWeb3();
+  const core = createCore(web3);
+  const [account] = getAccounts(web3);
+  let onboardedAccount;
+  let safeAddress;
+  let username;
+  let email;
 
-beforeAll(async () => {
-  core = createCore();
-});
+  afterAll(() => provider.engine.stop());
 
-describe('User - register', () => {
   beforeAll(async () => {
-    account = getAccount();
-
-    safeCreationNonce = new Date().getTime();
-
-    safeAddress = await core.safe.prepareDeploy(account, {
-      nonce: safeCreationNonce,
-    });
-
+    // Predeploy manually an account (safe and token)
+    onboardedAccount = await onboardAccountManually(
+      { account: account, nonce: generateSaltNonce() },
+      core,
+    );
+    safeAddress = onboardedAccount.safeAddress;
     username = `panda${new Date().getTime()}`;
     email = 'panda@zoo.org';
   });
@@ -31,7 +29,7 @@ describe('User - register', () => {
   describe('when a new user registers its Safe address', () => {
     it('should return a success response', async () => {
       const response = await core.user.register(account, {
-        nonce: safeCreationNonce,
+        nonce: generateSaltNonce(),
         email,
         safeAddress,
         username,
@@ -61,23 +59,6 @@ describe('User - register', () => {
 
       expect(result.data[0].username).toEqual(username);
     });
-  });
-});
-
-describe('User - update', () => {
-  beforeAll(async () => {
-    account = getAccount(1);
-
-    safeCreationNonce = new Date().getTime();
-
-    // The Safe must be deployed and signedup to the Hub before trying to change the username
-    deployedSafe = await deploySafeAndToken(core, account);
-    safeAddress = deployedSafe.safeAddress;
-    username = `doggy${new Date().getTime()}`;
-    email = 'dogg@yyy.com';
-  });
-
-  describe('when a new user registers its Safe address', () => {
     it('should be resolveable after changing only username', async () => {
       expect(
         // This update acts as a register
@@ -103,7 +84,6 @@ describe('User - update', () => {
 
       expect(first.data[0].username).toEqual(newUsername);
     });
-
     it('should return email', async () => {
       expect(
         await core.user.getEmail(account, {

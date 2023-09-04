@@ -131,7 +131,7 @@ export default class CirclesCore {
     /** @type {Object} - token module */
     this.token = createTokenModule(this);
     /** @type {Object} - user module */
-    this.user = createUserModule(web3, this.contracts, this.utils);
+    this.user = createUserModule(this);
     /** @type {Object} - organization module */
     this.organization = createOrganizationModule(this);
   }
