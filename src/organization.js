@@ -30,7 +30,7 @@ export default function createOrganizationModule({
    * @param {string} userOptions.safeAddress - safe address of the organization
    * @return {RelayResponse} - gelato response
    */
-  const deploy = async (account, userOptions) => {
+  const deploy = (account, userOptions) => {
     checkAccount(web3, account);
 
     const options = checkOptions(userOptions, {
@@ -59,7 +59,7 @@ export default function createOrganizationModule({
    *
    * @return {boolean} - True if organization
    */
-  const isOrganization = async (account, userOptions) => {
+  const isOrganization = (account, userOptions) => {
     checkAccount(web3, account);
 
     const options = checkOptions(userOptions, {
@@ -68,7 +68,7 @@ export default function createOrganizationModule({
       },
     });
 
-    return await hub.methods.organizations(options.safeAddress).call();
+    return hub.methods.organizations(options.safeAddress).call();
   };
 
   /**
@@ -164,7 +164,7 @@ export default function createOrganizationModule({
       values: [value],
     };
 
-    const txData = await hub.methods
+    const txData = hub.methods
       .transferThrough(
         transfer.tokenOwners,
         transfer.sources,
