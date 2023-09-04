@@ -120,7 +120,7 @@ export default class CirclesCore {
 
     // Create submodules and pass utils and options to them
     /** @type {Object} - activity module */
-    this.activity = createActivityModule(web3, this.contracts, this.utils);
+    this.activity = createActivityModule(this);
     /** @type {Object} - news module */
     this.news = createNewsModule(this.utils);
 
