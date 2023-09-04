@@ -10,13 +10,13 @@ import loop from '~/common/loop';
  *
  * @access private
  * @param {CirclesCore} context - CirclesCore instance
- * @param {Web3} web3 - Web3 instance
  * @return {Object} - organization module instance
  */
 export default function createOrganizationModule({
   web3,
   contracts: { hub },
   safe,
+  trust,
   utils,
   options: { hubAddress },
 }) {
@@ -89,7 +89,7 @@ export default function createOrganizationModule({
    * @param {string} userOptions.to - safe address of organization
    * @param {BN} userOptions.value - funding amount
    *
-   * @return {string} - transaction hash
+   * @return {RelayResponse} - transaction response
    */
   const prefund = async (account, userOptions) => {
     checkAccount(web3, account);
@@ -136,12 +136,9 @@ export default function createOrganizationModule({
     // Create a 100% trust connection from the organization to the user as
     // the transfer will take place in reverse direction
 
-    await safe.sendTransaction(account, {
-      safeAddress: options.to,
-      transactionData: {
-        to: hub.options.address,
-        data: hub.methods.trust(options.from, 100).encodeABI(),
-      },
+    await trust.addConnection(account, {
+      user: options.from,
+      canSendTo: options.to,
     });
 
     // Wait for the trust connection to be effective
