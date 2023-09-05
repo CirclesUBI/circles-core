@@ -154,7 +154,7 @@ export default function createTrustModule(web3, contracts, utils) {
                     return curr.userAddress !== userAddress && target
                       ? [...acc, target]
                       : acc;
-                  }),
+                  }, []),
                 );
               }
             });
