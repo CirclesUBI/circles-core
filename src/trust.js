@@ -97,28 +97,23 @@ export default function createTrustModule(web3, contracts, utils) {
 
           if (safe) {
             // Create first network iteration with all addresses we trust, so after, we can select mutual trusts with them
-            const network = safe.incoming.reduce(
-              (acc, { limitPercentage, userAddress }) => {
-                const checksumSafeAddress =
-                  web3.utils.toChecksumAddress(userAddress);
+            const network = safe.incoming.reduce((acc, { userAddress }) => {
+              const checksumSafeAddress =
+                web3.utils.toChecksumAddress(userAddress);
 
-                return {
-                  [checksumSafeAddress]: {
-                    safeAddress: checksumSafeAddress,
-                    mutualConnections: [],
-                    isIncoming: true,
-                    limitPercentageIn: parseInt(limitPercentage, 10),
-                    isOutgoing: false,
-                    limitPercentageOut: NO_LIMIT_PERCENTAGE,
-                  },
-                  ...acc,
-                };
-              },
-              {},
-            );
+              return {
+                [checksumSafeAddress]: {
+                  safeAddress: checksumSafeAddress,
+                  mutualConnections: [],
+                  isIncoming: true,
+                  isOutgoing: false,
+                },
+                ...acc,
+              };
+            }, {});
 
             // Add to network safes that trust us
-            safe.outgoing.forEach(({ limitPercentage, canSendToAddress }) => {
+            safe.outgoing.forEach(({ canSendToAddress }) => {
               const checksumSafeAddress =
                 web3.utils.toChecksumAddress(canSendToAddress);
 
@@ -128,15 +123,10 @@ export default function createTrustModule(web3, contracts, utils) {
                   safeAddress: checksumSafeAddress,
                   mutualConnections: [],
                   isIncoming: false,
-                  limitPercentageIn: NO_LIMIT_PERCENTAGE,
                 };
               }
 
               network[checksumSafeAddress].isOutgoing = true;
-              network[checksumSafeAddress].limitPercentageOut = parseInt(
-                limitPercentage,
-                10,
-              );
             });
 
             // Select mutual connections between safe trusts and trusts of safe trusts
