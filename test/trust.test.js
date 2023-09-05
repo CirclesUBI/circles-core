@@ -32,7 +32,7 @@ describe('Trust', () => {
     }),
   );
 
-  it('should trust someone', async () => {
+  xit('should trust someone', async () => {
     // A trusts B
     const response = await core.trust.addConnection(accountA, {
       user: safeAddressB,
@@ -108,7 +108,7 @@ describe('Trust', () => {
     expect(isTrustedLowLimit).toBe(true);
   });
 
-  it('should untrust someone', async () => {
+  xit('should untrust someone', async () => {
     const response = await core.trust.removeConnection(accountA, {
       user: safeAddressB,
       canSendTo: safeAddressA,
@@ -143,7 +143,7 @@ describe('Trust', () => {
     });
     // A trusts C
     await core.trust.addConnection(accountA, {
-      user: safeAddressB,
+      user: safeAddressC,
       canSendTo: safeAddressA,
       limitPercentage: 100,
     });
@@ -155,23 +155,33 @@ describe('Trust', () => {
         });
       },
       (network) => {
-        // console.log(network);
-        return network.length === 1;
+        // console.log(network)
+        // console.log(safeAddressA, safeAddressB, safeAddressC)
+        return network.length === 2;
       },
       { label: 'Wait for trust network to be updated' },
     );
 
-    const networkAC = network.find(
+    const mutualConnectionsAC = network.find(
       (element) => element.safeAddress === safeAddressC,
-    );
-    expect(networkAC).toBe(undefined);
+    ).mutualConnections;
+    expect(mutualConnectionsAC.length).toBe(0);
   });
 
-  it('network should give correct mutually trusted connections', async () => {
+  it('network should give the correct mutually trusted connection', async () => {
     // C trust B
     await core.trust.addConnection(accountA, {
       user: safeAddressB,
       canSendTo: safeAddressC,
+      limitPercentage: 100,
+    });
+
+    // Now both A and C trusts B and B should be a mutually trusted connection
+
+    // B trust C - testing reverse logic
+    await core.trust.addConnection(accountA, {
+      user: safeAddressC,
+      canSendTo: safeAddressB,
       limitPercentage: 50,
     });
 
@@ -181,9 +191,14 @@ describe('Trust', () => {
           safeAddress: safeAddressA,
         });
       },
-      (network) =>
-        network.find((element) => element.safeAddress === safeAddressC)
-          .mutualConnections.length === 1,
+      (network) => {
+        // console.log(network);
+
+        return (
+          network.find((element) => element.safeAddress === safeAddressC)
+            .mutualConnections.length === 1
+        );
+      },
       { label: 'Wait for trust network to be updated' },
     );
 

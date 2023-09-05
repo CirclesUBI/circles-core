@@ -73,7 +73,7 @@ export default function createTrustModule(web3, contracts, utils) {
 
     /**
      * Get a Safe trust status
-     * @namespace core.trust.getTrustStatus
+     * @namespace core.trust.getNetwork
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
@@ -91,7 +91,7 @@ export default function createTrustModule(web3, contracts, utils) {
       const safeAddress = options.safeAddress.toLowerCase();
 
       return utils
-        .requestIndexedDB('trust_limits', safeAddress)
+        .requestIndexedDB('trust_status', safeAddress)
         .then(({ safe } = {}) => {
           let result = [];
 

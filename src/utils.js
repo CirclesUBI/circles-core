@@ -193,7 +193,7 @@ async function requestIndexedDB(
         parameters,
       );
       break;
-    case 'trust_limits':
+    case 'trust_status':
       response = getTrustStatus(
         graphNodeEndpoint,
         subgraphName,
