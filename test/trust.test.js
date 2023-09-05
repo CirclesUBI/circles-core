@@ -4,33 +4,39 @@ import getTrustConnection from './helpers/getTrustConnection';
 import web3 from './helpers/web3';
 import { deploySafeAndToken } from './helpers/transactions';
 
-let account;
-let otherAccount;
+let accountA;
+let accountB;
+let accountC;
 let core;
-let safeAddress;
-let otherSafeAddress;
+let safeAddressA;
+let safeAddressB;
+let safeAddressC;
 
 beforeAll(async () => {
-  account = getAccount();
-  otherAccount = getAccount(3);
+  accountA = getAccount();
+  accountB = getAccount(3);
+  accountC = getAccount(5);
   core = createCore();
 });
 
 describe('Trust', () => {
   beforeAll(() =>
     Promise.all([
-      deploySafeAndToken(core, account),
-      deploySafeAndToken(core, otherAccount),
+      deploySafeAndToken(core, accountA),
+      deploySafeAndToken(core, accountB),
+      deploySafeAndToken(core, accountC),
     ]).then((result) => {
-      safeAddress = result[0].safeAddress;
-      otherSafeAddress = result[1].safeAddress;
+      safeAddressA = result[0].safeAddress;
+      safeAddressB = result[1].safeAddress;
+      safeAddressC = result[2].safeAddress;
     }),
   );
 
   it('should trust someone', async () => {
-    const response = await core.trust.addConnection(account, {
-      user: otherSafeAddress,
-      canSendTo: safeAddress,
+    // A trusts B
+    const response = await core.trust.addConnection(accountA, {
+      user: safeAddressB,
+      canSendTo: safeAddressA,
       limitPercentage: 44,
     });
 
@@ -38,13 +44,13 @@ describe('Trust', () => {
 
     const connection = await core.utils.loop(
       () => {
-        return getTrustConnection(core, account, safeAddress, otherSafeAddress);
+        return getTrustConnection(core, accountA, safeAddressA, safeAddressB);
       },
       (isReady) => isReady,
       { label: 'Wait for the graph to index newly added trust connection' },
     );
 
-    expect(connection.safeAddress).toBe(otherSafeAddress);
+    expect(connection.safeAddress).toBe(safeAddressB);
     expect(connection.isIncoming).toBe(true);
     expect(connection.isOutgoing).toBe(false);
     expect(connection.limitPercentageIn).toBe(44);
@@ -52,38 +58,29 @@ describe('Trust', () => {
 
     let otherConnection = await core.utils.loop(
       () => {
-        return getTrustConnection(
-          core,
-          otherAccount,
-          otherSafeAddress,
-          safeAddress,
-        );
+        return getTrustConnection(core, accountB, safeAddressB, safeAddressA);
       },
       (isReady) => isReady,
       { label: 'Wait for trust connection to be indexed by the graph' },
     );
 
-    expect(otherConnection.safeAddress).toBe(safeAddress);
+    expect(otherConnection.safeAddress).toBe(safeAddressA);
     expect(otherConnection.isIncoming).toBe(false);
     expect(otherConnection.isOutgoing).toBe(true);
     expect(otherConnection.limitPercentageIn).toBe(0);
     expect(otherConnection.limitPercentageOut).toBe(44);
 
     // Test bidirectional trust connections
-    await core.trust.addConnection(otherAccount, {
-      user: safeAddress,
-      canSendTo: otherSafeAddress,
+    // B trusts A
+    await core.trust.addConnection(accountB, {
+      user: safeAddressA,
+      canSendTo: safeAddressB,
       limitPercentage: 72,
     });
 
     otherConnection = await core.utils.loop(
       () => {
-        return getTrustConnection(
-          core,
-          otherAccount,
-          otherSafeAddress,
-          safeAddress,
-        );
+        return getTrustConnection(core, accountB, safeAddressB, safeAddressA);
       },
       ({ isIncoming, isOutgoing }) => {
         return isIncoming && isOutgoing;
@@ -91,7 +88,7 @@ describe('Trust', () => {
       { label: 'Wait for trust connection to be indexed by the Graph' },
     );
 
-    expect(otherConnection.safeAddress).toBe(safeAddress);
+    expect(otherConnection.safeAddress).toBe(safeAddressA);
     expect(otherConnection.isIncoming).toBe(true);
     expect(otherConnection.isOutgoing).toBe(true);
     expect(otherConnection.limitPercentageIn).toBe(72);
@@ -99,17 +96,17 @@ describe('Trust', () => {
 
     // This should not be true as we don't have enough
     // trust connections yet
-    const { isTrusted } = await core.trust.isTrusted(otherAccount, {
-      safeAddress,
+    const { isTrusted } = await core.trust.isTrusted(accountB, {
+      safeAddress: safeAddressA,
     });
 
     expect(isTrusted).toBe(false);
 
     // This should be true as we lowered the limit
     const { isTrusted: isTrustedLowLimit } = await core.trust.isTrusted(
-      otherAccount,
+      accountB,
       {
-        safeAddress,
+        safeAddress: safeAddressA,
         limit: 1,
       },
     );
@@ -118,22 +115,22 @@ describe('Trust', () => {
   });
 
   it('should untrust someone', async () => {
-    const response = await core.trust.removeConnection(account, {
-      user: otherSafeAddress,
-      canSendTo: safeAddress,
+    const response = await core.trust.removeConnection(accountA, {
+      user: safeAddressB,
+      canSendTo: safeAddressA,
     });
 
     expect(web3.utils.isHexStrict(response)).toBe(true);
 
-    await core.trust.removeConnection(otherAccount, {
-      user: safeAddress,
-      canSendTo: otherSafeAddress,
+    await core.trust.removeConnection(accountB, {
+      user: safeAddressA,
+      canSendTo: safeAddressB,
     });
 
     const network = await core.utils.loop(
       async () => {
-        return await core.trust.getNetwork(account, {
-          safeAddress,
+        return await core.trust.getNetwork(accountA, {
+          safeAddress: safeAddressA,
         });
       },
       (network) => network.length === 0,
@@ -141,5 +138,46 @@ describe('Trust', () => {
     );
 
     expect(network.length).toBe(0);
+  });
+
+  it('network should give no mutually trusted connections', async () => {
+    const network = await core.utils.loop(async () => {
+      return await core.trust.getNetwork(accountA, {
+        safeAddress: safeAddressA,
+      });
+    });
+
+    const mutualConnectionsAC = network.find(
+      (element) => element.safeAddress === safeAddressC,
+    ).mutualConnections;
+    expect(mutualConnectionsAC.length).toBe(0);
+  });
+
+  it('network should give correct mutually trusted connections', async () => {
+    // A trusts B
+    await core.trust.addConnection(accountA, {
+      user: safeAddressB,
+      canSendTo: safeAddressA,
+      limitPercentage: 100,
+    });
+
+    // C trust B
+    await core.trust.addConnection(accountA, {
+      user: safeAddressB,
+      canSendTo: safeAddressC,
+      limitPercentage: 50,
+    });
+
+    const network = await core.utils.loop(async () => {
+      return await core.trust.getNetwork(accountA, {
+        safeAddress: safeAddressA,
+      });
+    });
+
+    const mutualConnectionsAC = network.find(
+      (element) => element.safeAddress === safeAddressC,
+    ).mutualConnections;
+    expect(mutualConnectionsAC.length).toBe(1);
+    expect(mutualConnectionsAC).toContain(safeAddressB);
   });
 });
