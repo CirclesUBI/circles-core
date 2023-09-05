@@ -72,18 +72,14 @@ export default function createTrustModule(web3, contracts, utils) {
     },
 
     /**
-     * Get the current state of a users trust network, containing
-     * data to find transfer path between users.
-     *
-     * @namespace core.trust.getNetwork
-     *
+     * Get a Safe trust status
+     * @namespace core.trust.getTrustStatus
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
-     *
-     * @return {Object} Trust network state
+     * @return {Object} Trust status
      */
-    getNetwork: async (account, userOptions) => {
+    getTrustStatus: (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
@@ -94,139 +90,80 @@ export default function createTrustModule(web3, contracts, utils) {
 
       const safeAddress = options.safeAddress.toLowerCase();
 
-      const response = await utils.requestIndexedDB(
-        'trust_limits',
-        safeAddress,
-      );
+      return utils
+        .requestIndexedDB('trust_limits', safeAddress)
+        .then(({ safe } = {}) => {
+          let result = [];
 
-      if (!response || response.safe === null) {
-        // Fail silently with empty response / no trust connections when Safe
-        // does not exist yet
-        return [];
-      }
+          if (safe) {
+            // Create first network iteration with all addresses we trust, so after, we can select mutual trusts with them
+            const network = safe.incoming.reduce(
+              (acc, { limitPercentage, userAddress }) => {
+                const checksumSafeAddress =
+                  web3.utils.toChecksumAddress(userAddress);
 
-      // Find mutual trust connections by comparing incoming addresses with
-      // outgoing ones of other users
-      const incomingAddresses = response.safe.incoming.map(
-        ({ userAddress }) => {
-          return web3.utils.toChecksumAddress(userAddress);
-        },
-      );
+                return {
+                  [checksumSafeAddress]: {
+                    safeAddress: checksumSafeAddress,
+                    mutualConnections: [],
+                    isIncoming: true,
+                    limitPercentageIn: parseInt(limitPercentage, 10),
+                    isOutgoing: false,
+                    limitPercentageOut: NO_LIMIT_PERCENTAGE,
+                  },
+                  ...acc,
+                };
+              },
+              {},
+            );
 
-      const mutualFriendsMap = response.safe.incoming.reduce((acc, item) => {
-        const userAddress = web3.utils.toChecksumAddress(item.userAddress);
+            // Add to network safes that trust us
+            safe.outgoing.forEach(({ limitPercentage, canSendToAddress }) => {
+              const checksumSafeAddress =
+                web3.utils.toChecksumAddress(canSendToAddress);
 
-        if (!(userAddress in acc)) {
-          acc[userAddress] = [];
-        }
+              // If it does not exist in the network yet, create it
+              if (!network[checksumSafeAddress]) {
+                network[checksumSafeAddress] = {
+                  safeAddress: checksumSafeAddress,
+                  mutualConnections: [],
+                  isIncoming: false,
+                  limitPercentageIn: NO_LIMIT_PERCENTAGE,
+                };
+              }
 
-        if (!item.user) {
-          return acc;
-        }
+              network[checksumSafeAddress].isOutgoing = true;
+              network[checksumSafeAddress].limitPercentageOut = parseInt(
+                limitPercentage,
+                10,
+              );
+            });
 
-        item.user.outgoing.forEach((outgoingItem) => {
-          const canSendToAddress = web3.utils.toChecksumAddress(
-            outgoingItem.canSendToAddress,
-          );
+            // Select mutual connections between safe trusts and trusts of safe trusts
+            safe.incoming.forEach(({ userAddress, user }) => {
+              const checksumSafeAddress =
+                web3.utils.toChecksumAddress(userAddress);
 
-          const limitPercentage = parseInt(outgoingItem.limitPercentage, 10);
+              if (user) {
+                network[checksumSafeAddress].mutualConnections.push(
+                  ...user.incoming.reduce((acc, curr) => {
+                    const target = web3.utils.toChecksumAddress(
+                      curr.userAddress,
+                    );
 
-          if (
-            incomingAddresses.includes(canSendToAddress) && // Is trusted by us
-            limitPercentage !== NO_LIMIT_PERCENTAGE && // Has trust
-            canSendToAddress !== userAddress && // Filter user trusting itself
-            canSendToAddress !== options.safeAddress // Filter user trusted by us
-          ) {
-            acc[userAddress].push(canSendToAddress);
+                    return curr.userAddress !== userAddress && target
+                      ? [...acc, target]
+                      : acc;
+                  }),
+                );
+              }
+            });
+
+            result = Object.values(network);
           }
+
+          return result;
         });
-
-        return acc;
-      }, {});
-
-      return []
-        .concat(response.safe.incoming)
-        .concat(response.safe.outgoing)
-        .reduce((acc, connection) => {
-          const limitPercentage = parseInt(connection.limitPercentage, 10);
-
-          if (limitPercentage === NO_LIMIT_PERCENTAGE) {
-            return acc;
-          }
-
-          const userAddress = web3.utils.toChecksumAddress(
-            connection.userAddress,
-          );
-
-          const canSendToAddress = web3.utils.toChecksumAddress(
-            connection.canSendToAddress,
-          );
-
-          // Filter connections to ourselves
-          if (userAddress === canSendToAddress) {
-            return acc;
-          }
-
-          // Merge incoming and outgoing connections
-          if (userAddress === options.safeAddress) {
-            acc.push({
-              isIncoming: false,
-              isOutgoing: true,
-              limitPercentageIn: NO_LIMIT_PERCENTAGE,
-              limitPercentageOut: limitPercentage,
-              mutualConnections: mutualFriendsMap[canSendToAddress] || [],
-              safeAddress: canSendToAddress,
-            });
-          } else if (canSendToAddress === options.safeAddress) {
-            acc.push({
-              isIncoming: true,
-              isOutgoing: false,
-              limitPercentageIn: limitPercentage,
-              limitPercentageOut: NO_LIMIT_PERCENTAGE,
-              mutualConnections: mutualFriendsMap[userAddress] || [],
-              safeAddress: userAddress,
-            });
-          }
-
-          return acc;
-        }, [])
-        .reduce((acc, connection) => {
-          // Find duplicates ...
-          const index = acc.findIndex((item) => {
-            return item.safeAddress === connection.safeAddress;
-          });
-
-          // ... and merge them
-          if (index > -1) {
-            const {
-              isIncoming,
-              isOutgoing,
-              limitPercentageIn,
-              limitPercentageOut,
-              mutualConnections,
-              safeAddress,
-            } = acc[index];
-
-            acc[index] = {
-              isIncoming: connection.isIncoming || isIncoming,
-              isOutgoing: connection.isOutgoing || isOutgoing,
-              limitPercentageIn:
-                connection.limitPercentageIn + limitPercentageIn,
-              limitPercentageOut:
-                connection.limitPercentageOut + limitPercentageOut,
-              mutualConnections: mutualConnections.concat(
-                connection.mutualConnections.filter((item) => {
-                  return !mutualConnections.includes(item);
-                }),
-              ),
-              safeAddress,
-            };
-          } else {
-            acc.push(connection);
-          }
-
-          return acc;
-        }, []);
     },
 
     /**
