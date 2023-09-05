@@ -117,6 +117,26 @@ export default function createTrustModule(web3, contracts, utils) {
               {},
             );
 
+            // Select mutual connections between safe trusts and trusts of safe trusts
+            safe.incoming.forEach(({ userAddress, user }) => {
+              const checksumSafeAddress =
+                web3.utils.toChecksumAddress(userAddress);
+
+              if (user) {
+                network[checksumSafeAddress].mutualConnections.push(
+                  ...user.incoming.reduce((acc, curr) => {
+                    const target = web3.utils.toChecksumAddress(
+                      curr.userAddress,
+                    );
+
+                    return curr.userAddress !== userAddress && target
+                      ? [...acc, target]
+                      : acc;
+                  }),
+                );
+              }
+            });
+
             // Add to network safes that trust us
             safe.outgoing.forEach(({ limitPercentage, canSendToAddress }) => {
               const checksumSafeAddress =
@@ -137,26 +157,6 @@ export default function createTrustModule(web3, contracts, utils) {
                 limitPercentage,
                 10,
               );
-            });
-
-            // Select mutual connections between safe trusts and trusts of safe trusts
-            safe.incoming.forEach(({ userAddress, user }) => {
-              const checksumSafeAddress =
-                web3.utils.toChecksumAddress(userAddress);
-
-              if (user) {
-                network[checksumSafeAddress].mutualConnections.push(
-                  ...user.incoming.reduce((acc, curr) => {
-                    const target = web3.utils.toChecksumAddress(
-                      curr.userAddress,
-                    );
-
-                    return curr.userAddress !== userAddress && target
-                      ? [...acc, target]
-                      : acc;
-                  }),
-                );
-              }
             });
 
             result = Object.values(network);
