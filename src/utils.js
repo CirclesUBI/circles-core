@@ -194,7 +194,7 @@ async function requestIndexedDB(
       );
       break;
     case 'trust_limits':
-      response = getTrustLimitsStatus(
+      response = getTrustStatus(
         graphNodeEndpoint,
         subgraphName,
         databaseSource,
@@ -351,7 +351,7 @@ function getTrustNetworkStatus(
   return requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
-function getTrustLimitsStatus(
+function getTrustStatus(
   graphNodeEndpoint,
   subgraphName,
   databaseSource,

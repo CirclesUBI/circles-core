@@ -79,7 +79,7 @@ export default function createTrustModule(web3, contracts, utils) {
      * @param {string} userOptions.safeAddress - Safe address of user
      * @return {Object} Trust status
      */
-    getTrustStatus: (account, userOptions) => {
+    getNetwork: (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
