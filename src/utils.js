@@ -14,6 +14,8 @@ import {
 } from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
 
+const NO_LIMIT_PERCENTAGE = 0;
+
 /** @access private */
 const transactionQueue = new TransactionQueue();
 
@@ -362,21 +364,16 @@ function getTrustLimitsStatus(
       query = {
         query: `{
           safe(id: "${safeAddress}") {
-            outgoing (first: 1000) {
-              limitPercentage
-              userAddress
+            outgoing (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" canSendToAddress_not: "${safeAddress}" }) {
               canSendToAddress
             }
-            incoming (first: 1000) {
-              limitPercentage
+            incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" userAddress_not: "${safeAddress}" }) {
               userAddress
               user {
-                outgoing (first: 1000) {
-                  canSendToAddress
-                  limitPercentage
+                incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}"}) {
+                  userAddress
                 }
               }
-              canSendToAddress
             }
           }
         }`,
