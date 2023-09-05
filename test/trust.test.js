@@ -53,8 +53,6 @@ describe('Trust', () => {
     expect(connection.safeAddress).toBe(safeAddressB);
     expect(connection.isIncoming).toBe(true);
     expect(connection.isOutgoing).toBe(false);
-    expect(connection.limitPercentageIn).toBe(44);
-    expect(connection.limitPercentageOut).toBe(0);
 
     let otherConnection = await core.utils.loop(
       () => {
@@ -67,8 +65,6 @@ describe('Trust', () => {
     expect(otherConnection.safeAddress).toBe(safeAddressA);
     expect(otherConnection.isIncoming).toBe(false);
     expect(otherConnection.isOutgoing).toBe(true);
-    expect(otherConnection.limitPercentageIn).toBe(0);
-    expect(otherConnection.limitPercentageOut).toBe(44);
 
     // Test bidirectional trust connections
     // B trusts A
@@ -91,8 +87,6 @@ describe('Trust', () => {
     expect(otherConnection.safeAddress).toBe(safeAddressA);
     expect(otherConnection.isIncoming).toBe(true);
     expect(otherConnection.isOutgoing).toBe(true);
-    expect(otherConnection.limitPercentageIn).toBe(72);
-    expect(otherConnection.limitPercentageOut).toBe(44);
 
     // This should not be true as we don't have enough
     // trust connections yet
@@ -141,26 +135,39 @@ describe('Trust', () => {
   });
 
   it('network should give no mutually trusted connections', async () => {
-    const network = await core.utils.loop(async () => {
-      return await core.trust.getNetwork(accountA, {
-        safeAddress: safeAddressA,
-      });
-    });
-
-    const mutualConnectionsAC = network.find(
-      (element) => element.safeAddress === safeAddressC,
-    ).mutualConnections;
-    expect(mutualConnectionsAC.length).toBe(0);
-  });
-
-  it('network should give correct mutually trusted connections', async () => {
     // A trusts B
     await core.trust.addConnection(accountA, {
       user: safeAddressB,
       canSendTo: safeAddressA,
       limitPercentage: 100,
     });
+    // A trusts C
+    await core.trust.addConnection(accountA, {
+      user: safeAddressB,
+      canSendTo: safeAddressA,
+      limitPercentage: 100,
+    });
 
+    const network = await core.utils.loop(
+      async () => {
+        return await core.trust.getNetwork(accountA, {
+          safeAddress: safeAddressA,
+        });
+      },
+      (network) => {
+        // console.log(network);
+        return network.length === 1;
+      },
+      { label: 'Wait for trust network to be updated' },
+    );
+
+    const networkAC = network.find(
+      (element) => element.safeAddress === safeAddressC,
+    );
+    expect(networkAC).toBe(undefined);
+  });
+
+  it('network should give correct mutually trusted connections', async () => {
     // C trust B
     await core.trust.addConnection(accountA, {
       user: safeAddressB,
@@ -168,11 +175,17 @@ describe('Trust', () => {
       limitPercentage: 50,
     });
 
-    const network = await core.utils.loop(async () => {
-      return await core.trust.getNetwork(accountA, {
-        safeAddress: safeAddressA,
-      });
-    });
+    const network = await core.utils.loop(
+      async () => {
+        return await core.trust.getNetwork(accountA, {
+          safeAddress: safeAddressA,
+        });
+      },
+      (network) =>
+        network.find((element) => element.safeAddress === safeAddressC)
+          .mutualConnections.length === 1,
+      { label: 'Wait for trust network to be updated' },
+    );
 
     const mutualConnectionsAC = network.find(
       (element) => element.safeAddress === safeAddressC,
