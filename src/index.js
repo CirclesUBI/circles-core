@@ -117,13 +117,12 @@ export default class CirclesCore {
     // Create common utils for submodules
     /** @type {Object} - utils module */
     this.utils = createUtilsModule(web3, this.contracts, this.options);
+    // Create submodules
 
-    // Create submodules and pass utils and options to them
     /** @type {Object} - activity module */
     this.activity = createActivityModule(this);
     /** @type {Object} - news module */
     this.news = createNewsModule(this.utils);
-
     /** @type {Object} - safe module */
     this.safe = createSafeModule(this);
     /** @type {Object} - trust module */

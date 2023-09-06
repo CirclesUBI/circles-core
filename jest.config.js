@@ -16,6 +16,7 @@ module.exports = {
     '**/organization.test.js',
     '**/user.test.js',
     '**/utils.test.js',
+    '**/activity.test.js',
   ],
   testTimeout: 30 * 1000,
   verbose: true,

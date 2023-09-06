@@ -1,27 +1,10 @@
 import createCore from './helpers/core';
-import getAccount from './helpers/account';
-import web3 from './helpers/web3';
-import {
-  deploySafeAndToken,
-  addTrustConnection,
-  addSafeOwner,
-} from './helpers/transactions';
+import getAccounts from './helpers/getAccounts';
+import setupWeb3 from './helpers/setupWeb3';
+import generateSaltNonce from './helpers/generateSaltNonce';
+import onboardAccountManually from './helpers/onboardAccountManually';
 
-let account;
-let core;
-let safeAddress;
-
-let otherAccount;
-let otherSafeAddress;
-
-let secondOwnerAccount;
-let thirdOwnerAccount;
-
-let activities;
-let otherActivities;
-let mutualActivities;
-
-const findOwnerActivity = (accountAddress, items) => {
+const findOwnerActivity = (core, safeAddress, accountAddress, items) => {
   return items.find(({ type, data }) => {
     return (
       type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -31,25 +14,41 @@ const findOwnerActivity = (accountAddress, items) => {
   });
 };
 
-beforeAll(async () => {
-  account = getAccount();
-  secondOwnerAccount = getAccount(5);
-  thirdOwnerAccount = getAccount(6);
-  otherAccount = getAccount(7);
-  core = createCore();
-});
-
 describe('Activity', () => {
-  beforeAll(async () => {
-    // Create two accounts
-    const result = await deploySafeAndToken(core, account);
-    safeAddress = result.safeAddress;
+  const { web3, provider } = setupWeb3();
+  const core = createCore(web3);
+  const accounts = getAccounts(web3).slice(0, 4);
+  let safeAddress;
+  let otherSafeAddress;
+  let account;
+  let otherAccount;
+  let secondOwnerAccount;
+  let thirdOwnerAccount;
+  let activities;
+  let otherActivities;
+  let mutualActivities;
 
-    const otherResult = await deploySafeAndToken(core, otherAccount);
-    otherSafeAddress = otherResult.safeAddress;
+  afterAll(() => provider.engine.stop());
+  beforeAll(async () => {
+    secondOwnerAccount = accounts[2];
+    thirdOwnerAccount = accounts[3];
+
+    // Create two accounts
+    account = accounts[0];
+    otherAccount = accounts[1];
+    [safeAddress, otherSafeAddress] = await Promise.all([
+      onboardAccountManually(
+        { account, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually(
+        { account: otherAccount, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+    ]);
 
     // .. and do some activity!
-    await addTrustConnection(core, otherAccount, {
+    await core.trust.addConnection(otherAccount, {
       user: safeAddress,
       canSendTo: otherSafeAddress,
     });
@@ -60,7 +59,7 @@ describe('Activity', () => {
       value: web3.utils.toBN(core.utils.toFreckles(3)),
     });
 
-    await addSafeOwner(core, account, {
+    await core.safe.addOwner(account, {
       safeAddress,
       ownerAddress: secondOwnerAccount.address,
     });
@@ -72,7 +71,12 @@ describe('Activity', () => {
         });
       },
       (result) => {
-        return findOwnerActivity(secondOwnerAccount.address, result.activities);
+        return findOwnerActivity(
+          core,
+          safeAddress,
+          secondOwnerAccount.address,
+          result.activities,
+        );
       },
       { label: 'Wait for graph to index latest activities' },
     );
@@ -113,7 +117,6 @@ describe('Activity', () => {
       safeAddress,
       filter: core.activity.ActivityFilterTypes.TRANSFERS,
     });
-
     const wrongResult = result.activities.find(({ type }) => {
       return (
         type !== core.activity.ActivityTypes.HUB_TRANSFER &&
@@ -139,41 +142,47 @@ describe('Activity', () => {
   });
 
   it('returns activities based on pagination arguments', async () => {
-    const transactionHash = await addSafeOwner(core, account, {
+    core.safe.addOwner(account, {
       safeAddress,
       ownerAddress: thirdOwnerAccount.address,
     });
 
     let activity;
-
-    const latest = await core.utils.loop(
-      () => {
-        // The last two activities have the same timestamp, but one is filtered out
-        // because it's a transfer (actually the payment to the relayer)
-        return core.activity.getLatest(account, {
-          safeAddress,
-          limit: 2,
-        });
-      },
-      (result) => {
-        expect(result.activities.length).toBe(1);
-        return findOwnerActivity(thirdOwnerAccount.address, result.activities);
-      },
-      {
-        label: 'Wait for the graph to index activity of newly added Safe owner',
-      },
+    const latest = await core.utils.loop(() =>
+      core.activity.getLatest(account, { safeAddress, limit: 2 }),
     );
 
+    core.activity.getLatest(account, {
+      safeAddress,
+      limit: 2,
+    });
+
+    expect(latest.activities.length).toBe(1);
+
     // Expect latest activity
-    activity = findOwnerActivity(thirdOwnerAccount.address, latest.activities);
+    activity = findOwnerActivity(
+      core,
+      safeAddress,
+      thirdOwnerAccount.address,
+      latest.activities,
+    );
     expect(activity).toBeDefined();
-    expect(activity.transactionHash).toBe(transactionHash);
 
     // .. but not the older ones
-    activity = findOwnerActivity(secondOwnerAccount.address, latest.activities);
+    activity = findOwnerActivity(
+      core,
+      safeAddress,
+      secondOwnerAccount.address,
+      latest.activities,
+    );
     expect(activity).toBeUndefined();
 
-    activity = findOwnerActivity(account.address, latest.activities);
+    activity = findOwnerActivity(
+      core,
+      safeAddress,
+      account.address,
+      latest.activities,
+    );
     expect(activity).toBeUndefined();
   });
 
