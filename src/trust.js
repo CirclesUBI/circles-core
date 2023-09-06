@@ -82,72 +82,65 @@ export default function createTrustModule(web3, contracts, utils) {
     getNetwork: (account, userOptions) => {
       checkAccount(web3, account);
 
-      const options = checkOptions(userOptions, {
+      const { safeAddress } = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      const safeAddress = options.safeAddress.toLowerCase();
-
       return utils
-        .requestIndexedDB('trust_status', safeAddress)
+        .requestIndexedDB('trust_status', safeAddress.toLowerCase())
         .then(({ safe } = {}) => {
           let result = [];
 
           if (safe) {
-            // Create first network iteration with all addresses we trust, so after, we can select mutual trusts with them
-            const network = safe.incoming.reduce((acc, { userAddress }) => {
-              const checksumSafeAddress =
-                web3.utils.toChecksumAddress(userAddress);
-
-              return {
-                [checksumSafeAddress]: {
-                  safeAddress: checksumSafeAddress,
-                  mutualConnections: [],
-                  isIncoming: true,
-                  isOutgoing: false,
-                },
-                ...acc,
-              };
-            }, {});
-
-            // Add to network safes that trust us
-            safe.outgoing.forEach(({ canSendToAddress }) => {
-              const checksumSafeAddress =
-                web3.utils.toChecksumAddress(canSendToAddress);
-
-              // If it does not exist in the network yet, create it
-              if (!network[checksumSafeAddress]) {
-                network[checksumSafeAddress] = {
-                  safeAddress: checksumSafeAddress,
-                  mutualConnections: [],
-                  isIncoming: false,
-                };
-              }
-
-              network[checksumSafeAddress].isOutgoing = true;
-            });
-
-            // Select mutual connections between safe trusts and trusts of safe trusts
-            safe.incoming.forEach(({ userAddress, user }) => {
-              const checksumSafeAddress =
-                web3.utils.toChecksumAddress(userAddress);
-
-              if (user) {
-                network[checksumSafeAddress].mutualConnections.push(
-                  ...user.incoming.reduce((acc, curr) => {
-                    const target = web3.utils.toChecksumAddress(
-                      curr.userAddress,
-                    );
-
-                    return curr.userAddress !== userAddress && target
-                      ? [...acc, target]
-                      : acc;
-                  }, []),
+            const connections = [...safe.incoming, ...safe.outgoing];
+            // Create first the connections network object with safes we trust and safes that trust us
+            const network = connections.reduce(
+              (acc, { canSendToAddress, userAddress }) => {
+                const checksumSafeAddress = web3.utils.toChecksumAddress(
+                  canSendToAddress || userAddress,
                 );
-              }
-            });
+                // If the connection already exists in the network, use its values to overwrite new info
+                const { isIncoming, isOutgoing } =
+                  acc[checksumSafeAddress] || {};
+
+                return {
+                  ...acc,
+                  [checksumSafeAddress]: {
+                    safeAddress: checksumSafeAddress,
+                    isIncoming: isIncoming || !!userAddress,
+                    isOutgoing: isOutgoing || !!canSendToAddress,
+                  },
+                };
+              },
+              {},
+            );
+
+            // Select mutual connections between our related safes and safes they trust
+            connections.forEach(
+              ({ canSendTo, canSendToAddress, user, userAddress }) => {
+                const safe = canSendTo || user;
+                const safeAddress = canSendToAddress || userAddress;
+                const checksumSafeAddress =
+                  web3.utils.toChecksumAddress(safeAddress);
+
+                // Calculate mutual connections if they do not exist yet
+                if (safe && !network[checksumSafeAddress].mutualConnections) {
+                  network[checksumSafeAddress].mutualConnections =
+                    safe.incoming.reduce((acc, curr) => {
+                      const target = web3.utils.toChecksumAddress(
+                        curr.userAddress,
+                      );
+
+                      // If it is a mutual connection and is not self
+                      return network[target] && curr.userAddress !== safeAddress
+                        ? [...acc, target]
+                        : acc;
+                    }, []);
+                }
+              },
+            );
 
             result = Object.values(network);
           }
