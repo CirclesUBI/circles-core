@@ -72,12 +72,13 @@ export default function createTrustModule(web3, contracts, utils) {
     },
 
     /**
-     * Get a Safe trust status
+     * Get a Safe trust network with mutual trusts connections.
+     * The network is created based on the people the safe trusts (incoming) and the people that trust this Safe (outgoing)
      * @namespace core.trust.getNetwork
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
-     * @return {Object} Trust status
+     * @return {Object} Safe trust network
      */
     getNetwork: (account, userOptions) => {
       checkAccount(web3, account);
