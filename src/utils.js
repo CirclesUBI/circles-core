@@ -6,15 +6,13 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+import { CALL_OP, NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import {
   formatTypedData,
   formatTypedDataCRCVersion,
   signTypedData,
 } from '~/common/typedData';
 import { getTokenContract, getSafeContract } from '~/common/getContracts';
-
-const NO_LIMIT_PERCENTAGE = 0;
 
 /** @access private */
 const transactionQueue = new TransactionQueue();

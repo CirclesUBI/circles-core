@@ -1,11 +1,11 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-
-const DEFAULT_USER_LIMIT_PERCENTAGE = 100;
-const DEFAULT_ORG_LIMIT_PERCENTAGE = 100;
-
-const DEFAULT_TRUST_LIMIT = 3;
-const NO_LIMIT_PERCENTAGE = 0;
+import {
+  DEFAULT_ORG_LIMIT_PERCENTAGE,
+  DEFAULT_TRUST_LIMIT,
+  DEFAULT_USER_LIMIT_PERCENTAGE,
+  NO_LIMIT_PERCENTAGE,
+} from './common/constants';
 
 /**
  * Trust submodule to add and remove trust connections.
