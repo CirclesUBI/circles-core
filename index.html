@@ -5149,8 +5149,8 @@ an amount of Circles.</p>
   </div>
   
 
-  <p>Get the current state of a users trust network, containing
-data to find transfer path between users.</p>
+  <p>Get a Safe trust network with mutual trusts connections.
+The network is created based on the people the safe trusts (incoming) and the people that trust this Safe (outgoing)</p>
 
     <div class='pre p1 fill-light mt0'>core.trust.getNetwork</div>
   
@@ -5219,7 +5219,7 @@ data to find transfer path between users.</p>
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
       <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>:
-        Trust network state
+        Safe trust network
 
       
     
