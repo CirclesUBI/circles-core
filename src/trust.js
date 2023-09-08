@@ -1,11 +1,11 @@
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
-
-const DEFAULT_USER_LIMIT_PERCENTAGE = 100;
-const DEFAULT_ORG_LIMIT_PERCENTAGE = 100;
-
-const DEFAULT_TRUST_LIMIT = 3;
-const NO_LIMIT_PERCENTAGE = 0;
+import {
+  DEFAULT_ORG_LIMIT_PERCENTAGE,
+  DEFAULT_TRUST_LIMIT,
+  DEFAULT_USER_LIMIT_PERCENTAGE,
+  NO_LIMIT_PERCENTAGE,
+} from './common/constants';
 
 /**
  * Trust submodule to add and remove trust connections.
@@ -72,161 +72,82 @@ export default function createTrustModule(web3, contracts, utils) {
     },
 
     /**
-     * Get the current state of a users trust network, containing
-     * data to find transfer path between users.
-     *
+     * Get a Safe trust network with mutual trusts connections.
+     * The network is created based on the people the safe trusts (incoming) and the people that trust this Safe (outgoing)
      * @namespace core.trust.getNetwork
-     *
      * @param {Object} account - web3 account instance
      * @param {Object} userOptions - options
      * @param {string} userOptions.safeAddress - Safe address of user
-     *
-     * @return {Object} Trust network state
+     * @return {Object} Safe trust network
      */
-    getNetwork: async (account, userOptions) => {
+    getNetwork: (account, userOptions) => {
       checkAccount(web3, account);
 
-      const options = checkOptions(userOptions, {
+      const { safeAddress } = checkOptions(userOptions, {
         safeAddress: {
           type: web3.utils.checkAddressChecksum,
         },
       });
 
-      const safeAddress = options.safeAddress.toLowerCase();
+      return utils
+        .requestIndexedDB('trust_status', safeAddress.toLowerCase())
+        .then(({ safe } = {}) => {
+          let result = [];
 
-      const response = await utils.requestIndexedDB(
-        'trust_limits',
-        safeAddress,
-      );
+          if (safe) {
+            const connections = [...safe.incoming, ...safe.outgoing];
+            // Create first the connections network object with safes we trust and safes that trust us
+            const network = connections.reduce(
+              (acc, { canSendToAddress, userAddress }) => {
+                const checksumSafeAddress = web3.utils.toChecksumAddress(
+                  canSendToAddress || userAddress,
+                );
+                // If the connection already exists in the network, use its values to overwrite new info
+                const { isIncoming, isOutgoing } =
+                  acc[checksumSafeAddress] || {};
 
-      if (!response || response.safe === null) {
-        // Fail silently with empty response / no trust connections when Safe
-        // does not exist yet
-        return [];
-      }
+                return {
+                  ...acc,
+                  [checksumSafeAddress]: {
+                    safeAddress: checksumSafeAddress,
+                    isIncoming: isIncoming || !!userAddress,
+                    isOutgoing: isOutgoing || !!canSendToAddress,
+                  },
+                };
+              },
+              {},
+            );
 
-      // Find mutual trust connections by comparing incoming addresses with
-      // outgoing ones of other users
-      const incomingAddresses = response.safe.incoming.map(
-        ({ userAddress }) => {
-          return web3.utils.toChecksumAddress(userAddress);
-        },
-      );
+            // Select mutual connections between our related safes and safes they trust
+            connections.forEach(
+              ({ canSendTo, canSendToAddress, user, userAddress }) => {
+                const safe = canSendTo || user;
+                const safeAddress = canSendToAddress || userAddress;
+                const checksumSafeAddress =
+                  web3.utils.toChecksumAddress(safeAddress);
 
-      const mutualFriendsMap = response.safe.incoming.reduce((acc, item) => {
-        const userAddress = web3.utils.toChecksumAddress(item.userAddress);
+                // Calculate mutual connections if they do not exist yet
+                if (safe && !network[checksumSafeAddress].mutualConnections) {
+                  network[checksumSafeAddress].mutualConnections =
+                    safe.incoming.reduce((acc, curr) => {
+                      const target = web3.utils.toChecksumAddress(
+                        curr.userAddress,
+                      );
 
-        if (!(userAddress in acc)) {
-          acc[userAddress] = [];
-        }
+                      // If it is a mutual connection and is not self
+                      return network[target] && curr.userAddress !== safeAddress
+                        ? [...acc, target]
+                        : acc;
+                    }, []);
+                }
+              },
+            );
 
-        if (!item.user) {
-          return acc;
-        }
-
-        item.user.outgoing.forEach((outgoingItem) => {
-          const canSendToAddress = web3.utils.toChecksumAddress(
-            outgoingItem.canSendToAddress,
-          );
-
-          const limitPercentage = parseInt(outgoingItem.limitPercentage, 10);
-
-          if (
-            incomingAddresses.includes(canSendToAddress) && // Is trusted by us
-            limitPercentage !== NO_LIMIT_PERCENTAGE && // Has trust
-            canSendToAddress !== userAddress && // Filter user trusting itself
-            canSendToAddress !== options.safeAddress // Filter user trusted by us
-          ) {
-            acc[userAddress].push(canSendToAddress);
+            result = Object.values(network);
           }
+
+          return result;
         });
-
-        return acc;
-      }, {});
-
-      return []
-        .concat(response.safe.incoming)
-        .concat(response.safe.outgoing)
-        .reduce((acc, connection) => {
-          const limitPercentage = parseInt(connection.limitPercentage, 10);
-
-          if (limitPercentage === NO_LIMIT_PERCENTAGE) {
-            return acc;
-          }
-
-          const userAddress = web3.utils.toChecksumAddress(
-            connection.userAddress,
-          );
-
-          const canSendToAddress = web3.utils.toChecksumAddress(
-            connection.canSendToAddress,
-          );
-
-          // Filter connections to ourselves
-          if (userAddress === canSendToAddress) {
-            return acc;
-          }
-
-          // Merge incoming and outgoing connections
-          if (userAddress === options.safeAddress) {
-            acc.push({
-              isIncoming: false,
-              isOutgoing: true,
-              limitPercentageIn: NO_LIMIT_PERCENTAGE,
-              limitPercentageOut: limitPercentage,
-              mutualConnections: mutualFriendsMap[canSendToAddress] || [],
-              safeAddress: canSendToAddress,
-            });
-          } else if (canSendToAddress === options.safeAddress) {
-            acc.push({
-              isIncoming: true,
-              isOutgoing: false,
-              limitPercentageIn: limitPercentage,
-              limitPercentageOut: NO_LIMIT_PERCENTAGE,
-              mutualConnections: mutualFriendsMap[userAddress] || [],
-              safeAddress: userAddress,
-            });
-          }
-
-          return acc;
-        }, [])
-        .reduce((acc, connection) => {
-          // Find duplicates ...
-          const index = acc.findIndex((item) => {
-            return item.safeAddress === connection.safeAddress;
-          });
-
-          // ... and merge them
-          if (index > -1) {
-            const {
-              isIncoming,
-              isOutgoing,
-              limitPercentageIn,
-              limitPercentageOut,
-              mutualConnections,
-              safeAddress,
-            } = acc[index];
-
-            acc[index] = {
-              isIncoming: connection.isIncoming || isIncoming,
-              isOutgoing: connection.isOutgoing || isOutgoing,
-              limitPercentageIn:
-                connection.limitPercentageIn + limitPercentageIn,
-              limitPercentageOut:
-                connection.limitPercentageOut + limitPercentageOut,
-              mutualConnections: mutualConnections.concat(
-                connection.mutualConnections.filter((item) => {
-                  return !mutualConnections.includes(item);
-                }),
-              ),
-              safeAddress,
-            };
-          } else {
-            acc.push(connection);
-          }
-
-          return acc;
-        }, []);
     },
 
     /**

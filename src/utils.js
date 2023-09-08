@@ -6,7 +6,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, ZERO_ADDRESS } from '~/common/constants';
+import { CALL_OP, NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import {
   formatTypedData,
   formatTypedDataCRCVersion,
@@ -191,8 +191,8 @@ async function requestIndexedDB(
         parameters,
       );
       break;
-    case 'trust_limits':
-      response = getTrustLimitsStatus(
+    case 'trust_status':
+      response = getTrustStatus(
         graphNodeEndpoint,
         subgraphName,
         databaseSource,
@@ -349,7 +349,7 @@ function getTrustNetworkStatus(
   return requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
-function getTrustLimitsStatus(
+function getTrustStatus(
   graphNodeEndpoint,
   subgraphName,
   databaseSource,
@@ -362,21 +362,21 @@ function getTrustLimitsStatus(
       query = {
         query: `{
           safe(id: "${safeAddress}") {
-            outgoing (first: 1000) {
-              limitPercentage
-              userAddress
+            outgoing (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" canSendToAddress_not: "${safeAddress}" }) {
               canSendToAddress
-            }
-            incoming (first: 1000) {
-              limitPercentage
-              userAddress
-              user {
-                outgoing (first: 1000) {
-                  canSendToAddress
-                  limitPercentage
+              canSendTo {
+                incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}"}) {
+                  userAddress
                 }
               }
-              canSendToAddress
+            }
+            incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" userAddress_not: "${safeAddress}" }) {
+              userAddress
+              user {
+                incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}"}) {
+                  userAddress
+                }
+              }
             }
           }
         }`,
