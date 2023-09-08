@@ -8,11 +8,11 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
-import createOrganizationModule from '~/organization';
+// import createOrganizationModule from '~/organization';
 import createSafeModule from '~/safe';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
-import createUserModule from '~/user';
+// import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
 /**
@@ -121,11 +121,11 @@ export default class CirclesCore {
     /** @type {Object} - activity module */
     this.activity = createActivityModule(web3, this.contracts, this.utils);
     /** @type {Object} - organization module */
-    this.organization = createOrganizationModule(
-      web3,
-      this.contracts,
-      this.utils,
-    );
+    // this.organization = createOrganizationModule(
+    //   web3,
+    //   this.contracts,
+    //   this.utils,
+    // );
     /** @type {Object} - safe module */
     this.safe = createSafeModule(this);
     /** @type {Object} - trust module */
@@ -133,6 +133,6 @@ export default class CirclesCore {
     /** @type {Object} - token module */
     this.token = createTokenModule(this);
     /** @type {Object} - user module */
-    this.user = createUserModule(web3, this.contracts, this.utils);
+    // this.user = createUserModule(web3, this.contracts, this.utils);
   }
 }
