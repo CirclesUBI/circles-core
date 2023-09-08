@@ -1,15 +1,14 @@
 import { execSync } from 'child_process';
 
 import createCore from './helpers/core';
+import setupWeb3 from './helpers/setupWeb3';
 import CoreError from '~/common/error';
 
-let core;
-
-beforeAll(async () => {
-  core = createCore();
-});
-
 describe('News - get latest items', () => {
+  const { web3, provider } = setupWeb3();
+  let core = createCore(web3);
+
+  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     execSync(
       `docker exec  circles-db psql -U postgres -d api -c "insert into news (message_en, date, \\"iconId\\", \\"isActive\\") values

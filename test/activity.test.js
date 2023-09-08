@@ -148,16 +148,26 @@ describe('Activity', () => {
     });
 
     let activity;
-    const latest = await core.utils.loop(() =>
-      core.activity.getLatest(account, { safeAddress, limit: 2 }),
+    const latest = await core.utils.loop(
+      () => {
+        return core.activity.getLatest(account, {
+          safeAddress,
+          limit: 2,
+        });
+      },
+      (result) => {
+        expect(result.activities.length).toBe(2);
+        return findOwnerActivity(
+          core,
+          safeAddress,
+          thirdOwnerAccount.address,
+          result.activities,
+        );
+      },
+      {
+        label: 'Wait for the graph to index activity of newly added Safe owner',
+      },
     );
-
-    core.activity.getLatest(account, {
-      safeAddress,
-      limit: 2,
-    });
-
-    expect(latest.activities.length).toBe(1);
 
     // Expect latest activity
     activity = findOwnerActivity(
