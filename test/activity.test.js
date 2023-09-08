@@ -18,24 +18,19 @@ describe('Activity', () => {
   const { web3, provider } = setupWeb3();
   const core = createCore(web3);
   const accounts = getAccounts(web3).slice(0, 4);
+  // Create two accounts
+  const account = accounts[0];
+  const otherAccount = accounts[1];
+  const secondOwnerAccount = accounts[2];
+  const thirdOwnerAccount = accounts[3];
   let safeAddress;
   let otherSafeAddress;
-  let account;
-  let otherAccount;
-  let secondOwnerAccount;
-  let thirdOwnerAccount;
   let activities;
   let otherActivities;
   let mutualActivities;
 
   afterAll(() => provider.engine.stop());
   beforeAll(async () => {
-    secondOwnerAccount = accounts[2];
-    thirdOwnerAccount = accounts[3];
-
-    // Create two accounts
-    account = accounts[0];
-    otherAccount = accounts[1];
     [safeAddress, otherSafeAddress] = await Promise.all([
       onboardAccountManually(
         { account, nonce: generateSaltNonce() },
@@ -48,23 +43,32 @@ describe('Activity', () => {
     ]);
 
     // .. and do some activity!
-    await core.trust.addConnection(otherAccount, {
-      user: safeAddress,
-      canSendTo: otherSafeAddress,
-    });
+    await core.trust
+      .addConnection(otherAccount, {
+        user: safeAddress,
+        canSendTo: otherSafeAddress,
+      })
+      .then(() =>
+        core.token.transfer(account, {
+          from: safeAddress,
+          to: otherSafeAddress,
+          value: web3.utils.toBN(core.utils.toFreckles(3)),
+        }),
+      )
+      .then(() =>
+        core.safe.addOwner(account, {
+          safeAddress,
+          ownerAddress: secondOwnerAccount.address,
+        }),
+      )
+      .then(() =>
+        core.safe.addOwner(account, {
+          safeAddress,
+          ownerAddress: thirdOwnerAccount.address,
+        }),
+      );
 
-    await core.token.transfer(account, {
-      from: safeAddress,
-      to: otherSafeAddress,
-      value: web3.utils.toBN(core.utils.toFreckles(3)),
-    });
-
-    await core.safe.addOwner(account, {
-      safeAddress,
-      ownerAddress: secondOwnerAccount.address,
-    });
-
-    await core.utils.loop(
+    const latest = await core.utils.loop(
       () => {
         return core.activity.getLatest(account, {
           safeAddress,
@@ -74,7 +78,7 @@ describe('Activity', () => {
         return findOwnerActivity(
           core,
           safeAddress,
-          secondOwnerAccount.address,
+          account.address,
           result.activities,
         );
       },
@@ -82,10 +86,6 @@ describe('Activity', () => {
     );
 
     // Get activities!
-    const latest = await core.activity.getLatest(account, {
-      safeAddress,
-    });
-
     activities = latest.activities;
 
     const otherLatest = await core.activity.getLatest(otherAccount, {
@@ -127,14 +127,14 @@ describe('Activity', () => {
     expect(wrongResult).toBeUndefined();
   });
 
-  it('returns mutual activities connected with transfer action', async () => {
+  it('returns mutual activities connected with transfer action', () => {
     const foundTransferItems = mutualActivities.filter(
       (item) => item.type === core.activity.ActivityTypes.HUB_TRANSFER,
     );
     expect(foundTransferItems.length).toEqual(1);
   });
 
-  it('returns mutual activities connected with trust action', async () => {
+  it('returns mutual activities connected with trust action', () => {
     const foundTrustItems = mutualActivities.filter(
       (item) => item.type === core.activity.ActivityTypes.ADD_CONNECTION,
     );
@@ -142,32 +142,11 @@ describe('Activity', () => {
   });
 
   it('returns activities based on pagination arguments', async () => {
-    core.safe.addOwner(account, {
-      safeAddress,
-      ownerAddress: thirdOwnerAccount.address,
-    });
-
     let activity;
-    const latest = await core.utils.loop(
-      () => {
-        return core.activity.getLatest(account, {
-          safeAddress,
-          limit: 2,
-        });
-      },
-      (result) => {
-        expect(result.activities.length).toBe(2);
-        return findOwnerActivity(
-          core,
-          safeAddress,
-          thirdOwnerAccount.address,
-          result.activities,
-        );
-      },
-      {
-        label: 'Wait for the graph to index activity of newly added Safe owner',
-      },
-    );
+    const latest = await core.activity.getLatest(account, {
+      safeAddress,
+      limit: 2,
+    });
 
     // Expect latest activity
     activity = findOwnerActivity(
@@ -185,7 +164,7 @@ describe('Activity', () => {
       secondOwnerAccount.address,
       latest.activities,
     );
-    expect(activity).toBeUndefined();
+    expect(activity).toBeDefined();
 
     activity = findOwnerActivity(
       core,
@@ -196,7 +175,7 @@ describe('Activity', () => {
     expect(activity).toBeUndefined();
   });
 
-  it('returns the first added owner event', async () => {
+  it('returns the first added owner event', () => {
     const activity = activities.find(({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -208,7 +187,7 @@ describe('Activity', () => {
     expect(activity).toBeDefined();
   });
 
-  it('returns the second added owner event', async () => {
+  it('returns the second added owner event', () => {
     const activity = activities.find(({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -220,7 +199,7 @@ describe('Activity', () => {
     expect(activity).toBeDefined();
   });
 
-  it('returns the trust event for both Safes', async () => {
+  it('returns the trust event for both Safes', () => {
     const query = ({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.ADD_CONNECTION &&
@@ -233,7 +212,7 @@ describe('Activity', () => {
     expect(otherActivities.find(query)).toBeDefined();
   });
 
-  it('returns the hub transfer event for both Safes', async () => {
+  it('returns the hub transfer event for both Safes', () => {
     const query = ({ type, data }) => {
       return (
         type === core.activity.ActivityTypes.HUB_TRANSFER &&
