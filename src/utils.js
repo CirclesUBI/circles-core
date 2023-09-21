@@ -559,7 +559,12 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         {
           query: `{
             safe(id: "${safeAddress.toLowerCase()}") {
-              balances(first: 1000) {
+              balances(
+              first: 1000
+              orderBy: amount
+              orderDirection: desc
+              where: {amount_not: "0"} )
+                {
                 token {
                   id
                   owner {
