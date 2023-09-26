@@ -8,6 +8,6 @@ module.exports = {
     '^~(.*)$': '<rootDir>/src$1',
   },
   testEnvironment: 'node',
-  testTimeout: 30 * 1000,
+  testTimeout: 60 * 1000,
   verbose: true,
 };

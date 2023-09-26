@@ -31,16 +31,14 @@ describe('Activity', () => {
 
   afterAll(() => provider.engine.stop());
   beforeAll(async () => {
-    [safeAddress, otherSafeAddress] = await Promise.all([
-      onboardAccountManually(
-        { account, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
-      onboardAccountManually(
-        { account: otherAccount, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
-    ]);
+    safeAddress = await onboardAccountManually(
+      { account, nonce: generateSaltNonce() },
+      core,
+    ).then(({ safeAddress }) => safeAddress);
+    otherSafeAddress = await onboardAccountManually(
+      { account: otherAccount, nonce: generateSaltNonce() },
+      core,
+    ).then(({ safeAddress }) => safeAddress);
 
     // .. and do some activity!
     await core.trust
