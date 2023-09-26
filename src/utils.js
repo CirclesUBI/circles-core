@@ -364,17 +364,12 @@ function getTrustStatus(
           safe(id: "${safeAddress}") {
             outgoing (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" canSendToAddress_not: "${safeAddress}" }) {
               canSendToAddress
-              canSendTo {
-                incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}"}) {
-                  userAddress
-                }
-              }
             }
             incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" userAddress_not: "${safeAddress}" }) {
               userAddress
               user {
-                incoming (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}"}) {
-                  userAddress
+                outgoing (first: 1000 where: { limitPercentage_not: "${NO_LIMIT_PERCENTAGE}" }) {
+                  canSendToAddress
                 }
               }
             }
