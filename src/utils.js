@@ -377,7 +377,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     relayServiceEndpoint,
     subgraphName,
   } = globalOptions;
-
   const { hub } = contracts;
 
   // Get a list of all Circles Token owned by this address to find out with
