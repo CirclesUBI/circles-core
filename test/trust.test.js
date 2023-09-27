@@ -6,22 +6,27 @@ import { deploySafeAndToken } from './helpers/transactions';
 
 let accountA;
 let accountB;
-let accountC;
-let accountD;
-let accountSW;
+let accountMe;
+let accountTrustee;
+let accountTruster;
+let accountMutualTrust;
+let accountNoTrust;
 let core;
 let safeAddressA;
 let safeAddressB;
-let safeAddressC;
-let safeAddressD;
-let safeAddressSW;
+let safeAddressMe;
+let safeAddressTrustee;
+let safeAddressTruster;
+let safeAddressMutualTrust;
+let safeAddressNoTrust;
+let network;
 
 beforeAll(async () => {
   accountA = getAccount();
   accountB = getAccount(3);
-  accountC = getAccount(5);
-  accountD = getAccount(6);
-  accountSW = getAccount(7);
+  accountMe = getAccount(5);
+  accountTrustee = getAccount(6);
+  accountTruster = getAccount(7);
   core = createCore();
 });
 
@@ -30,22 +35,9 @@ describe('Trust', () => {
     Promise.all([
       deploySafeAndToken(core, accountA),
       deploySafeAndToken(core, accountB),
-      deploySafeAndToken(core, accountC),
-      deploySafeAndToken(core, accountD),
-      deploySafeAndToken(core, accountSW),
     ]).then((result) => {
       safeAddressA = result[0].safeAddress;
       safeAddressB = result[1].safeAddress;
-      safeAddressC = result[2].safeAddress;
-      safeAddressD = result[3].safeAddress;
-      safeAddressSW = result[4].safeAddress;
-      // console.log({
-      //   safeAddressA,
-      //   safeAddressB,
-      //   safeAddressC,
-      //   safeAddressD,
-      //   safeAddressSW,
-      // });
     }),
   );
 
@@ -151,111 +143,190 @@ describe('Trust', () => {
     expect(network.length).toBe(0);
   });
 
-  it('should generate a correct trust network for a safe', async () => {
-    // create initial network
-    // A trusts B
-    await core.trust.addConnection(accountA, {
-      user: safeAddressB,
-      canSendTo: safeAddressA,
-    });
-    // A trusts C
-    await core.trust.addConnection(accountA, {
-      user: safeAddressC,
-      canSendTo: safeAddressA,
-    });
-    // B trusts C
-    await core.trust.addConnection(accountB, {
-      user: safeAddressC,
-      canSendTo: safeAddressB,
-    });
-    // B trusts D
-    await core.trust.addConnection(accountB, {
-      user: safeAddressD,
-      canSendTo: safeAddressB,
-    });
-    // D trusts A
-    await core.trust.addConnection(accountD, {
-      user: safeAddressA,
-      canSendTo: safeAddressD,
-    });
-    // D trusts B
-    await core.trust.addConnection(accountD, {
-      user: safeAddressB,
-      canSendTo: safeAddressD,
-    });
-    // D trusts C
-    await core.trust.addConnection(accountD, {
-      user: safeAddressC,
-      canSendTo: safeAddressD,
-    });
-    // // SW trusts B
-    // await core.trust.addConnection(accountSW, {
-    //   user: safeAddressB,
-    //   canSendTo: safeAddressSW,
-    // });
-    // SW trusts A
-    await core.trust.addConnection(accountSW, {
-      user: safeAddressA,
-      canSendTo: safeAddressSW,
-    });
-    // SW trusts C
-    await core.trust.addConnection(accountSW, {
-      user: safeAddressC,
-      canSendTo: safeAddressSW,
-    });
-    // To represent a SW we have an account that only trusts others but no-one trusts them
-    await core.utils.loop(
-      () => getTrustConnection(core, accountB, safeAddressB, safeAddressA),
-      ({ mutualConnections }) => mutualConnections.length === 1,
-      { label: 'Wait for trust connection to be indexed by the Graph' },
+  describe('Network', () => {
+    beforeAll(() =>
+      Promise.all([
+        deploySafeAndToken(core, accountMe),
+        deploySafeAndToken(core, accountTrustee),
+        deploySafeAndToken(core, accountTruster),
+        deploySafeAndToken(core, accountMutualTrust),
+        deploySafeAndToken(core, accountNoTrust),
+      ]).then((result) => {
+        safeAddressMe = result[2].safeAddress;
+        safeAddressTrustee = result[3].safeAddress;
+        safeAddressTruster = result[4].safeAddress;
+        safeAddressMutualTrust = result[5].safeAddress;
+        safeAddressNoTrust = result[6].safeAddress;
+      }),
     );
-    await core.utils.loop(
-      () => getTrustConnection(core, accountB, safeAddressB, safeAddressD),
-      ({ mutualConnections }) => mutualConnections.length === 1,
-      { label: 'Wait for trust connection to be indexed by the Graph' },
-    );
-    // retrieve Safe B network
-    const network = await core.utils.loop(
-      () =>
-        core.trust.getNetwork(accountB, {
-          safeAddress: safeAddressB,
-        }),
-      (network) => network.length === 5,
-      { label: 'Wait for trust network to be updated' },
-    );
+    it('should create trust connections', async () => {
+      // create initial network
+      // Me trusts Trustee
+      await core.trust.addConnection(accountMe, {
+        user: safeAddressTrustee,
+        canSendTo: safeAddressMe,
+      });
+      // Truster trusts Me
+      await core.trust.addConnection(accountTruster, {
+        user: safeAddressMe,
+        canSendTo: safeAddressTruster,
+      });
+      // Me trust MutualTrust
+      await core.trust.addConnection(accountMe, {
+        user: safeAddressMutualTrust,
+        canSendTo: safeAddressMe,
+      });
+      // MutualTrust trusts Me
+      await core.trust.addConnection(accountMutualTrust, {
+        user: safeAddressMe,
+        canSendTo: safeAddressMutualTrust,
+      });
+      // Truster trusts A
+      await core.trust.addConnection(accountTruster, {
+        user: safeAddressA,
+        canSendTo: safeAddressTruster,
+      });
+      // Truster trusts B
+      await core.trust.addConnection(accountTruster, {
+        user: safeAddressB,
+        canSendTo: safeAddressTruster,
+      });
+      // Truster trusts Trustee
+      await core.trust.addConnection(accountTruster, {
+        user: safeAddressTrustee,
+        canSendTo: safeAddressTruster,
+      });
+      // Trustee trusts A
+      await core.trust.addConnection(accountTrustee, {
+        user: safeAddressA,
+        canSendTo: safeAddressTrustee,
+      });
+      // MutualTrust trusts A
+      await core.trust.addConnection(accountMutualTrust, {
+        user: safeAddressA,
+        canSendTo: safeAddressMutualTrust,
+      });
+      // NoTrust trusts A
+      await core.trust.addConnection(accountNoTrust, {
+        user: safeAddressA,
+        canSendTo: safeAddressNoTrust,
+      });
+      // NoTrust trusts B
+      await core.trust.addConnection(accountNoTrust, {
+        user: safeAddressB,
+        canSendTo: safeAddressNoTrust,
+      });
+      // B trusts NoTrust
+      await core.trust.addConnection(accountB, {
+        user: safeAddressNoTrust,
+        canSendTo: safeAddressB,
+      });
+    });
 
-    const connectionWithA = network.find(
-      (element) => element.safeAddress === safeAddressA,
-    );
-    const connectionWithC = network.find(
-      (element) => element.safeAddress === safeAddressC,
-    );
-    const connectionWithD = network.find(
-      (element) => element.safeAddress === safeAddressD,
-    );
-    const connectionWithSW = network.find(
-      (element) => element.safeAddress === safeAddressSW,
-    );
+    it('should generate a correct trust network for a safe', async () => {
+      // To represent a SW we have an account that only trusts others but no-one trusts them
+      // console.log("1")
+      // await core.utils.loop(
+      //   () => getTrustConnection(core, accountB, safeAddressB, safeAddressA),
+      //   ({ mutualConnections }) => mutualConnections.length === 1,
+      //   { label: 'Wait for trust connection to be indexed by the Graph' },
+      // );
+      // console.log("2")
+      // await core.utils.loop(
+      //   () => getTrustConnection(core, accountB, safeAddressB, safeAddressTrustee),
+      //   ({ mutualConnections }) => mutualConnections.length === 1,
+      //   { label: 'Wait for trust connection to be indexed by the Graph' },
+      // );
+      // console.log("3")
+      // retrieve Safe B network
+      network = await core.utils.loop(
+        () =>
+          core.trust.getNetwork(accountMe, {
+            safeAddress: safeAddressMe,
+          }),
+        (network) => network.length === 5,
+        { label: 'Wait for trust network to be updated' },
+      );
+      // one trust, one trustee, one dual trust, one account with mutual connection and self
+      expect(network.length).toBe(5);
+    });
 
-    // Check outgoing with mutual connections
-    expect(connectionWithA.isOutgoing).toBe(true);
-    expect(connectionWithA.isIncoming).toBe(false);
-    expect(connectionWithA.mutualConnections).toStrictEqual([safeAddressC]);
+    it('should generate a correct trust info for unconnected accounts', async () => {
+      const connectionWithA = network.find(
+        (element) => element.safeAddress === safeAddressA,
+      );
+      const connectionWithB = network.find(
+        (element) => element.safeAddress === safeAddressA,
+      );
+      expect(connectionWithA).toBe(null);
+      expect(connectionWithB).toBe(null);
+    });
 
-    // Check connection with no mutual connections
-    expect(connectionWithC.isOutgoing).toBe(false);
-    expect(connectionWithC.isIncoming).toBe(true);
-    expect(connectionWithC.mutualConnections.length).toBe(0);
+    it('should generate a correct trust info with own account', async () => {
+      const connectionWithMe = network.find(
+        (element) => element.safeAddress === safeAddressMe,
+      );
+      expect(connectionWithMe.isOutgoing).toBe(false);
+      expect(connectionWithMe.isIncoming).toBe(false);
+      expect(connectionWithMe.mutualConnections.length).toBe(4);
+      expect(connectionWithMe.mutualConnections).toContain([safeAddressA]);
+      expect(connectionWithMe.mutualConnections).toContain([safeAddressB]);
+      expect(connectionWithMe.mutualConnections).toContain([
+        safeAddressTrustee,
+      ]);
+      expect(connectionWithMe.mutualConnections).toContain([
+        safeAddressMutualTrust,
+      ]);
+    });
 
-    // Check outgoing/incoming with mutual connections
-    expect(connectionWithD.isOutgoing).toBe(true);
-    expect(connectionWithD.isIncoming).toBe(true);
-    expect(connectionWithD.mutualConnections.length).toBe(1);
-    //expect(connectionWithD.mutualConnections).toContain(safeAddressA);
-    expect(connectionWithD.mutualConnections).toContain(safeAddressC);
-    // Check outgoing with mutual connections
-    expect(connectionWithSW.isOutgoing).toBe(false);
-    expect(connectionWithSW.isIncoming).toBe(false);
-    //expect(connectionWithSW.mutualConnections).toStrictEqual([safeAddressA]);
+    it('should generate a correct trust info with a trustee', async () => {
+      const connectionWithTrustee = network.find(
+        (element) => element.safeAddress === safeAddressTrustee,
+      );
+      expect(connectionWithTrustee.isOutgoing).toBe(false);
+      expect(connectionWithTrustee.isIncoming).toBe(true);
+      expect(connectionWithTrustee.mutualConnections).toStrictEqual([
+        safeAddressA,
+      ]);
+    });
+
+    it('should generate a correct trust info with a truster', async () => {
+      const connectionWithTruster = network.find(
+        (element) => element.safeAddress === safeAddressTruster,
+      );
+
+      expect(connectionWithTruster.isOutgoing).toBe(true);
+      expect(connectionWithTruster.isIncoming).toBe(false);
+      expect(connectionWithTruster.mutualConnections.length).toBe(3);
+      expect(connectionWithTruster.mutualConnections).toContain([safeAddressA]);
+      expect(connectionWithTruster.mutualConnections).toContain([safeAddressB]);
+      expect(connectionWithTruster.mutualConnections).toContain([
+        safeAddressTrustee,
+      ]);
+    });
+
+    it('should generate a correct trust info with a truster who is also a trustee', async () => {
+      const connectionWithMutualTrust = network.find(
+        (element) => element.safeAddress === safeAddressMutualTrust,
+      );
+
+      expect(connectionWithMutualTrust.isOutgoing).toBe(true);
+      expect(connectionWithMutualTrust.isIncoming).toBe(true);
+      expect(connectionWithMutualTrust.mutualConnections).toStrictEqual([
+        safeAddressA,
+      ]);
+    });
+
+    it('should generate a correct trust info with an account that is neither directly trusted or directly trusting', async () => {
+      const connectionWithNoTrust = network.find(
+        (element) => element.safeAddress === safeAddressNoTrust,
+      );
+
+      expect(connectionWithNoTrust.isOutgoing).toBe(false);
+      expect(connectionWithNoTrust.isIncoming).toBe(false);
+      expect(connectionWithNoTrust.mutualConnections.length).toBe(2);
+      expect(connectionWithNoTrust.mutualConnections).toContain([safeAddressA]);
+      expect(connectionWithNoTrust.mutualConnections).toContain([safeAddressB]);
+    });
   });
 });
