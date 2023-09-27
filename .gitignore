@@ -1,5 +1,6 @@
 .env
 docs
-lib
+dist
 node_modules
 coverage
+.parcel-cache

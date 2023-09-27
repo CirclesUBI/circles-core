@@ -69,12 +69,12 @@ describe('Safe', () => {
     it('should throw error when trying to deploy twice with same nonce', () =>
       expect(() =>
         core.safe.deploySafe(accounts[0], { nonce }),
-      ).rejects.toThrow(SafeAlreadyDeployedError));
+      ).rejects.toThrow(SafeAlreadyDeployedError.message));
 
     it('should throw error when trying to deploy without minimun required trusts', () =>
       expect(() =>
         core.safe.deploySafe(accounts[0], { nonce: generateSaltNonce() }),
-      ).rejects.toThrow(SafeNotTrustError));
+      ).rejects.toThrow(SafeNotTrustError.message));
   });
 
   describe('when managing the owners of a Safe', () => {

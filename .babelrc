@@ -1,11 +1,5 @@
 {
-  "presets": ["@babel/preset-env"],
   "plugins": [
-    "add-module-exports",
-    "@babel/proposal-class-properties",
-    "@babel/proposal-object-rest-spread",
-    "@babel/transform-regenerator",
-    "@babel/transform-runtime",
     [
       "module-resolver",
       {
@@ -15,5 +9,10 @@
         }
       }
     ]
-  ]
+  ],
+  "env": {
+    "test": {
+      "presets": ["@babel/preset-env"]
+    }
+  }
 }
