@@ -111,7 +111,7 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
   return response.data;
 }
 
-async function requestIndexedDB(
+async function _requestIndexedDB(
   graphNodeEndpoint,
   subgraphName,
   databaseSource,
@@ -382,7 +382,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   // Get a list of all Circles Token owned by this address to find out with
   // which we can pay this transaction
-  async function listAllTokens(safeAddress) {
+  async function _listAllTokens(safeAddress) {
     const tokens = [];
 
     // Fetch token balance directly from Ethereum node to start with
@@ -447,198 +447,207 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     });
   }
 
+  /**
+   * Iterate on a request until a response condition is met and then, returns the response.
+   *
+   * @namespace core.utils.loop
+   *
+   * @param {function} request - request to iterate on
+   * @param {function} condition - condition function that checks if request will be call again
+   * @param {Object} [options] - options
+   * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
+   * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
+   * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
+   *
+   * @return {*} - response of the target request
+   */
+  loop;
+  /**
+   * Detect an Ethereum address in any string.
+   *
+   * @namespace core.utils.matchAddress
+   *
+   * @param {string} str - string
+   *
+   * @return {string} - Ethereum address or null
+   */
+  const matchAddress = (str) => {
+    const results = str.match(/0x[a-fA-F0-9]{40}/);
+
+    if (results && results.length > 0) {
+      return results[0];
+    } else {
+      return null;
+    }
+  };
+
+  /**
+   * Convert to fractional monetary unit of Circles
+   * named Freckles.
+   *
+   * @namespace core.utils.toFreckles
+   *
+   * @param {string|number} value - value in Circles
+   *
+   * @return {string} - value in Freckles
+   */
+  const toFreckles = (value) => {
+    return web3.utils.toWei(`${value}`, 'ether');
+  };
+
+  /**
+   * Convert from Freckles to Circles number.
+   *
+   * @namespace core.utils.fromFreckles
+   *
+   * @param {string|number} value - value in Freckles
+   *
+   * @return {number} - value in Circles
+   */
+  const fromFreckles = (value) => {
+    return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
+  };
+
+  /**
+   * Send a transaction though the relayer to be funded
+   * @namespace core.utils.sendTransaction
+   * @param {SponsoredCallRequest} data - gelato request payload data
+   * @param {string} data.target - address of the target smart contract
+   * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
+   * @return {RelayResponse} - gelato response
+   */
+  const sendTransaction = (data) =>
+    request(relayServiceEndpoint, {
+      path: ['transactions'],
+      method: 'POST',
+      isTrailingSlash: false,
+      data,
+    });
+
+  /**
+   * Query the Graph Node with GraphQL.
+   *
+   * @namespace core.utils.requestGraph
+   *
+   * @param {Object} userOptions - query options
+   * @param {string} userOptions.query - GraphQL query
+   * @param {Object} userOptions.variables - GraphQL variables
+   */
+  const requestGraph = async (userOptions) => {
+    return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
+  };
+
+  /**
+   * Query the Graph Node or Land Graph Node with GraphQL.
+   *
+   * @namespace core.utils.requestIndexedDB
+   *
+   * @param {string} data - data to obtain
+   * @param {Object} parameters - parameters needed for query
+   */
+  const requestIndexedDB = async (data, parameters) => {
+    return _requestIndexedDB(
+      graphNodeEndpoint,
+      subgraphName,
+      databaseSource,
+      data,
+      parameters,
+    );
+  };
+
+  /**
+   * Get a list of all tokens and their current balance a user owns. This can
+   * be used to find the right token for a transaction.
+   *
+   * @namespace core.utils.listAllTokens
+   *
+   * @param {Object} userOptions - query options
+   * @param {string} userOptions.safeAddress - address of Safe
+   *
+   * @return {Array} - List of tokens with current balance and address
+   */
+  const listAllTokens = async (userOptions) => {
+    const options = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return await _listAllTokens(options.safeAddress);
+  };
+
+  /**
+   * Make a request to the Circles server API.
+   *
+   * @namespace core.utils.requestAPI
+   *
+   * @param {Object} userOptions - API query options
+   * @param {string} userOptions.path - API route
+   * @param {string} userOptions.method - HTTP method
+   * @param {Object} userOptions.data - Request body (JSON)
+   *
+   * @return {Object} - API response
+   */
+  const requestAPI = async (userOptions) => {
+    const options = checkOptions(userOptions, {
+      path: {
+        type: 'array',
+      },
+      method: {
+        type: 'string',
+        default: 'GET',
+      },
+      data: {
+        type: 'object',
+        default: {},
+      },
+    });
+
+    return request(apiServiceEndpoint, {
+      data: options.data,
+      method: options.method,
+      path: ['api'].concat(options.path),
+    });
+  };
+
+  /**
+   * Make a request to the Circles server API.
+   *
+   * @namespace core.utils.requestPathfinderAPI
+   *
+   * @param {Object} userOptions - Pathfinder API query options
+   * @param {string} userOptions.method - HTTP method
+   * @param {Object} userOptions.data - Request body (JSON)
+   *
+   * @return {Object} - API response
+   */
+  const requestPathfinderAPI = async (userOptions) => {
+    const options = checkOptions(userOptions, {
+      method: {
+        type: 'string',
+        default: 'GET',
+      },
+      data: {
+        type: 'object',
+        default: {},
+      },
+    });
+    return request(pathfinderServiceEndpoint, {
+      data: options.data,
+      method: options.method,
+      path: [],
+      isTrailingSlash: false,
+    });
+  };
   return {
-    /**
-     * Iterate on a request until a response condition is met and then, returns the response.
-     *
-     * @namespace core.utils.loop
-     *
-     * @param {function} request - request to iterate on
-     * @param {function} condition - condition function that checks if request will be call again
-     * @param {Object} [options] - options
-     * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
-     * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
-     * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
-     *
-     * @return {*} - response of the target request
-     */
-    loop,
-    /**
-     * Detect an Ethereum address in any string.
-     *
-     * @namespace core.utils.matchAddress
-     *
-     * @param {string} str - string
-     *
-     * @return {string} - Ethereum address or null
-     */
-    matchAddress: (str) => {
-      const results = str.match(/0x[a-fA-F0-9]{40}/);
-
-      if (results && results.length > 0) {
-        return results[0];
-      } else {
-        return null;
-      }
-    },
-
-    /**
-     * Convert to fractional monetary unit of Circles
-     * named Freckles.
-     *
-     * @namespace core.utils.toFreckles
-     *
-     * @param {string|number} value - value in Circles
-     *
-     * @return {string} - value in Freckles
-     */
-    toFreckles: (value) => {
-      return web3.utils.toWei(`${value}`, 'ether');
-    },
-
-    /**
-     * Convert from Freckles to Circles number.
-     *
-     * @namespace core.utils.fromFreckles
-     *
-     * @param {string|number} value - value in Freckles
-     *
-     * @return {number} - value in Circles
-     */
-    fromFreckles: (value) => {
-      return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
-    },
-
-    /**
-     * Send a transaction though the relayer to be funded
-     * @namespace core.utils.sendTransaction
-     * @param {SponsoredCallRequest} data - gelato request payload data
-     * @param {string} data.target - address of the target smart contract
-     * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
-     * @return {RelayResponse} - gelato response
-     */
-    sendTransaction: (data) =>
-      request(relayServiceEndpoint, {
-        path: ['transactions'],
-        method: 'POST',
-        isTrailingSlash: false,
-        data,
-      }),
-
-    /**
-     * Query the Graph Node with GraphQL.
-     *
-     * @namespace core.utils.requestGraph
-     *
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.query - GraphQL query
-     * @param {Object} userOptions.variables - GraphQL variables
-     */
-    requestGraph: async (userOptions) => {
-      return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
-    },
-
-    /**
-     * Query the Graph Node or Land Graph Node with GraphQL.
-     *
-     * @namespace core.utils.requestIndexedDB
-     *
-     * @param {string} data - data to obtain
-     * @param {Object} parameters - parameters needed for query
-     */
-    requestIndexedDB: async (data, parameters) => {
-      return requestIndexedDB(
-        graphNodeEndpoint,
-        subgraphName,
-        databaseSource,
-        data,
-        parameters,
-      );
-    },
-
-    /**
-     * Get a list of all tokens and their current balance a user owns. This can
-     * be used to find the right token for a transaction.
-     *
-     * @namespace core.utils.listAllTokens
-     *
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.safeAddress - address of Safe
-     *
-     * @return {Array} - List of tokens with current balance and address
-     */
-    listAllTokens: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      return await listAllTokens(options.safeAddress);
-    },
-
-    /**
-     * Make a request to the Circles server API.
-     *
-     * @namespace core.utils.requestAPI
-     *
-     * @param {Object} userOptions - API query options
-     * @param {string} userOptions.path - API route
-     * @param {string} userOptions.method - HTTP method
-     * @param {Object} userOptions.data - Request body (JSON)
-     *
-     * @return {Object} - API response
-     */
-    requestAPI: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        path: {
-          type: 'array',
-        },
-        method: {
-          type: 'string',
-          default: 'GET',
-        },
-        data: {
-          type: 'object',
-          default: {},
-        },
-      });
-
-      return request(apiServiceEndpoint, {
-        data: options.data,
-        method: options.method,
-        path: ['api'].concat(options.path),
-      });
-    },
-
-    /**
-     * Make a request to the Circles server API.
-     *
-     * @namespace core.utils.requestPathfinderAPI
-     *
-     * @param {Object} userOptions - Pathfinder API query options
-     * @param {string} userOptions.method - HTTP method
-     * @param {Object} userOptions.data - Request body (JSON)
-     *
-     * @return {Object} - API response
-     */
-    requestPathfinderAPI: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        method: {
-          type: 'string',
-          default: 'GET',
-        },
-        data: {
-          type: 'object',
-          default: {},
-        },
-      });
-      return request(pathfinderServiceEndpoint, {
-        data: options.data,
-        method: options.method,
-        path: [],
-        isTrailingSlash: false,
-      });
-    },
+    matchAddress,
+    toFreckles,
+    sendTransaction,
+    requestGraph,
+    requestIndexedDB,
+    fromFreckles,
+    listAllTokens,
+    requestAPI,
+    requestPathfinderAPI,
   };
 }

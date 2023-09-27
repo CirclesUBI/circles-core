@@ -99,7 +99,6 @@ export default class CirclesCore {
         default: 30,
       },
     });
-
     // Expose error classes and constants
     /** @type {Error} - main error class */
     this.CoreError = CoreError;
@@ -116,9 +115,9 @@ export default class CirclesCore {
 
     // Create common utils for submodules
     /** @type {Object} - utils module */
-    this.utils = createUtilsModule(web3, this.contracts, this.options);
-    // Create submodules
+    this.utils = createUtilsModule(this);
 
+    // Create submodules
     /** @type {Object} - activity module */
     this.activity = createActivityModule(this);
     /** @type {Object} - news module */
