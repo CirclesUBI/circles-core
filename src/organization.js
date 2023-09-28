@@ -3,14 +3,12 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { ZERO_ADDRESS } from '~/common/constants';
 import { getTokenContract } from '~/common/getContracts';
-import loop from '~/common/loop';
 
 /**
- * Organization submodule to deploy and check organization accounts.
- *
+ * Organization module to manage organizations
  * @access private
  * @param {CirclesCore} context - CirclesCore instance
- * @return {Object} - organization module instance
+ * @return {Object} - Organization module instance
  */
 export default function createOrganizationModule({
   web3,
@@ -22,9 +20,7 @@ export default function createOrganizationModule({
 }) {
   /**
    * Create a new organization account (shared wallet)
-   *
    * @namespace core.organization.deploy
-   *
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - safe address of the organization
@@ -50,13 +46,10 @@ export default function createOrganizationModule({
 
   /**
    * Find out if address is an organization
-   *
    * @namespace core.organization.isOrganization
-   *
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - address
-   *
    * @return {boolean} - True if organization
    */
   const isOrganization = (account, userOptions) => {
@@ -79,10 +72,8 @@ export default function createOrganizationModule({
    * transfer Tokens from that user to the organization.
    *
    * This method only works if the user and the organization owner are the
-   * same as transactions are signed with the same private key.
-   *
+   * same as transactions are signed with the same private key
    * @namespace core.organization.prefund
-   *
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - user arguments
    * @param {string} userOptions.from - safe address of user who funds
@@ -135,14 +126,13 @@ export default function createOrganizationModule({
 
     // Create a 100% trust connection from the organization to the user as
     // the transfer will take place in reverse direction
-
     await trust.addConnection(account, {
       user: options.from,
       canSendTo: options.to,
     });
 
     // Wait for the trust connection to be effective
-    await loop(
+    await utils.loop(
       () => {
         return hub.methods.limits(options.to, options.from).call();
       },
@@ -172,19 +162,16 @@ export default function createOrganizationModule({
 
     return safe.sendTransaction(account, {
       safeAddress: options.from,
-      transactionData: { to: hub.options.address, data: txData },
+      transactionData: { to: hubAddress, data: txData },
     });
   };
 
   /**
    * Returns a list of organization members
-   *
    * @namespace core.organization.getMembers
-   *
    * @param {Object} account - web3 account instance
    * @param {Object} userOptions - user arguments
    * @param {string} userOptions.safeAddress - address of the organization
-   *
    * @return {Array} - list of members with connected safes and owner address
    */
   const getMembers = async (account, userOptions) => {
@@ -224,6 +211,7 @@ export default function createOrganizationModule({
       return acc;
     }, []);
   };
+
   return {
     deploy,
     isOrganization,

@@ -9,7 +9,6 @@ import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
-import loop from '~/common/loop';
 import safeContractAbis from '~/common/safeContractAbis';
 import { getSafeContract } from '~/common/getContracts';
 
@@ -610,7 +609,7 @@ export default function createSafeModule({
       });
 
       // Wait to check that the version is updated
-      safeVersion = await loop(
+      safeVersion = await utils.loop(
         () => _getVersion(safeAddress),
         (version) => version === SAFE_LAST_VERSION,
         { label: 'Waiting for CRC Safe to upgrade version' },

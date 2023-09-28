@@ -113,10 +113,9 @@ export default class CirclesCore {
     /** @type {Object} - smart contract instances */
     this.contracts = getContracts(web3, this.options);
 
-    // Create common utils for submodules
+    // Create modules
     /** @type {Object} - utils module */
-    this.utils = createUtilsModule(web3, this.contracts, this.options);
-    // Create submodules
+    this.utils = createUtilsModule(this);
     /** @type {Object} - activity module */
     this.activity = createActivityModule(this);
     /** @type {Object} - news module */

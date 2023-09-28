@@ -76,14 +76,11 @@ describe('Organization', () => {
     );
 
     const result = await core.utils.loop(
-      async () => {
-        return await core.token.listAllTokens(account, {
+      () =>
+        core.token.listAllTokens(account, {
           safeAddress,
-        });
-      },
-      (tokens) => {
-        return tokens.length > 0 && tokens[0].amount.eq(expectedValue);
-      },
+        }),
+      (tokens) => tokens.length > 0 && tokens[0].amount.eq(expectedValue),
       { label: 'Wait for organization to own some ether' },
     );
 

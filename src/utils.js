@@ -1,8 +1,7 @@
 import fetch from 'isomorphic-fetch';
 
-import { RequestError } from '~/common/error';
+import CoreError, { ErrorCodes, RequestError } from '~/common/error';
 import checkOptions from '~/common/checkOptions';
-import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
 import { NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import { getTokenContract } from '~/common/getContracts';
@@ -82,7 +81,7 @@ async function request(endpoint, userOptions) {
   }
 }
 
-async function requestGraph(endpoint, subgraphName, userOptions) {
+async function _requestGraph(endpoint, subgraphName, userOptions) {
   const options = checkOptions(userOptions, {
     query: {
       type: 'string',
@@ -215,7 +214,7 @@ function getNotificationsStatus(
       };
       break;
   }
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getOrganizationStatus(
@@ -241,7 +240,7 @@ function getOrganizationStatus(
       };
       break;
   }
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getSafeAddresses(
@@ -264,7 +263,7 @@ function getSafeAddresses(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getBalancesStatus(
@@ -292,7 +291,7 @@ function getBalancesStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getTrustNetworkStatus(
@@ -316,7 +315,7 @@ function getTrustNetworkStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getTrustLimitsStatus(
@@ -354,31 +353,27 @@ function getTrustLimitsStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 /**
- * Utils submodule for common transaction and relayer methods.
- *
+ * Module to offer common utilities
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
- * @param {Object} globalOptions - global core options
- *
- * @return {Object} - utils module instance
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - Utils module instance
  */
-export default function createUtilsModule(web3, contracts, globalOptions) {
-  const {
+export default function createUtilsModule({
+  web3,
+  contracts: { hub },
+  options: {
     apiServiceEndpoint,
     pathfinderServiceEndpoint,
     databaseSource,
     graphNodeEndpoint,
     relayServiceEndpoint,
     subgraphName,
-  } = globalOptions;
-  const { hub } = contracts;
-
+  },
+}) {
   // Get a list of all Circles Token owned by this address to find out with
   // which we can pay this transaction
   async function _listAllTokens(safeAddress) {
@@ -399,7 +394,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
     // Additionally get all other tokens from the Graph
     try {
-      const tokensResponse = await requestGraph(
+      const tokensResponse = await _requestGraph(
         graphNodeEndpoint,
         subgraphName,
         {
@@ -418,7 +413,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           }`,
         },
       );
-
       if (tokensResponse && tokensResponse.safe) {
         tokensResponse.safe.balances.forEach((balance) => {
           const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
@@ -448,26 +442,53 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   /**
    * Iterate on a request until a response condition is met and then, returns the response.
-   *
    * @namespace core.utils.loop
-   *
    * @param {function} request - request to iterate on
    * @param {function} condition - condition function that checks if request will be call again
    * @param {Object} [options] - options
    * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
    * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
    * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
-   *
    * @return {*} - response of the target request
    */
-  loop;
+  const loop = (
+    request,
+    condition,
+    { label, maxAttempts = 10, retryDelay = 6000 } = {},
+  ) =>
+    new Promise((resolve, reject) => {
+      let attempt = 0;
+
+      const run = () => {
+        if (attempt > maxAttempts) {
+          throw new CoreError(
+            `Tried too many times waiting for condition${
+              label && `: "${label}"`
+            }`,
+            ErrorCodes.TOO_MANY_ATTEMPTS,
+          );
+        }
+
+        return request().then((data) => {
+          if (condition(data)) {
+            return data;
+          } else {
+            attempt += 1;
+
+            return new Promise((resolve) =>
+              setTimeout(resolve, retryDelay),
+            ).then(run);
+          }
+        });
+      };
+
+      run().then(resolve).catch(reject);
+    });
+
   /**
    * Detect an Ethereum address in any string.
-   *
    * @namespace core.utils.matchAddress
-   *
    * @param {string} str - string
-   *
    * @return {string} - Ethereum address or null
    */
   const matchAddress = (str) => {
@@ -483,11 +504,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
   /**
    * Convert to fractional monetary unit of Circles
    * named Freckles.
-   *
    * @namespace core.utils.toFreckles
-   *
    * @param {string|number} value - value in Circles
-   *
    * @return {string} - value in Freckles
    */
   const toFreckles = (value) => {
@@ -496,11 +514,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   /**
    * Convert from Freckles to Circles number.
-   *
    * @namespace core.utils.fromFreckles
-   *
    * @param {string|number} value - value in Freckles
-   *
    * @return {number} - value in Circles
    */
   const fromFreckles = (value) => {
@@ -525,69 +540,57 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   /**
    * Query the Graph Node with GraphQL.
-   *
    * @namespace core.utils.requestGraph
-   *
    * @param {Object} userOptions - query options
    * @param {string} userOptions.query - GraphQL query
    * @param {Object} userOptions.variables - GraphQL variables
    */
-  const requestGraph = async (userOptions) => {
-    return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
-  };
+  const requestGraph = (userOptions) =>
+    _requestGraph(graphNodeEndpoint, subgraphName, userOptions);
 
   /**
    * Query the Graph Node or Land Graph Node with GraphQL.
-   *
    * @namespace core.utils.requestIndexedDB
-   *
    * @param {string} data - data to obtain
    * @param {Object} parameters - parameters needed for query
    */
-  const requestIndexedDB = async (data, parameters) => {
-    return _requestIndexedDB(
+  const requestIndexedDB = (data, parameters) =>
+    _requestIndexedDB(
       graphNodeEndpoint,
       subgraphName,
       databaseSource,
       data,
       parameters,
     );
-  };
 
   /**
    * Get a list of all tokens and their current balance a user owns. This can
    * be used to find the right token for a transaction.
-   *
    * @namespace core.utils.listAllTokens
-   *
    * @param {Object} userOptions - query options
    * @param {string} userOptions.safeAddress - address of Safe
-   *
    * @return {Array} - List of tokens with current balance and address
    */
-  const listAllTokens = async (userOptions) => {
+  const listAllTokens = (userOptions) => {
     const options = checkOptions(userOptions, {
       safeAddress: {
         type: web3.utils.checkAddressChecksum,
       },
     });
 
-    return await _listAllTokens(options.safeAddress);
+    return _listAllTokens(options.safeAddress);
   };
 
   /**
    * Make a request to the Circles server API.
-   *
    * @namespace core.utils.requestAPI
-   *
    * @param {Object} userOptions - API query options
    * @param {string} userOptions.path - API route
    * @param {string} userOptions.method - HTTP method
    * @param {Object} userOptions.data - Request body (JSON)
-   *
    * @return {Object} - API response
    */
-  const requestAPI = async (userOptions) => {
+  const requestAPI = (userOptions) => {
     const options = checkOptions(userOptions, {
       path: {
         type: 'array',
@@ -611,16 +614,13 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
   /**
    * Make a request to the Circles server API.
-   *
    * @namespace core.utils.requestPathfinderAPI
-   *
    * @param {Object} userOptions - Pathfinder API query options
    * @param {string} userOptions.method - HTTP method
    * @param {Object} userOptions.data - Request body (JSON)
-   *
    * @return {Object} - API response
    */
-  const requestPathfinderAPI = async (userOptions) => {
+  const requestPathfinderAPI = (userOptions) => {
     const options = checkOptions(userOptions, {
       method: {
         type: 'string',
@@ -631,6 +631,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         default: {},
       },
     });
+
     return request(pathfinderServiceEndpoint, {
       data: options.data,
       method: options.method,
@@ -638,8 +639,10 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
       isTrailingSlash: false,
     });
   };
+
   return {
     matchAddress,
+    loop,
     toFreckles,
     sendTransaction,
     requestGraph,
