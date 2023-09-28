@@ -7,22 +7,6 @@ import createSymbolObject from '~/common/createSymbolObject';
 const DEFAULT_LIMIT = 20;
 const DEFAULT_TIMESTAMP = 0;
 
-const ActivityTypes = createSymbolObject([
-  'ADD_CONNECTION',
-  'ADD_OWNER',
-  'HUB_TRANSFER',
-  'REMOVE_CONNECTION',
-  'REMOVE_OWNER',
-  'TRANSFER',
-]);
-
-const ActivityFilterTypes = createSymbolObject([
-  'DISABLED',
-  'CONNECTIONS',
-  'OWNERS',
-  'TRANSFERS',
-]);
-
 const TYPE_HUB_TRANSFER = 'HUB_TRANSFER';
 const TYPE_OWNERSHIP = 'OWNERSHIP';
 const TYPE_TRANSFER = 'TRANSFER';
@@ -34,73 +18,151 @@ const TYPE_TRUST = 'TRUST';
  * @access private
  *
  * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
  * @param {Object} utils - utils module instance
  *
  * @return {Object} - activity module instance
  */
-export default function createActivityModule(web3, contracts, utils) {
-  return {
-    /**
-     * Activity type constants.
-     *
-     * @access private
-     */
-    ActivityTypes,
+export default function createActivityModule({ web3, utils }) {
+  /**
+   * Activity type constants.
+   *
+   * @access private
+   */
+  const ActivityTypes = createSymbolObject([
+    'ADD_CONNECTION',
+    'ADD_OWNER',
+    'HUB_TRANSFER',
+    'REMOVE_CONNECTION',
+    'REMOVE_OWNER',
+    'TRANSFER',
+  ]);
 
-    /**
-     * Activity filter type constants.
-     *
-     * @access private
-     */
-    ActivityFilterTypes,
+  /**
+   * Activity filter type constants.
+   *
+   * @access private
+   */
+  const ActivityFilterTypes = createSymbolObject([
+    'DISABLED',
+    'CONNECTIONS',
+    'OWNERS',
+    'TRANSFERS',
+  ]);
 
-    /**
-     * Get the last activities of a user.
-     *
-     * @namespace core.activity.getLatest
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {string} userOptions.safeAddress - Safe address of user
-     * @param {number} userOptions.limit - pagination page size
-     * @param {number} userOptions.offset - pagination start index
-     * @param {number} userOptions.timestamp - show only messages after this time
-     * @param {symbol} userOptions.filter - optional filter for message types
-     *
-     * @return {Object} List of latest activities
-     */
-    getLatest: async (account, userOptions) => {
-      checkAccount(web3, account);
+  /**
+   * Get the last activities of a user.
+   *
+   * @namespace core.activity.getLatest
+   *
+   * @param {Object} account - web3 account instance
+   * @param {Object} userOptions - options
+   * @param {string} userOptions.safeAddress - Safe address of user
+   * @param {number} userOptions.limit - pagination page size
+   * @param {number} userOptions.offset - pagination start index
+   * @param {number} userOptions.timestamp - show only messages after this time
+   * @param {symbol} userOptions.filter - optional filter for message types
+   *
+   * @return {Object} List of latest activities
+   */
+  const getLatest = async (account, userOptions) => {
+    checkAccount(web3, account);
 
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
+    const options = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+      limit: {
+        type: 'number',
+        default: DEFAULT_LIMIT,
+      },
+      offset: {
+        type: 'number',
+        default: 0,
+      },
+      timestamp: {
+        type: 'number',
+        default: DEFAULT_TIMESTAMP,
+      },
+      filter: {
+        type: (value) => {
+          return !!Object.keys(ActivityFilterTypes).find(
+            (key) => ActivityFilterTypes[key] === value,
+          );
         },
-        limit: {
-          type: 'number',
-          default: DEFAULT_LIMIT,
-        },
-        offset: {
-          type: 'number',
-          default: 0,
-        },
-        timestamp: {
-          type: 'number',
-          default: DEFAULT_TIMESTAMP,
-        },
-        filter: {
-          type: (value) => {
-            return !!Object.keys(ActivityFilterTypes).find(
-              (key) => ActivityFilterTypes[key] === value,
-            );
-          },
-          default: ActivityFilterTypes.DISABLED,
-        },
-      });
+        default: ActivityFilterTypes.DISABLED,
+      },
+      otherSafeAddress: {
+        type: web3.utils.checkAddressChecksum,
+        default: ZERO_ADDRESS,
+      },
+    });
 
-      const getNotifications = async (filterString) => {
-        const parameters = `
+    const getNotifications = async (filterString) => {
+      let parameters;
+      if (options.otherSafeAddress != ZERO_ADDRESS) {
+        // if other address is specified use the following parameters to
+        // filter mutual transactions and connections
+        const mutualTrustParams = `
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRUST,
+              trust_: {
+                user: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: TRUST,
+              trust_: {
+                canSendTo: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+          `;
+
+        const mutualTransferParams = `
+
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: HUB_TRANSFER,
+              hubTransfer_: {
+                to: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+            {
+              time_gt: ${options.timestamp},
+              safeAddress: "${options.safeAddress.toLowerCase()}",
+              type: HUB_TRANSFER,
+              hubTransfer_: {
+                from: "${options.otherSafeAddress.toLowerCase()}",
+              }
+            },
+          `;
+
+        parameters = `
+            orderBy: "time",
+            orderDirection: "desc",
+            first: ${options.limit},
+            skip: ${options.offset},
+            where: {
+              or: [
+                ${
+                  filterString === TYPE_TRANSFER || !filterString
+                    ? mutualTransferParams
+                    : ''
+                },
+                ${
+                  filterString === TYPE_TRUST || !filterString
+                    ? mutualTrustParams
+                    : ''
+                }
+              ]
+            }
+          `;
+      } else {
+        parameters = `
             orderBy: "time",
             orderDirection: "desc",
             first: ${options.limit},
@@ -110,138 +172,144 @@ export default function createActivityModule(web3, contracts, utils) {
               safeAddress: "${options.safeAddress.toLowerCase()}",
               ${filterString ? `type: ${filterString}` : ''}
             }
-        `;
+          `;
+      }
 
-        const response = await utils.requestIndexedDB(
-          'activity_stream',
-          parameters,
-        );
+      const response = await utils.requestIndexedDB(
+        'activity_stream',
+        parameters,
+      );
 
-        if (
-          !response ||
-          !response.notifications ||
-          response.notifications.length === 0
-        ) {
-          return [];
-        }
+      if (
+        !response ||
+        !response.notifications ||
+        response.notifications.length === 0
+      ) {
+        return [];
+      }
 
-        return response.notifications.reduce((acc, notification) => {
-          const timestamp = parseInt(notification.time, 10);
-          let data;
-          let type;
+      return response.notifications.reduce((acc, notification) => {
+        const timestamp = parseInt(notification.time, 10);
+        let data;
+        let type;
 
-          if (notification.type === TYPE_OWNERSHIP) {
-            const { adds, removes } = notification.ownership;
-            type = adds ? ActivityTypes.ADD_OWNER : ActivityTypes.REMOVE_OWNER;
+        if (notification.type === TYPE_OWNERSHIP) {
+          const { adds, removes } = notification.ownership;
+          type = adds ? ActivityTypes.ADD_OWNER : ActivityTypes.REMOVE_OWNER;
 
-            data = {
-              ownerAddress: adds ? adds : removes,
-              safeAddress: options.safeAddress,
-            };
+          data = {
+            ownerAddress: adds ? adds : removes,
+            safeAddress: options.safeAddress,
+          };
 
-            data.ownerAddress = web3.utils.toChecksumAddress(data.ownerAddress);
-          } else if (notification.type === TYPE_TRANSFER) {
-            const { from, to, amount } = notification.transfer;
-            type = ActivityTypes.TRANSFER;
+          data.ownerAddress = web3.utils.toChecksumAddress(data.ownerAddress);
+        } else if (notification.type === TYPE_TRANSFER) {
+          const { from, to, amount } = notification.transfer;
+          type = ActivityTypes.TRANSFER;
 
-            data = {
-              from: web3.utils.toChecksumAddress(from),
-              to: web3.utils.toChecksumAddress(to),
-              value: new web3.utils.BN(amount),
-            };
-          } else if (notification.type === TYPE_HUB_TRANSFER) {
-            const { from, to, amount } = notification.hubTransfer;
-            type = ActivityTypes.HUB_TRANSFER;
+          data = {
+            from: web3.utils.toChecksumAddress(from),
+            to: web3.utils.toChecksumAddress(to),
+            value: new web3.utils.BN(amount),
+          };
+        } else if (notification.type === TYPE_HUB_TRANSFER) {
+          const { from, to, amount } = notification.hubTransfer;
+          type = ActivityTypes.HUB_TRANSFER;
 
-            data = {
-              from: web3.utils.toChecksumAddress(from),
-              to: web3.utils.toChecksumAddress(to),
-              value: new web3.utils.BN(amount),
-            };
-          } else if (notification.type === TYPE_TRUST) {
-            const { user, canSendTo, limitPercentage } = notification.trust;
+          data = {
+            from: web3.utils.toChecksumAddress(from),
+            to: web3.utils.toChecksumAddress(to),
+            value: new web3.utils.BN(amount),
+          };
+        } else if (notification.type === TYPE_TRUST) {
+          const { user, canSendTo, limitPercentage } = notification.trust;
 
-            if (limitPercentage === '0') {
-              type = ActivityTypes.REMOVE_CONNECTION;
-            } else {
-              type = ActivityTypes.ADD_CONNECTION;
-            }
-
-            data = {
-              user: web3.utils.toChecksumAddress(user),
-              canSendTo: web3.utils.toChecksumAddress(canSendTo),
-              limitPercentage: parseInt(limitPercentage, 10),
-            };
+          if (limitPercentage === '0') {
+            type = ActivityTypes.REMOVE_CONNECTION;
           } else {
-            // Unknown notification type, ignore it
-            return acc;
+            type = ActivityTypes.ADD_CONNECTION;
           }
 
-          // Filter trust events which are related to ourselves
-          if (
-            type === ActivityTypes.ADD_CONNECTION &&
-            data.canSendTo === data.user
-          ) {
-            return acc;
-          }
-
-          // Filter transfer events which are not UBI payout as we have them
-          // covered through HUB_TRANSFER events
-          if (type === ActivityTypes.TRANSFER && data.from !== ZERO_ADDRESS) {
-            return acc;
-          }
-
-          const { transactionHash } = notification;
-
-          acc.push({
-            data,
-            timestamp,
-            transactionHash,
-            type,
-          });
-
+          data = {
+            user: web3.utils.toChecksumAddress(user),
+            canSendTo: web3.utils.toChecksumAddress(canSendTo),
+            limitPercentage: parseInt(limitPercentage, 10),
+          };
+        } else {
+          // Unknown notification type, ignore it
           return acc;
-        }, []);
-      };
-
-      let activities = [];
-
-      // We consider HUB_TRANSFER and TRANSFER events the same inside the core
-      // even though they are separate in the subgraph, therefore we have to
-      // merge them here!
-      if (options.filter === ActivityFilterTypes.TRANSFERS) {
-        activities = (
-          await Promise.all([
-            getNotifications(TYPE_TRANSFER),
-            getNotifications(TYPE_HUB_TRANSFER),
-          ])
-        )
-          .flat()
-          .sort(({ timestamp: itemA }, { timestamp: itemB }) => {
-            return itemA - itemB;
-          });
-      } else {
-        let filterString;
-        if (options.filter === ActivityFilterTypes.CONNECTIONS) {
-          filterString = TYPE_TRUST;
-        } else if (options.filter === ActivityFilterTypes.OWNERS) {
-          filterString = TYPE_TRANSFER;
         }
-        activities = await getNotifications(filterString);
-      }
 
-      // Results are empty after filtering
-      if (activities.length === 0) {
-        return {
-          activities: [],
-          lastTimestamp: 0,
-        };
-      }
+        // Filter trust events which are related to ourselves
+        if (
+          type === ActivityTypes.ADD_CONNECTION &&
+          data.canSendTo === data.user
+        ) {
+          return acc;
+        }
 
+        // Filter transfer events which are not UBI payout as we have them
+        // covered through HUB_TRANSFER events
+        if (
+          type === ActivityTypes.TRANSFER &&
+          data.from !== ZERO_ADDRESS &&
+          options.otherSafeAddress === ZERO_ADDRESS
+        ) {
+          return acc;
+        }
+
+        const { transactionHash } = notification;
+
+        acc.push({
+          data,
+          timestamp,
+          transactionHash,
+          type,
+        });
+
+        return acc;
+      }, []);
+    };
+
+    let activities = [];
+
+    // We consider HUB_TRANSFER and TRANSFER events the same inside the core
+    // even though they are separate in the subgraph, therefore we have to
+    // merge them here!
+    if (options.filter === ActivityFilterTypes.TRANSFERS) {
+      activities = (
+        await Promise.all([
+          getNotifications(TYPE_TRANSFER),
+          getNotifications(TYPE_HUB_TRANSFER),
+        ])
+      )
+        .flat()
+        .sort(({ timestamp: itemA }, { timestamp: itemB }) => {
+          return itemA - itemB;
+        });
+    } else {
+      let filterString;
+      if (options.filter === ActivityFilterTypes.CONNECTIONS) {
+        filterString = TYPE_TRUST;
+      } else if (options.filter === ActivityFilterTypes.OWNERS) {
+        filterString = TYPE_TRANSFER;
+      }
+      // filterString is undefined if ActivtyFilterType is DISABLED
+      activities = await getNotifications(filterString);
+    }
+
+    // Results are empty after filtering
+    if (activities.length === 0) {
       return {
-        activities,
-        lastTimestamp: activities[0].timestamp,
+        activities: [],
+        lastTimestamp: 0,
       };
-    },
+    }
+
+    return {
+      activities,
+      lastTimestamp: activities[0].timestamp,
+    };
   };
+  return { ActivityFilterTypes, ActivityTypes, getLatest };
 }

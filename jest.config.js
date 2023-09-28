@@ -7,9 +7,8 @@ module.exports = {
   moduleNameMapper: {
     '^~(.*)$': '<rootDir>/src$1',
   },
-  modulePathIgnorePatterns: ['<rootDir>/test/helpers'],
+  coveragePathIgnorePatterns: ['<rootDir>/test'],
   testEnvironment: 'node',
-  testMatch: ['**/safe.test.js', '**/trust.test.js', '**/token.test.js'],
-  testTimeout: 30 * 1000,
+  testTimeout: 60 * 1000,
   verbose: true,
 };

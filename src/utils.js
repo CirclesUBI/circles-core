@@ -1,21 +1,10 @@
 import fetch from 'isomorphic-fetch';
 
-import CoreError, { RequestError, ErrorCodes } from '~/common/error';
-import TransactionQueue from '~/common/queue';
-import checkAccount from '~/common/checkAccount';
+import CoreError, { ErrorCodes, RequestError } from '~/common/error';
 import checkOptions from '~/common/checkOptions';
-import loop from '~/common/loop';
 import parameterize from '~/common/parameterize';
-import { CALL_OP, NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
-import {
-  formatTypedData,
-  formatTypedDataCRCVersion,
-  signTypedData,
-} from '~/common/typedData';
-import { getTokenContract, getSafeContract } from '~/common/getContracts';
-
-/** @access private */
-const transactionQueue = new TransactionQueue();
+import { NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
+import { getTokenContract } from '~/common/getContracts';
 
 async function request(endpoint, userOptions) {
   const options = checkOptions(userOptions, {
@@ -92,35 +81,7 @@ async function request(endpoint, userOptions) {
   }
 }
 
-async function requestRelayer(endpoint, userOptions) {
-  const options = checkOptions(userOptions, {
-    path: {
-      type: 'array',
-    },
-    version: {
-      type: 'number',
-      default: 1,
-    },
-    method: {
-      type: 'string',
-      default: 'GET',
-    },
-    data: {
-      type: 'object',
-      default: {},
-    },
-  });
-
-  const { path, method, data, version } = options;
-
-  return request(endpoint, {
-    path: ['api', `v${version}`].concat(path),
-    method,
-    data,
-  });
-}
-
-async function requestGraph(endpoint, subgraphName, userOptions) {
+async function _requestGraph(endpoint, subgraphName, userOptions) {
   const options = checkOptions(userOptions, {
     query: {
       type: 'string',
@@ -149,7 +110,7 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
   return response.data;
 }
 
-async function requestIndexedDB(
+async function _requestIndexedDB(
   graphNodeEndpoint,
   subgraphName,
   databaseSource,
@@ -253,7 +214,7 @@ function getNotificationsStatus(
       };
       break;
   }
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getOrganizationStatus(
@@ -268,7 +229,7 @@ function getOrganizationStatus(
     default:
       query = {
         query: `{
-          user(id: "${ownerAddress.toLowerCase()}") {
+          user(first: 1000 id: "${ownerAddress.toLowerCase()}") {
             id,
             safes {
               id
@@ -279,7 +240,7 @@ function getOrganizationStatus(
       };
       break;
   }
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getSafeAddresses(
@@ -302,7 +263,7 @@ function getSafeAddresses(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getBalancesStatus(
@@ -330,7 +291,7 @@ function getBalancesStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getTrustNetworkStatus(
@@ -354,7 +315,7 @@ function getTrustNetworkStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 function getTrustLimitsStatus(
@@ -392,158 +353,30 @@ function getTrustLimitsStatus(
       break;
   }
 
-  return requestGraph(graphNodeEndpoint, subgraphName, query);
-}
-
-async function estimateTransactionCosts(
-  endpoint,
-  {
-    safeAddress,
-    to,
-    txData,
-    value = 0,
-    gasToken = ZERO_ADDRESS,
-    operation = CALL_OP,
-  },
-) {
-  return await requestRelayer(endpoint, {
-    path: ['safes', safeAddress, 'transactions', 'estimate'],
-    method: 'POST',
-    version: 2,
-    data: {
-      safe: safeAddress,
-      data: txData,
-      to,
-      value,
-      operation,
-      gasToken,
-    },
-  });
+  return _requestGraph(graphNodeEndpoint, subgraphName, query);
 }
 
 /**
- * Manages transaction queue to finalize currently running tasks and starts the
- * next one when ready.
- *
+ * Module to offer common utilities
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {string} endpoint - URL of relayer Service
- * @param {string} safeAddress - address of Safe
- * @param {number} pendingTicketId - id of the task
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - Utils module instance
  */
-async function waitForPendingTransactions(
+export default function createUtilsModule({
   web3,
-  endpoint,
-  safeAddress,
-  pendingTicketId,
-) {
-  await loop(
-    async () => {
-      // Check if transaction is ready and leave loop if yes
-      if (!transactionQueue.isLocked(safeAddress)) {
-        return transactionQueue.isNextInQueue(safeAddress, pendingTicketId);
-      }
-
-      // .. otherwise check what task is currently running
-      const {
-        txHash,
-        nonce,
-        ticketId: currentTicketId,
-      } = transactionQueue.getCurrentTransaction(safeAddress);
-
-      // Ask relayer if it finished
-      try {
-        const response = await requestRelayer(endpoint, {
-          path: ['safes', safeAddress, 'transactions'],
-          method: 'GET',
-          version: 1,
-          data: {
-            limit: 1,
-            ethereum_tx__tx_hash: txHash,
-            nonce,
-          },
-        });
-
-        // ... and unqueue the task in case it did!
-        if (response.results.length === 1) {
-          transactionQueue.unlockTransaction(safeAddress, currentTicketId);
-          transactionQueue.unqueue(safeAddress, currentTicketId);
-        }
-      } catch {
-        // Do nothing
-      }
-
-      return false;
-    },
-    (isReady) => {
-      return isReady;
-    },
-  );
-}
-
-/**
- * Retreive an nonce and make sure it does not collide with currently
- * pending transactions already using it.
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {string} endpoint - URL of Relayer Service
- * @param {string} safeAddress - address of Safe
- */
-async function requestNonce(web3, endpoint, safeAddress) {
-  let nonce = null;
-
-  try {
-    const response = await requestRelayer(endpoint, {
-      path: ['safes', safeAddress],
-      method: 'GET',
-      version: 1,
-      data: {
-        limit: 1,
-      },
-    });
-
-    nonce = response.nonce || null;
-  } catch (err) {
-    // Do nothing!
-  }
-
-  // Fallback to retreive nonce from Safe contract method (already incremented)
-  if (nonce === null) {
-    return await getSafeContract(web3, safeAddress).methods.nonce().call();
-  }
-
-  return `${parseInt(nonce, 10)}`;
-}
-
-/**
- * Utils submodule for common transaction and relayer methods.
- *
- * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
- * @param {Object} globalOptions - global core options
- *
- * @return {Object} - utils module instance
- */
-export default function createUtilsModule(web3, contracts, globalOptions) {
-  const {
+  contracts: { hub },
+  options: {
     apiServiceEndpoint,
     pathfinderServiceEndpoint,
     databaseSource,
     graphNodeEndpoint,
     relayServiceEndpoint,
     subgraphName,
-  } = globalOptions;
-
-  const { hub } = contracts;
-
+  },
+}) {
   // Get a list of all Circles Token owned by this address to find out with
   // which we can pay this transaction
-  async function listAllTokens(safeAddress) {
+  async function _listAllTokens(safeAddress) {
     const tokens = [];
 
     // Fetch token balance directly from Ethereum node to start with
@@ -561,7 +394,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
 
     // Additionally get all other tokens from the Graph
     try {
-      const tokensResponse = await requestGraph(
+      const tokensResponse = await _requestGraph(
         graphNodeEndpoint,
         subgraphName,
         {
@@ -580,7 +413,6 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
           }`,
         },
       );
-
       if (tokensResponse && tokensResponse.safe) {
         tokensResponse.safe.balances.forEach((balance) => {
           const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
@@ -608,624 +440,216 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
     });
   }
 
+  /**
+   * Iterate on a request until a response condition is met and then, returns the response.
+   * @namespace core.utils.loop
+   * @param {function} request - request to iterate on
+   * @param {function} condition - condition function that checks if request will be call again
+   * @param {Object} [options] - options
+   * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
+   * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
+   * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
+   * @return {*} - response of the target request
+   */
+  const loop = (
+    request,
+    condition,
+    { label, maxAttempts = 10, retryDelay = 6000 } = {},
+  ) =>
+    new Promise((resolve, reject) => {
+      let attempt = 0;
+
+      const run = () => {
+        if (attempt > maxAttempts) {
+          throw new CoreError(
+            `Tried too many times waiting for condition${
+              label && `: "${label}"`
+            }`,
+            ErrorCodes.TOO_MANY_ATTEMPTS,
+          );
+        }
+
+        return request().then((data) => {
+          if (condition(data)) {
+            return data;
+          } else {
+            attempt += 1;
+
+            return new Promise((resolve) =>
+              setTimeout(resolve, retryDelay),
+            ).then(run);
+          }
+        });
+      };
+
+      run().then(resolve).catch(reject);
+    });
+
+  /**
+   * Detect an Ethereum address in any string.
+   * @namespace core.utils.matchAddress
+   * @param {string} str - string
+   * @return {string} - Ethereum address or null
+   */
+  const matchAddress = (str) => {
+    const results = str.match(/0x[a-fA-F0-9]{40}/);
+
+    if (results && results.length > 0) {
+      return results[0];
+    } else {
+      return null;
+    }
+  };
+
+  /**
+   * Convert to fractional monetary unit of Circles
+   * named Freckles.
+   * @namespace core.utils.toFreckles
+   * @param {string|number} value - value in Circles
+   * @return {string} - value in Freckles
+   */
+  const toFreckles = (value) => {
+    return web3.utils.toWei(`${value}`, 'ether');
+  };
+
+  /**
+   * Convert from Freckles to Circles number.
+   * @namespace core.utils.fromFreckles
+   * @param {string|number} value - value in Freckles
+   * @return {number} - value in Circles
+   */
+  const fromFreckles = (value) => {
+    return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
+  };
+
+  /**
+   * Send a transaction though the relayer to be funded
+   * @namespace core.utils.sendTransaction
+   * @param {SponsoredCallRequest} data - gelato request payload data
+   * @param {string} data.target - address of the target smart contract
+   * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
+   * @return {RelayResponse} - gelato response
+   */
+  const sendTransaction = (data) =>
+    request(relayServiceEndpoint, {
+      path: ['transactions'],
+      method: 'POST',
+      isTrailingSlash: false,
+      data,
+    });
+
+  /**
+   * Query the Graph Node with GraphQL.
+   * @namespace core.utils.requestGraph
+   * @param {Object} userOptions - query options
+   * @param {string} userOptions.query - GraphQL query
+   * @param {Object} userOptions.variables - GraphQL variables
+   */
+  const requestGraph = (userOptions) =>
+    _requestGraph(graphNodeEndpoint, subgraphName, userOptions);
+
+  /**
+   * Query the Graph Node or Land Graph Node with GraphQL.
+   * @namespace core.utils.requestIndexedDB
+   * @param {string} data - data to obtain
+   * @param {Object} parameters - parameters needed for query
+   */
+  const requestIndexedDB = (data, parameters) =>
+    _requestIndexedDB(
+      graphNodeEndpoint,
+      subgraphName,
+      databaseSource,
+      data,
+      parameters,
+    );
+
+  /**
+   * Get a list of all tokens and their current balance a user owns. This can
+   * be used to find the right token for a transaction.
+   * @namespace core.utils.listAllTokens
+   * @param {Object} userOptions - query options
+   * @param {string} userOptions.safeAddress - address of Safe
+   * @return {Array} - List of tokens with current balance and address
+   */
+  const listAllTokens = (userOptions) => {
+    const options = checkOptions(userOptions, {
+      safeAddress: {
+        type: web3.utils.checkAddressChecksum,
+      },
+    });
+
+    return _listAllTokens(options.safeAddress);
+  };
+
+  /**
+   * Make a request to the Circles server API.
+   * @namespace core.utils.requestAPI
+   * @param {Object} userOptions - API query options
+   * @param {string} userOptions.path - API route
+   * @param {string} userOptions.method - HTTP method
+   * @param {Object} userOptions.data - Request body (JSON)
+   * @return {Object} - API response
+   */
+  const requestAPI = (userOptions) => {
+    const options = checkOptions(userOptions, {
+      path: {
+        type: 'array',
+      },
+      method: {
+        type: 'string',
+        default: 'GET',
+      },
+      data: {
+        type: 'object',
+        default: {},
+      },
+    });
+
+    return request(apiServiceEndpoint, {
+      data: options.data,
+      method: options.method,
+      path: ['api'].concat(options.path),
+    });
+  };
+
+  /**
+   * Make a request to the Circles server API.
+   * @namespace core.utils.requestPathfinderAPI
+   * @param {Object} userOptions - Pathfinder API query options
+   * @param {string} userOptions.method - HTTP method
+   * @param {Object} userOptions.data - Request body (JSON)
+   * @return {Object} - API response
+   */
+  const requestPathfinderAPI = (userOptions) => {
+    const options = checkOptions(userOptions, {
+      method: {
+        type: 'string',
+        default: 'GET',
+      },
+      data: {
+        type: 'object',
+        default: {},
+      },
+    });
+
+    return request(pathfinderServiceEndpoint, {
+      data: options.data,
+      method: options.method,
+      path: [],
+      isTrailingSlash: false,
+    });
+  };
+
   return {
-    /**
-     * Iterate on a request until a response condition is met and then, returns the response.
-     *
-     * @namespace core.utils.loop
-     *
-     * @param {function} request - request to iterate on
-     * @param {function} condition - condition function that checks if request will be call again
-     * @param {Object} [options] - options
-     * @param {string} [options.label] - Debug label that will be shown when the maxAttemps error is thrown
-     * @param {number} [options.maxAttempts=10] - Maximun attemps until giving up
-     * @param {number} [options.retryDelay=6000] - Delay time between attemps in milliseconds
-     *
-     * @return {*} - response of the target request
-     */
+    matchAddress,
     loop,
-    /**
-     * Detect an Ethereum address in any string.
-     *
-     * @namespace core.utils.matchAddress
-     *
-     * @param {string} str - string
-     *
-     * @return {string} - Ethereum address or null
-     */
-    matchAddress: (str) => {
-      const results = str.match(/0x[a-fA-F0-9]{40}/);
-
-      if (results && results.length > 0) {
-        return results[0];
-      } else {
-        return null;
-      }
-    },
-
-    /**
-     * Convert to fractional monetary unit of Circles
-     * named Freckles.
-     *
-     * @namespace core.utils.toFreckles
-     *
-     * @param {string|number} value - value in Circles
-     *
-     * @return {string} - value in Freckles
-     */
-    toFreckles: (value) => {
-      return web3.utils.toWei(`${value}`, 'ether');
-    },
-
-    /**
-     * Convert from Freckles to Circles number.
-     *
-     * @namespace core.utils.fromFreckles
-     *
-     * @param {string|number} value - value in Freckles
-     *
-     * @return {number} - value in Circles
-     */
-    fromFreckles: (value) => {
-      return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
-    },
-
-    /**
-     * Send a transaction though the relayer to be funded
-     * @namespace core.utils.sendTransaction
-     * @param {SponsoredCallRequest} data - gelato request payload data
-     * @param {string} data.target - address of the target smart contract
-     * @param {Object} data.data - encoded payload data (usually a function selector plus the required arguments) used to call the required target address
-     * @return {RelayResponse} - gelato response
-     */
-    sendTransaction: (data) =>
-      request(relayServiceEndpoint, {
-        path: ['transactions'],
-        method: 'POST',
-        isTrailingSlash: false,
-        data,
-      }),
-
-    /**
-     * Send an API request to the Gnosis Relayer.
-     *
-     * @namespace core.utils.requestRelayer
-     *
-     * @param {Object} userOptions - request options
-     * @param {string[]} userOptions.path - API path as array
-     * @param {number} userOptions.version - API version 1 or 2
-     * @param {string} userOptions.method - API request method (GET, POST)
-     * @param {Object} userOptions.data - data payload
-     */
-    requestRelayer: async (userOptions) => {
-      return requestRelayer(relayServiceEndpoint, userOptions);
-    },
-
-    /**
-     * Query the Graph Node with GraphQL.
-     *
-     * @namespace core.utils.requestGraph
-     *
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.query - GraphQL query
-     * @param {Object} userOptions.variables - GraphQL variables
-     */
-    requestGraph: async (userOptions) => {
-      return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
-    },
-
-    /**
-     * Query the Graph Node or Land Graph Node with GraphQL.
-     *
-     * @namespace core.utils.requestIndexedDB
-     *
-     * @param {string} data - data to obtain
-     * @param {Object} parameters - parameters needed for query
-     */
-    requestIndexedDB: async (data, parameters) => {
-      return requestIndexedDB(
-        graphNodeEndpoint,
-        subgraphName,
-        databaseSource,
-        data,
-        parameters,
-      );
-    },
-
-    /**
-     * Get a list of all tokens and their current balance a user owns. This can
-     * be used to find the right token for a transaction.
-     *
-     * @namespace core.utils.listAllTokens
-     *
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.safeAddress - address of Safe
-     *
-     * @return {Array} - List of tokens with current balance and address
-     */
-    listAllTokens: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-      });
-
-      return await listAllTokens(options.safeAddress);
-    },
-
-    /**
-     * Send Transaction to Relayer and pay with Circles Token.
-     *
-     * @namespace core.utils.executeTokenSafeTx
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.safeAddress - address of Safe
-     * @param {string} userOptions.to - forwarded address
-     * @param {Object} userOptions.txData - encoded transaction data
-     * @param {boolean} userOptions.isCRCVersion - is the Safe v1.1.1+Cirlces, false by default
-     *
-     * @return {string} - transaction hash
-     */
-    executeTokenSafeTx: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        to: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        txData: {
-          type: web3.utils.isHexStrict,
-        },
-        isCRCVersion: {
-          type: 'boolean',
-          default: false,
-        },
-      });
-
-      const { txData, safeAddress, to, isCRCVersion } = options;
-      const operation = CALL_OP;
-      const refundReceiver = ZERO_ADDRESS;
-      const value = 0;
-
-      // Estimate gas costs and find out if we have a token with enough balance
-      // to pay them. We use the ZERO_ADDRESS as a gasToken for now as we
-      // didn't select the actual Circles Token yet to pay the transaction for
-      // the relayer
-      const preEstimation = await estimateTransactionCosts(
-        relayServiceEndpoint,
-        {
-          gasToken: ZERO_ADDRESS,
-          operation,
-          safeAddress,
-          to,
-          txData,
-          value,
-        },
-      );
-
-      const totalGasEstimate = web3.utils
-        .toBN(preEstimation.dataGas)
-        .add(new web3.utils.BN(preEstimation.safeTxGas))
-        .mul(new web3.utils.BN(preEstimation.gasPrice));
-
-      const tokens = await listAllTokens(safeAddress);
-
-      if (tokens.length === 0) {
-        throw new CoreError(
-          'No tokens given to pay transaction',
-          ErrorCodes.INSUFFICIENT_FUNDS,
-        );
-      }
-
-      const foundToken = tokens.find(({ amount }) => {
-        return web3.utils.toBN(amount).gte(totalGasEstimate);
-      });
-
-      if (!foundToken) {
-        throw new CoreError(
-          'No token found with sufficient funds to pay transaction',
-          ErrorCodes.INSUFFICIENT_FUNDS,
-        );
-      }
-
-      // Estimate the costs again, this time with the actual token we will use
-      // in the Relayer. This is a little bit cumbersome, but the relayer will
-      // throw an exception otherwise, as gas estimations might diverge a
-      // little when using different tokens
-      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
-        relayServiceEndpoint,
-        {
-          gasToken: foundToken.address,
-          operation,
-          safeAddress,
-          to,
-          txData,
-          value,
-        },
-      );
-
-      const gasToken = foundToken.address;
-
-      // Register transaction in waiting queue
-      const ticketId = transactionQueue.queue(safeAddress);
-
-      // Wait until transaction can be executed
-      await waitForPendingTransactions(
-        web3,
-        relayServiceEndpoint,
-        safeAddress,
-        ticketId,
-      );
-
-      // Request nonce for Safe
-      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
-
-      let typedData;
-      if (isCRCVersion == true) {
-        // Prepare EIP712 transaction data and sign it
-        typedData = formatTypedDataCRCVersion(
-          to,
-          value,
-          txData,
-          operation,
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          gasToken,
-          refundReceiver,
-          nonce,
-          safeAddress,
-        );
-      } else {
-        const chainId = await web3.eth.getChainId();
-        // Prepare EIP712 transaction data and sign it
-        typedData = formatTypedData(
-          to,
-          value,
-          txData,
-          operation,
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          gasToken,
-          refundReceiver,
-          nonce,
-          chainId,
-          safeAddress,
-        );
-      }
-
-      const signature = signTypedData(web3, account.privateKey, typedData);
-
-      // Send transaction to relayer
-      try {
-        const { txHash } = await requestRelayer(relayServiceEndpoint, {
-          path: ['safes', safeAddress, 'transactions'],
-          method: 'POST',
-          version: 1,
-          data: {
-            to,
-            value,
-            data: txData,
-            operation,
-            signatures: [signature],
-            safeTxGas,
-            dataGas,
-            gasPrice,
-            nonce,
-            gasToken,
-          },
-        });
-
-        // Register transaction so we can check later if it finished
-        transactionQueue.lockTransaction(safeAddress, {
-          nonce,
-          ticketId,
-          txHash,
-        });
-
-        return txHash;
-      } catch {
-        transactionQueue.unlockTransaction(safeAddress, ticketId);
-        transactionQueue.unqueue(safeAddress, ticketId);
-
-        return null;
-      }
-    },
-
-    /**
-     * Send a transaction to the relayer which will be executed by it.
-     * The gas costs will be estimated by the relayer before.
-     *
-     * @namespace core.utils.executeSafeTx
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - query options
-     * @param {string} userOptions.safeAddress - address of Safe
-     * @param {string} userOptions.to - forwarded address (from is the relayer)
-     * @param {string} userOptions.gasToken - address of ERC20 token
-     * @param {Object} userOptions.txData - encoded transaction data
-     * @param {number} userOptions.value - value in Wei
-     * @param {boolean} userOptions.isCRCVersion - is the Safe v1.1.1+Cirlces, false by default
-
-     *
-     * @return {string} - transaction hash
-     */
-    executeSafeTx: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        to: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        gasToken: {
-          type: web3.utils.checkAddressChecksum,
-          default: ZERO_ADDRESS,
-        },
-        txData: {
-          type: web3.utils.isHexStrict,
-          default: '0x',
-        },
-        value: {
-          type: 'number',
-          default: 0,
-        },
-        isCRCVersion: {
-          type: 'boolean',
-          default: false,
-        },
-      });
-
-      const { to, gasToken, txData, value, safeAddress, isCRCVersion } =
-        options;
-      const operation = CALL_OP;
-      const refundReceiver = ZERO_ADDRESS;
-
-      const { dataGas, gasPrice, safeTxGas } = await estimateTransactionCosts(
-        relayServiceEndpoint,
-        {
-          gasToken,
-          operation,
-          safeAddress,
-          to,
-          txData,
-          value,
-        },
-      );
-
-      // Register transaction in waiting queue
-      const ticketId = transactionQueue.queue(safeAddress);
-
-      // Wait until Relayer allocates enough funds to pay for transaction
-      const totalGasEstimate = web3.utils
-        .toBN(dataGas)
-        .add(new web3.utils.BN(safeTxGas))
-        .mul(new web3.utils.BN(gasPrice));
-
-      await loop(
-        () => {
-          return web3.eth.getBalance(safeAddress);
-        },
-        (balance) => {
-          return web3.utils.toBN(balance).gte(totalGasEstimate);
-        },
-      );
-
-      // Wait until transaction can be executed
-      await waitForPendingTransactions(
-        web3,
-        relayServiceEndpoint,
-        safeAddress,
-        ticketId,
-      );
-
-      // Request nonce for Safe
-      const nonce = await requestNonce(web3, relayServiceEndpoint, safeAddress);
-
-      // Prepare EIP712 transaction data and sign it
-      let typedData;
-      if (isCRCVersion == true) {
-        // Prepare EIP712 transaction data and sign it
-        typedData = formatTypedDataCRCVersion(
-          to,
-          value,
-          txData,
-          operation,
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          gasToken,
-          refundReceiver,
-          nonce,
-          safeAddress,
-        );
-      } else {
-        // Get the chainId from the network
-        const chainId = await web3.eth.getChainId();
-        // Prepare EIP712 transaction data and sign it
-        typedData = formatTypedData(
-          to,
-          value,
-          txData,
-          operation,
-          safeTxGas,
-          dataGas,
-          gasPrice,
-          gasToken,
-          refundReceiver,
-          nonce,
-          chainId,
-          safeAddress,
-        );
-      }
-
-      const signature = signTypedData(web3, account.privateKey, typedData);
-
-      // Send transaction to relayer
-      try {
-        const { txHash } = await requestRelayer(relayServiceEndpoint, {
-          path: ['safes', safeAddress, 'transactions'],
-          method: 'POST',
-          version: 1,
-          data: {
-            to,
-            value,
-            data: txData,
-            operation,
-            signatures: [signature],
-            safeTxGas,
-            dataGas,
-            gasPrice,
-            nonce,
-            gasToken,
-          },
-        });
-
-        // Register transaction so we can check later if it finished
-        transactionQueue.lockTransaction(safeAddress, {
-          nonce,
-          ticketId,
-          txHash,
-        });
-
-        return txHash;
-      } catch {
-        transactionQueue.unlockTransaction(safeAddress, ticketId);
-        transactionQueue.unqueue(safeAddress, ticketId);
-
-        return null;
-      }
-    },
-
-    /**
-     * Make a request to the Circles server API.
-     *
-     * @namespace core.utils.requestAPI
-     *
-     * @param {Object} userOptions - API query options
-     * @param {string} userOptions.path - API route
-     * @param {string} userOptions.method - HTTP method
-     * @param {Object} userOptions.data - Request body (JSON)
-     *
-     * @return {Object} - API response
-     */
-    requestAPI: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        path: {
-          type: 'array',
-        },
-        method: {
-          type: 'string',
-          default: 'GET',
-        },
-        data: {
-          type: 'object',
-          default: {},
-        },
-      });
-
-      return request(apiServiceEndpoint, {
-        data: options.data,
-        method: options.method,
-        path: ['api'].concat(options.path),
-      });
-    },
-
-    /**
-     * Make a request to the Circles server API.
-     *
-     * @namespace core.utils.requestPathfinderAPI
-     *
-     * @param {Object} userOptions - Pathfinder API query options
-     * @param {string} userOptions.method - HTTP method
-     * @param {Object} userOptions.data - Request body (JSON)
-     *
-     * @return {Object} - API response
-     */
-    requestPathfinderAPI: async (userOptions) => {
-      const options = checkOptions(userOptions, {
-        method: {
-          type: 'string',
-          default: 'GET',
-        },
-        data: {
-          type: 'object',
-          default: {},
-        },
-      });
-      return request(pathfinderServiceEndpoint, {
-        data: options.data,
-        method: options.method,
-        path: [],
-        isTrailingSlash: false,
-      });
-    },
-
-    /**
-     * Estimates the total gas fees for a relayer transaction.
-     *
-     * @namespace core.utils.estimateTransactionCosts
-     *
-     * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - transaction options
-     * @param {string} userOptions.safeAddress - address of Safe
-     * @param {string} userOptions.to - forwarded address (from is the relayer)
-     * @param {string} userOptions.gasToken - address of ERC20 token
-     * @param {Object} userOptions.txData - encoded transaction data
-     * @param {number} userOptions.value - value in Wei
-     *
-     * @return {BN} - estimated gas fees
-     */
-    estimateTransactionCosts: async (account, userOptions) => {
-      checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        safeAddress: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        to: {
-          type: web3.utils.checkAddressChecksum,
-        },
-        gasToken: {
-          type: web3.utils.checkAddressChecksum,
-          default: ZERO_ADDRESS,
-        },
-        txData: {
-          type: web3.utils.isHexStrict,
-          default: '0x',
-        },
-        value: {
-          type: 'number',
-          default: 0,
-        },
-      });
-
-      const { txData, gasToken, safeAddress, to, value } = options;
-      const operation = CALL_OP;
-
-      const { dataGas, safeTxGas, gasPrice } = await estimateTransactionCosts(
-        relayServiceEndpoint,
-        {
-          gasToken,
-          operation,
-          safeAddress,
-          to,
-          txData,
-          value,
-        },
-      );
-
-      return web3.utils
-        .toBN(dataGas)
-        .add(new web3.utils.BN(safeTxGas))
-        .mul(new web3.utils.BN(gasPrice));
-    },
+    toFreckles,
+    sendTransaction,
+    requestGraph,
+    requestIndexedDB,
+    fromFreckles,
+    listAllTokens,
+    requestAPI,
+    requestPathfinderAPI,
   };
 }

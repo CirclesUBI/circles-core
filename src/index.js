@@ -8,11 +8,12 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
-// import createOrganizationModule from '~/organization';
+import createNewsModule from '~/news';
+import createOrganizationModule from '~/organization';
 import createSafeModule from '~/safe';
 import createTokenModule from '~/token';
 import createTrustModule from '~/trust';
-// import createUserModule from '~/user';
+import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
 /**
@@ -98,7 +99,6 @@ export default class CirclesCore {
         default: 30,
       },
     });
-
     // Expose error classes and constants
     /** @type {Error} - main error class */
     this.CoreError = CoreError;
@@ -113,19 +113,13 @@ export default class CirclesCore {
     /** @type {Object} - smart contract instances */
     this.contracts = getContracts(web3, this.options);
 
-    // Create common utils for submodules
+    // Create modules
     /** @type {Object} - utils module */
-    this.utils = createUtilsModule(web3, this.contracts, this.options);
-
-    // Create submodules and pass utils and options to them
+    this.utils = createUtilsModule(this);
     /** @type {Object} - activity module */
-    this.activity = createActivityModule(web3, this.contracts, this.utils);
-    /** @type {Object} - organization module */
-    // this.organization = createOrganizationModule(
-    //   web3,
-    //   this.contracts,
-    //   this.utils,
-    // );
+    this.activity = createActivityModule(this);
+    /** @type {Object} - news module */
+    this.news = createNewsModule(this.utils);
     /** @type {Object} - safe module */
     this.safe = createSafeModule(this);
     /** @type {Object} - trust module */
@@ -133,6 +127,8 @@ export default class CirclesCore {
     /** @type {Object} - token module */
     this.token = createTokenModule(this);
     /** @type {Object} - user module */
-    // this.user = createUserModule(web3, this.contracts, this.utils);
+    this.user = createUserModule(this);
+    /** @type {Object} - organization module */
+    this.organization = createOrganizationModule(this);
   }
 }

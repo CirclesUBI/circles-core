@@ -1,63 +1,40 @@
 import createCore from './helpers/core';
-import getAccount from './helpers/account';
-import web3 from './helpers/web3';
-import isContractDeployed from './helpers/isContractDeployed';
-import { deploySafeAndToken } from './helpers/transactions';
+import getAccounts from './helpers/getAccounts';
+import generateSaltNonce from './helpers/generateSaltNonce';
+import setupWeb3 from './helpers/setupWeb3';
+import onboardAccountManually from './helpers/onboardAccountManually';
+import deploySafeManually from './helpers/deploySafeManually';
+import getTrustConnection from './helpers/getTrustConnection';
 
 describe('Organization', () => {
-  let account;
-  let otherAccount;
-  let core;
+  const { web3, provider } = setupWeb3();
+  const core = createCore(web3);
+  const [account, otherAccount] = getAccounts(web3);
   let safeAddress;
   let userSafeAddress;
   let otherUserSafeAddress;
-
+  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
-    account = getAccount(0);
-    otherAccount = getAccount(1);
-    core = createCore();
+    // Predeploy manually accounts (safes and token)
+    [userSafeAddress, otherUserSafeAddress] = await Promise.all([
+      onboardAccountManually(
+        { account, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually(
+        { account: otherAccount, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+    ]);
 
-    // First deploy users Safe ..
-    const user = await deploySafeAndToken(core, account);
-    userSafeAddress = user.safeAddress;
-
-    // .. to then prepare deployment of the second Safe for the organization
-    safeAddress = await core.safe.prepareDeploy(account, {
-      nonce: Date.now(),
-    });
-
-    await core.safe.deployForOrganization(account, {
-      safeAddress,
-    });
-
-    await core.utils.loop(
-      () => web3.eth.getCode(safeAddress),
-      isContractDeployed,
+    // Prepare address to deploy safe manually for organisation
+    safeAddress = await deploySafeManually(
       {
-        label: 'Wait until Safe for organization got deployed',
-        retryDelay: 4000,
+        account: account,
+        nonce: generateSaltNonce(),
       },
+      core,
     );
-
-    // Then deploy other users Safe .. to test trust connections
-    const otherUser = await deploySafeAndToken(core, otherAccount);
-    otherUserSafeAddress = otherUser.safeAddress;
-  });
-
-  it('should check if safe has enough funds for organization to be created', async () => {
-    const value = await core.utils.loop(
-      async () => {
-        return await core.organization.isFunded(account, {
-          safeAddress,
-        });
-      },
-      (isFunded) => {
-        return isFunded;
-      },
-      { label: 'Wait for organization to be funded', retryDelay: 4000 },
-    );
-
-    expect(value).toBe(true);
   });
 
   it('should create an organization and return true if it exists', async () => {
@@ -67,11 +44,10 @@ describe('Organization', () => {
     });
     expect(isOrganization).toBe(false);
 
-    // Deploy organization and expect a correct transaction hash
-    const txHash = await core.organization.deploy(account, {
+    // Wait until organisation is deployed
+    await core.organization.deploy(account, {
       safeAddress,
     });
-    expect(web3.utils.isHexStrict(txHash)).toBe(true);
 
     // isOrganization should be true now
     isOrganization = await core.utils.loop(
@@ -100,36 +76,63 @@ describe('Organization', () => {
     );
 
     const result = await core.utils.loop(
-      async () => {
-        return await core.token.listAllTokens(account, {
+      () =>
+        core.token.listAllTokens(account, {
           safeAddress,
-        });
-      },
-      (tokens) => {
-        return tokens.length > 0 && tokens[0].amount.eq(expectedValue);
-      },
+        }),
+      (tokens) => tokens.length > 0 && tokens[0].amount.eq(expectedValue),
       { label: 'Wait for organization to own some ether' },
     );
 
     expect(result[0].amount.eq(expectedValue)).toBe(true);
   });
+  it('should use the funds to execute a transaction on its own', () =>
+    core.safe
+      .addOwner(account, {
+        safeAddress,
+        ownerAddress: otherAccount.address,
+      })
+      .then(() => core.safe.getOwners(account, { safeAddress }))
+      .then((owners) => {
+        expect(owners).toContain(account.address);
+        expect(owners).toHaveLength(2);
+        return core.safe.getAddresses(account, {
+          ownerAddress: otherAccount.address,
+        });
+      })
+      .then((safeAddresses) => expect(safeAddresses).toContain(safeAddress)));
 
-  it('should use the funds to execute a transaction on its own', async () => {
-    const txHash = await core.safe.addOwner(account, {
-      safeAddress,
-      ownerAddress: web3.utils.toChecksumAddress(web3.utils.randomHex(20)),
-    });
+  it('should be able to trust a user as an organization', () =>
+    core.trust
+      .addConnection(account, {
+        user: otherUserSafeAddress,
+        canSendTo: safeAddress,
+      })
+      .then(() =>
+        core.utils.loop(
+          () =>
+            getTrustConnection(
+              core,
+              account,
+              safeAddress,
+              otherUserSafeAddress,
+            ),
+          (isReady) => isReady,
+          {
+            label: 'Wait for the graph to index newly added trust connection',
+          },
+        ),
+      )
+      .then((connection) => {
+        expect(connection.safeAddress).toBe(otherUserSafeAddress);
+        expect(connection.isIncoming).toBe(true);
+        expect(connection.isOutgoing).toBe(false);
+        expect(connection.limitPercentageIn).toBe(100);
+        expect(connection.limitPercentageOut).toBe(0);
+      }));
 
-    expect(web3.utils.isHexStrict(txHash)).toBe(true);
-  });
-
-  it('should be able to trust a user as an organization', async () => {
-    const txHash = await core.trust.addConnection(account, {
-      user: otherUserSafeAddress,
-      canSendTo: safeAddress,
-      limitPercentage: 44,
-    });
-
-    expect(web3.utils.isHexStrict(txHash)).toBe(true);
-  });
+  it('should return the current members(owners) for the organisation', () =>
+    core.organization.getMembers(account, { safeAddress }).then((owners) => {
+      expect(owners[1].ownerAddress).toEqual(account.address);
+    }));
 });

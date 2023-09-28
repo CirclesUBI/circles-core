@@ -4,7 +4,7 @@ import createCore from './helpers/core';
 import getTrustConnection from './helpers/getTrustConnection';
 import setupWeb3 from './helpers/setupWeb3';
 import getAccounts from './helpers/getAccounts';
-import setupAccount from './helpers/setupAccount';
+import onboardAccountManually from './helpers/onboardAccountManually';
 import generateSaltNonce from './helpers/generateSaltNonce';
 
 describe('Trust', () => {
@@ -17,10 +17,11 @@ describe('Trust', () => {
   afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     [safeAddress, otherSafeAddress] = await Promise.all([
-      setupAccount({ account, nonce: generateSaltNonce() }, core).then(
-        ({ safeAddress }) => safeAddress,
-      ),
-      setupAccount(
+      onboardAccountManually(
+        { account, nonce: generateSaltNonce() },
+        core,
+      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually(
         { account: otherAccount, nonce: generateSaltNonce() },
         core,
       ).then(({ safeAddress }) => safeAddress),

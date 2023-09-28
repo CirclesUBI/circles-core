@@ -1,5 +1,4 @@
-import Web3 from 'web3';
-
+import setupWeb3 from './helpers/setupWeb3';
 import TransactionQueue from '~/common/queue';
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
@@ -7,9 +6,8 @@ import parameterize from '~/common/parameterize';
 import { ZERO_ADDRESS } from '~/common/constants';
 import { signTypedData } from '~/common/typedData';
 
-const web3 = new Web3();
-
 describe('Common', () => {
+  const { web3 } = setupWeb3();
   describe('signTypedData', () => {
     it('should hash typed data according to EIP 712', () => {
       const typedData = {
