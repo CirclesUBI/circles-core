@@ -7,7 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^~(.*)$': '<rootDir>/src$1',
   },
-  modulePathIgnorePatterns: ['<rootDir>/test/helpers'],
+  coveragePathIgnorePatterns: ['<rootDir>/test'],
   testEnvironment: 'node',
   testTimeout: 60 * 1000,
   verbose: true,
