@@ -92,61 +92,79 @@ export default function createTrustModule(web3, contracts, utils) {
       return utils
         .requestIndexedDB('trust_status', safeAddress.toLowerCase())
         .then(({ safe } = {}) => {
-          let result = [];
+          let network = {};
 
           if (safe) {
-            const connections = [...safe.incoming, ...safe.outgoing];
-            // Create first the connections network object with safes we trust and safes that trust us
-            const network = connections.reduce(
-              (acc, { canSendToAddress, userAddress }) => {
-                const checksumSafeAddress = web3.utils.toChecksumAddress(
-                  canSendToAddress || userAddress,
+            const trusters = safe.outgoing;
+            const trustees = safe.incoming;
+            // 1 Add direct truster connections
+            trusters &&
+              trusters.forEach((truster) => {
+                // outgoing capacity, incoming trust
+                const trusterAddress = web3.utils.toChecksumAddress(
+                  truster.canSendToAddress,
                 );
-                // If the connection already exists in the network, use its values to overwrite new info
-                const { isIncoming, isOutgoing } =
-                  acc[checksumSafeAddress] || {};
-
-                return {
-                  ...acc,
-                  [checksumSafeAddress]: {
-                    safeAddress: checksumSafeAddress,
-                    isIncoming: isIncoming || !!userAddress,
-                    isOutgoing: isOutgoing || !!canSendToAddress,
-                  },
+                const newConnection = {
+                  safeAddress: trusterAddress,
+                  isIncoming: false, // default
+                  isOutgoing: true,
+                  mutualConnections: [], // default
                 };
-              },
-              {},
-            );
-
-            // Select mutual connections between our related safes and safes they trust
-            connections.forEach(
-              ({ canSendTo, canSendToAddress, user, userAddress }) => {
-                const safe = canSendTo || user;
-                const safeAddress = canSendToAddress || userAddress;
-                const checksumSafeAddress =
-                  web3.utils.toChecksumAddress(safeAddress);
-
-                // Calculate mutual connections if they do not exist yet
-                if (safe && !network[checksumSafeAddress].mutualConnections) {
-                  network[checksumSafeAddress].mutualConnections =
-                    safe.incoming.reduce((acc, curr) => {
-                      const target = web3.utils.toChecksumAddress(
-                        curr.userAddress,
-                      );
-
-                      // If it is a mutual connection and is not self
-                      return network[target] && curr.userAddress !== safeAddress
-                        ? [...acc, target]
-                        : acc;
-                    }, []);
+                network[trusterAddress] = newConnection;
+              });
+            // 2 Add direct trustee connections
+            trustees &&
+              trustees.forEach((trustee) => {
+                // incoming capacity, outgoing trust
+                const trusteeAddress = web3.utils.toChecksumAddress(
+                  trustee.userAddress,
+                );
+                const existingConnection = network[trusteeAddress];
+                if (existingConnection) {
+                  // trusterOfTrustee is already trusting "me" - update record
+                  existingConnection.isIncoming = true;
+                } else {
+                  // new record
+                  const newConnection = {
+                    safeAddress: trusteeAddress,
+                    isIncoming: true,
+                    isOutgoing: false, // default
+                    mutualConnections: [], // default
+                  };
+                  network[trusteeAddress] = newConnection;
                 }
-              },
-            );
-
-            result = Object.values(network);
+                // 3 Add mutual connections
+                const trustersOfTrustee = trustee.user.outgoing;
+                trustersOfTrustee &&
+                  trustersOfTrustee.forEach((trusterOfTrustee) => {
+                    const ttAddress = web3.utils.toChecksumAddress(
+                      trusterOfTrustee.canSendToAddress,
+                    );
+                    if (ttAddress !== trusteeAddress) {
+                      //console.log('3 - user that shares a mutual connection ', ttAddress, trusteeAddress)
+                      const existingConnection = network[ttAddress];
+                      if (existingConnection) {
+                        // trusterOfTrustee is already trusted or trusting "me" - update record
+                        const previousMutualConnections =
+                          existingConnection.mutualConnections;
+                        existingConnection.mutualConnections = [
+                          ...previousMutualConnections,
+                          trusteeAddress,
+                        ];
+                      } else {
+                        const newConnection = {
+                          safeAddress: ttAddress,
+                          isIncoming: false,
+                          isOutgoing: false,
+                          mutualConnections: [trusteeAddress],
+                        };
+                        network[ttAddress] = newConnection;
+                      }
+                    }
+                  });
+              });
           }
-
-          return result;
+          return Object.values(network);
         });
     },
 
