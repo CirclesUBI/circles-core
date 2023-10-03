@@ -30,7 +30,7 @@
     "docs:serve": "documentation serve --watch ./src/**",
     "docs:lint": "documentation lint ./src/**",
     "lint": "eslint --ignore-path .gitignore .",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --forceExit",
     "test:watch": "npm run test -- --watch"
   },
   "dependencies": {
