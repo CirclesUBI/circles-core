@@ -68,9 +68,7 @@ describe('User - update', () => {
   beforeAll(async () => {
     account = getAccount(1);
 
-    safeCreationNonce = new Date().getTime();
-
-    // The Safe must be deployed and signedup to the Hub before trying to change the username
+    // The Safe must be deployed and signedup to the Hub before trying to delete the user entry
     deployedSafe = await deploySafeAndToken(core, account);
     safeAddress = deployedSafe.safeAddress;
     username = `doggy${new Date().getTime()}`;
@@ -110,6 +108,53 @@ describe('User - update', () => {
           safeAddress,
         }),
       ).toBe(email);
+    });
+  });
+});
+
+describe('User - delete', () => {
+  beforeAll(async () => {
+    account = getAccount(2);
+    deployedSafe = await deploySafeAndToken(core, account);
+    safeAddress = deployedSafe.safeAddress;
+    username = `fish${new Date().getTime()}`;
+    email = 'fish@yyy.com';
+  });
+
+  describe('when a new user wants to remove their profile', () => {
+    it('should respond success when the user profile was registered previously', async () => {
+      expect(
+        // This update acts as a register
+        await core.user.update(account, {
+          email,
+          safeAddress,
+          username,
+        }),
+      ).toBe(true);
+
+      const beforeDeletion = await core.user.resolve(account, {
+        usernames: [username],
+      });
+      expect(beforeDeletion.data[0].safeAddress).toEqual(safeAddress);
+
+      expect(
+        await core.user.delete(account, {
+          safeAddress,
+        }),
+      ).toBe(true);
+
+      const afterDeletion = await core.user.resolve(account, {
+        usernames: [username],
+      });
+      expect(afterDeletion.data.length).toEqual(0);
+    });
+
+    it('should respond success when deleting the profile of a safe that is not registered yet', async () => {
+      expect(
+        await core.user.delete(account, {
+          safeAddress,
+        }),
+      ).toBe(true);
     });
   });
 });

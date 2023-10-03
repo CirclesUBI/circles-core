@@ -187,6 +187,45 @@ export default function createUserModule(web3, contracts, utils) {
     },
 
     /**
+     * Delete user entry connected (or not) to a deployed Safe address.
+     *
+     * @namespace core.user.delete
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     *
+     * @return {boolean} - Returns true when successful
+     */
+    delete: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress].join(''),
+        account.privateKey,
+      );
+
+      await utils.requestAPI({
+        path: ['users', safeAddress],
+        method: 'DELETE',
+        data: {
+          address: account.address,
+          signature,
+        },
+      });
+
+      return true;
+    },
+
+    /**
      * Find multiple user entries by Safe address and username.
      *
      * @namespace core.user.resolve
