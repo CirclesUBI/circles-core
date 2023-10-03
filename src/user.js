@@ -127,7 +127,7 @@ export default function createUserModule(web3, contracts, utils) {
     },
 
     /**
-     * Update username, email address, and/or image url, connected (or not) to a deployed Safe address.
+     * Update username, email address, and/or image url, connected to a deployed Safe address.
      *
      * @namespace core.user.update
      *
@@ -187,7 +187,7 @@ export default function createUserModule(web3, contracts, utils) {
     },
 
     /**
-     * Delete user entry connected (or not) to a deployed Safe address.
+     * Delete user entry connected to a deployed Safe address.
      *
      * @namespace core.user.delete
      *
