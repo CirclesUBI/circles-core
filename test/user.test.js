@@ -12,13 +12,14 @@ describe('User', () => {
   let safeAddress;
   let username;
   let email;
-
+  let nonce;
   afterAll(() => provider.engine.stop());
 
   beforeAll(async () => {
+    nonce = generateSaltNonce();
     // Predeploy manually an account (safe and token)
     onboardedAccount = await onboardAccountManually(
-      { account: account, nonce: generateSaltNonce() },
+      { account: account, nonce: nonce },
       core,
     );
     safeAddress = onboardedAccount.safeAddress;
@@ -29,7 +30,7 @@ describe('User', () => {
   describe('when a new user registers its Safe address', () => {
     it('should return a success response', async () => {
       const response = await core.user.register(account, {
-        nonce: generateSaltNonce(),
+        nonce: nonce,
         email,
         safeAddress,
         username,
