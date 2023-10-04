@@ -29,8 +29,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'circles-core/.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: circles-core/package-lock.json
 
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v3
