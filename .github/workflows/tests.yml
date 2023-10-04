@@ -17,7 +17,7 @@ jobs:
           sudo echo "127.0.1.1 relay.circles.local" | sudo tee -a /etc/hosts
 
       - name: Check out circles-core repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: circles-core
 
