@@ -61,7 +61,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: circles-core
-        run: npm install
+        run: npm ci
 
       - name: Check code formatting
         working-directory: circles-core
