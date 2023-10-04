@@ -17,7 +17,7 @@ jobs:
           sudo echo "127.0.1.1 relay.circles.local" | sudo tee -a /etc/hosts
 
       - name: Check out circles-core repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: circles-core
 
@@ -29,14 +29,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'circles-core/.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: circles-core/package-lock.json
 
       - name: Get circles-docker repository and copy configs
         uses: actions/checkout@v3
         with:
           repository: CirclesUBI/circles-docker.git
-          ref: main
+          ref: relayer-api-test
           path: circles-docker
 
       - name: Setup docker repo
@@ -61,7 +59,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: circles-core
-        run: npm install
+        run: npm ci
 
       - name: Check code formatting
         working-directory: circles-core
