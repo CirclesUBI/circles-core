@@ -34,14 +34,14 @@ describe('Safe', () => {
     const nonce = generateSaltNonce();
     let safeAddress;
 
-    it('should throw error when trying to deploy without xDai and required trusts', () =>
+    it('should throw error when trying to deploy without xDai and no required trusts', () =>
       expect(() =>
         core.safe.deploySafe(additionalAccounts[0], {
           nonce: generateSaltNonce(),
         }),
       ).rejects.toThrow(SafeNotTrustError.message));
 
-    it('should deploy a Safe successfully without xDai', async () => {
+    it('should deploy a Safe successfully without xDai but having the required trusts', async () => {
       const poorNonce = generateSaltNonce();
 
       safeAddress = await core.safe.predictAddress(additionalAccounts[0], {
