@@ -324,14 +324,6 @@ export default function createSafeModule({
       );
     }
 
-    const isTrusted = await utils
-      .requestIndexedDB('trust_network', safeAddress.toLowerCase())
-      .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
-
-    if (!isTrusted) {
-      throw new SafeNotTrustError(`The Safe has no minimun required trusts.`);
-    }
-
     const initializer = safeMaster.methods
       .setup(
         [account.address],
@@ -348,10 +340,44 @@ export default function createSafeModule({
       .createProxyWithNonce(safeMasterAddress, initializer, nonce)
       .encodeABI();
 
-    await utils.sendTransaction({
-      target: proxyFactoryAddress,
-      data,
-    });
+    await web3.eth
+      .getTransactionCount(account.address)
+      .then(() =>
+        web3.eth.signTransaction(
+          {
+            from: account.address,
+            to: proxyFactoryAddress,
+            value: 0,
+            data,
+          },
+          account.address,
+        ),
+      )
+      .then((signedTx) => web3.eth.sendSignedTransaction(signedTx.raw))
+      .catch(async (error) => {
+        // The account has not enough xDai to deploy the safe itself, so lets try to deploy it!
+        if (error.code === -32003) {
+          const isTrusted = await utils
+            .requestIndexedDB('trust_network', safeAddress.toLowerCase())
+            .then(
+              ({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT,
+            );
+
+          if (!isTrusted) {
+            throw new SafeNotTrustError(
+              `The Safe has no minimun required trusts to be fund.`,
+            );
+          }
+
+          await utils.sendTransaction({
+            target: proxyFactoryAddress,
+            data,
+          });
+        } else {
+          // Throw unknown errors
+          throw error;
+        }
+      });
 
     return safeAddress;
   };

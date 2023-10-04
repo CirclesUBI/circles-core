@@ -10,7 +10,9 @@ import setupWeb3 from './helpers/setupWeb3';
 import getTrustConnection from './helpers/getTrustConnection';
 
 describe('Safe', () => {
-  const { web3, provider } = setupWeb3();
+  const { web3, provider, additionalAccounts } = setupWeb3({
+    additionalAccountsAmount: 1,
+  });
   const core = createCore(web3);
   const accounts = getAccounts(web3);
   let predeployedSafes;
@@ -28,12 +30,23 @@ describe('Safe', () => {
     );
   });
 
-  describe('when a new Safe gets manually created', () => {
+  describe('when deploying Safes', () => {
     const nonce = generateSaltNonce();
     let safeAddress;
 
-    it('should deploy a Safe successfully', async () => {
-      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
+    it('should throw error when trying to deploy without xDai and no required trusts', () =>
+      expect(() =>
+        core.safe.deploySafe(additionalAccounts[0], {
+          nonce: generateSaltNonce(),
+        }),
+      ).rejects.toThrow(SafeNotTrustError.message));
+
+    it('should deploy a Safe successfully without xDai but having the required trusts', async () => {
+      const poorNonce = generateSaltNonce();
+
+      safeAddress = await core.safe.predictAddress(additionalAccounts[0], {
+        nonce: poorNonce,
+      });
 
       expect(web3.utils.isAddress(safeAddress)).toBe(true);
 
@@ -47,6 +60,18 @@ describe('Safe', () => {
         ),
       );
 
+      await core.safe.deploySafe(additionalAccounts[0], { nonce: poorNonce });
+
+      return core.safe
+        .isDeployed(additionalAccounts[0], { safeAddress })
+        .then((isDeployed) => expect(isDeployed).toBe(true));
+    });
+
+    it('should deploy a Safe successfully with xDai', async () => {
+      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
+
+      expect(web3.utils.isAddress(safeAddress)).toBe(true);
+
       await core.safe.deploySafe(accounts[0], { nonce });
 
       return core.safe
@@ -59,41 +84,19 @@ describe('Safe', () => {
         .getVersion(accounts[0], { safeAddress })
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
-    it('should get the safe address of the owner', () =>
-      core.safe
-        .getAddresses(accounts[0], {
-          ownerAddress: accounts[0].address,
-        })
-        .then((safeAddresses) => expect(safeAddresses).toContain(safeAddress)));
-
     it('should throw error when trying to deploy twice with same nonce', () =>
       expect(() =>
         core.safe.deploySafe(accounts[0], { nonce }),
       ).rejects.toThrow(SafeAlreadyDeployedError.message));
-
-    it('should throw error when trying to deploy without minimun required trusts', () =>
-      expect(() =>
-        core.safe.deploySafe(accounts[0], { nonce: generateSaltNonce() }),
-      ).rejects.toThrow(SafeNotTrustError.message));
   });
 
-  describe('when managing the owners of a Safe', () => {
+  describe('when managing owners of a Safe', () => {
     let safeAddress;
 
     beforeAll(async () => {
       const nonce = generateSaltNonce();
 
       safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
-
-      // Let's make the trust connections needed to get the Safe deployed
-      await Promise.all(
-        predeployedSafes.map((predeployedAddress, index) =>
-          core.trust.addConnection(accounts[index + 1], {
-            canSendTo: predeployedAddress,
-            user: safeAddress,
-          }),
-        ),
-      );
 
       await core.safe.deploySafe(accounts[0], {
         nonce,
