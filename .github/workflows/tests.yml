@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: circles-ubuntu-8-32-300
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       DOCKER_COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.frontend.yml -p circles
