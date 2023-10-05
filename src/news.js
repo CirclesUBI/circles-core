@@ -53,7 +53,7 @@ export default function createNewsModule(utils) {
       },
     });
 
-    return response?.data;
+    return response ? response.data : [];
   };
   return {
     getLatestNews,
