@@ -30,11 +30,15 @@ export default class CirclesCore {
    * @param {string} options.pathfinderType - Type of pathfinder used to get transfer steps ("cli" or "server")
    * @param {string} options.databaseSource - database source type
    * @param {string} options.fallbackHandlerAddress - address of the fallback handler of the Safe contract
+   * @param {string} options.multiSendAddress - address of the multi send Safe contract
+   * @param {string} options.multiSendCallOnlyAddress - address of the multi send call Safe contract
    * @param {string} options.graphNodeEndpoint - URL of the graph node
    * @param {string} options.hubAddress - address of deployed Circles Hub contract
    * @param {string} options.proxyFactoryAddress - address of deployed Gnosis ProxyFactory contract
    * @param {string} options.relayServiceEndpoint - URL of the Relayer server
    * @param {string} options.safeMasterAddress - address of deployed Gnosis Safe master copy contract
+   * @param {string} options.subgraphName - name of the subgraph used
+   * @param {number} options.pathfinderMaxTransferSteps - max allowed steps for transitive pathfinding
    */
   constructor(web3, options) {
     // Check web3 instance
