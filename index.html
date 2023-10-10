@@ -521,6 +521,16 @@
               
                 
                 <li><a
+                  href='#coreuserdelete'
+                  class="">
+                  core.user.delete
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#coreuserresolve'
                   class="">
                   core.user.resolve
@@ -5745,7 +5755,7 @@ user to transfer their Token to or through you.</p>
   </div>
   
 
-  <p>Update username, email address, and/or image url, connected (or not) to a deployed Safe address.</p>
+  <p>Update username, email address, and/or image url, connected to a deployed Safe address.</p>
 
     <div class='pre p1 fill-light mt0'>core.user.update</div>
   
@@ -5822,6 +5832,112 @@ user to transfer their Token to or through you.</p>
   <td class='break-word'><span class='code bold'>userOptions.avatarUrl</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
   </td>
   <td class='break-word'><span>url of the avatar image
+</span></td>
+</tr>
+
+
+              
+            </tbody>
+          </table>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>:
+        Returns true when successful
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='coreuserdelete'>
+      core.user.delete
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Delete user entry connected to a deployed Safe address.</p>
+
+    <div class='pre p1 fill-light mt0'>core.user.delete</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>account</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
+	    web3 account instance
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>userOptions</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>)</code>
+	    options
+
+          </div>
+          
+          <table class='mt1 mb2 fixed-table h5 col-12'>
+            <colgroup>
+              <col width='30%' />
+              <col width='70%' />
+            </colgroup>
+            <thead>
+              <tr class='bold fill-light'>
+                <th>Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody class='mt1'>
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>userOptions.safeAddress</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  </td>
+  <td class='break-word'><span>owned Safe address
 </span></td>
 </tr>
 
