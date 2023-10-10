@@ -127,7 +127,7 @@ export default function createUserModule(web3, contracts, utils) {
     },
 
     /**
-     * Update username, email address, and/or image url, connected (or not) to a deployed Safe address.
+     * Update username, email address, and/or image url, connected to a deployed Safe address.
      *
      * @namespace core.user.update
      *
@@ -180,6 +180,45 @@ export default function createUserModule(web3, contracts, utils) {
             email,
             avatarUrl,
           },
+        },
+      });
+
+      return true;
+    },
+
+    /**
+     * Delete user entry connected to a deployed Safe address.
+     *
+     * @namespace core.user.delete
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     *
+     * @return {boolean} - Returns true when successful
+     */
+    delete: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress].join(''),
+        account.privateKey,
+      );
+
+      await utils.requestAPI({
+        path: ['users', safeAddress],
+        method: 'DELETE',
+        data: {
+          address: account.address,
+          signature,
         },
       });
 
