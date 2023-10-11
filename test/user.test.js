@@ -1,36 +1,23 @@
-import createCore from './helpers/core';
-import setupWeb3 from './helpers/setupWeb3';
-import getAccounts from './helpers/getAccounts';
+import core from './helpers/core';
+import accounts from './helpers/accounts';
 import onboardAccountManually from './helpers/onboardAccountManually';
 import generateSaltNonce from './helpers/generateSaltNonce';
 
 describe('User', () => {
-  const { web3, provider } = setupWeb3();
-  const core = createCore(web3);
-  const [account] = getAccounts(web3);
-  let onboardedAccount;
+  const [account] = accounts;
+  const username = `panda${new Date().getTime()}`;
+  const email = 'panda@zoo.org';
+  const nonce = generateSaltNonce();
   let safeAddress;
-  let username;
-  let email;
-  let nonce;
-  afterAll(() => provider.engine.stop());
 
   beforeAll(async () => {
-    nonce = generateSaltNonce();
-    // Predeploy manually an account (safe and token)
-    onboardedAccount = await onboardAccountManually(
-      { account: account, nonce: nonce },
-      core,
-    );
-    safeAddress = onboardedAccount.safeAddress;
-    username = `panda${new Date().getTime()}`;
-    email = 'panda@zoo.org';
+    safeAddress = await core.safe.predictAddress(account, { nonce });
   });
 
-  describe('when a new user registers its Safe address', () => {
+  describe('when a new user is registered', () => {
     it('should return a success response', async () => {
       const response = await core.user.register(account, {
-        nonce: nonce,
+        nonce,
         email,
         safeAddress,
         username,
@@ -60,6 +47,16 @@ describe('User', () => {
 
       expect(result.data[0].username).toEqual(username);
     });
+  });
+
+  describe('when a user is updated', () => {
+    beforeAll(() =>
+      onboardAccountManually({
+        account,
+        nonce,
+      }),
+    );
+
     it('should be resolveable after changing only username', async () => {
       expect(
         // This update acts as a register
@@ -85,6 +82,7 @@ describe('User', () => {
 
       expect(first.data[0].username).toEqual(newUsername);
     });
+
     it('should return email', async () => {
       expect(
         await core.user.getEmail(account, {

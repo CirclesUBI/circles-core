@@ -10,5 +10,6 @@ module.exports = {
   coveragePathIgnorePatterns: ['<rootDir>/test'],
   testEnvironment: 'node',
   testTimeout: 60 * 1000,
+  // testMatch: ['**/user.test.js'],
   verbose: true,
 };

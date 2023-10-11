@@ -1,40 +1,35 @@
-import createCore from './helpers/core';
-import getAccounts from './helpers/getAccounts';
+import { ethers } from 'ethers';
+
+import core from './helpers/core';
 import generateSaltNonce from './helpers/generateSaltNonce';
-import setupWeb3 from './helpers/setupWeb3';
 import onboardAccountManually from './helpers/onboardAccountManually';
 import deploySafeManually from './helpers/deploySafeManually';
 import getTrustConnection from './helpers/getTrustConnection';
+import accounts from './helpers/accounts';
 
 describe('Organization', () => {
-  const { web3, provider } = setupWeb3();
-  const core = createCore(web3);
-  const [account, otherAccount] = getAccounts(web3);
+  const [account, otherAccount] = accounts;
   let safeAddress;
   let userSafeAddress;
   let otherUserSafeAddress;
-  afterAll(() => provider.engine.stop());
+
   beforeAll(async () => {
     // Predeploy manually accounts (safes and token)
     [userSafeAddress, otherUserSafeAddress] = await Promise.all([
-      onboardAccountManually(
-        { account, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
-      onboardAccountManually(
-        { account: otherAccount, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually({ account, nonce: generateSaltNonce() }).then(
+        ({ safeAddress }) => safeAddress,
+      ),
+      onboardAccountManually({
+        account: otherAccount,
+        nonce: generateSaltNonce(),
+      }).then(({ safeAddress }) => safeAddress),
     ]);
 
     // Prepare address to deploy safe manually for organisation
-    safeAddress = await deploySafeManually(
-      {
-        account: account,
-        nonce: generateSaltNonce(),
-      },
-      core,
-    );
+    safeAddress = await deploySafeManually({
+      account: account,
+      nonce: generateSaltNonce(),
+    });
   });
 
   it('should create an organization and return true if it exists', async () => {
@@ -63,29 +58,26 @@ describe('Organization', () => {
   });
 
   it('should prefund the organization so it can pay for its transactions', async () => {
-    const value = 3;
+    const value = ethers.BigNumber.from(core.utils.toFreckles(3));
 
     await core.organization.prefund(account, {
       from: userSafeAddress,
       to: safeAddress,
-      value: web3.utils.toBN(web3.utils.toWei(value.toString(), 'ether')),
+      value,
     });
-
-    const expectedValue = web3.utils.toBN(
-      web3.utils.toWei(value.toString(), 'ether'),
-    );
 
     const result = await core.utils.loop(
       () =>
         core.token.listAllTokens(account, {
           safeAddress,
         }),
-      (tokens) => tokens.length > 0 && tokens[0].amount.eq(expectedValue),
+      (tokens) => tokens.length > 0 && tokens[0].amount.eq(value),
       { label: 'Wait for organization to own some ether' },
     );
 
-    expect(result[0].amount.eq(expectedValue)).toBe(true);
+    expect(result[0].amount.eq(value)).toBe(true);
   });
+
   it('should use the funds to execute a transaction on its own', () =>
     core.safe
       .addOwner(account, {
@@ -110,13 +102,7 @@ describe('Organization', () => {
       })
       .then(() =>
         core.utils.loop(
-          () =>
-            getTrustConnection(
-              core,
-              account,
-              safeAddress,
-              otherUserSafeAddress,
-            ),
+          () => getTrustConnection(account, safeAddress, otherUserSafeAddress),
           (isReady) => isReady,
           {
             label: 'Wait for the graph to index newly added trust connection',

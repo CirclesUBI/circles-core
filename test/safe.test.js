@@ -1,42 +1,39 @@
+import { ethers } from 'ethers';
+
 import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
 import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 
-import createCore from './helpers/core';
-import getAccounts from './helpers/getAccounts';
-import { deployCRCVersionSafe } from './helpers/transactions';
+import core from './helpers/core';
+import deployCRCVersionSafe from './helpers/transactions';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import onboardAccountManually from './helpers/onboardAccountManually';
-import setupWeb3 from './helpers/setupWeb3';
 import getTrustConnection from './helpers/getTrustConnection';
+import ethProvider from './helpers/ethProvider';
+import accounts from './helpers/accounts';
 
 describe('Safe', () => {
-  const { web3, provider, additionalAccounts } = setupWeb3({
-    additionalAccountsAmount: 1,
-  });
-  const core = createCore(web3);
-  const accounts = getAccounts(web3);
   let predeployedSafes;
 
-  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     // Predeploy manually 3 accounts because of the minimun trusting requirement
     predeployedSafes = await Promise.all(
       Array.from(Array(3).keys()).map((index) =>
-        onboardAccountManually(
-          { account: accounts[index + 1], nonce: generateSaltNonce() },
-          core,
-        ).then(({ safeAddress }) => safeAddress),
+        onboardAccountManually({
+          account: accounts[index + 1],
+          nonce: generateSaltNonce(),
+        }).then(({ safeAddress }) => safeAddress),
       ),
     );
   });
 
   describe('when deploying Safes', () => {
     const nonce = generateSaltNonce();
+    const newAccount = ethers.Wallet.createRandom().connect(ethProvider);
     let safeAddress;
 
     it('should throw error when trying to deploy without xDai and no required trusts', () =>
       expect(() =>
-        core.safe.deploySafe(additionalAccounts[0], {
+        core.safe.deploySafe(newAccount, {
           nonce: generateSaltNonce(),
         }),
       ).rejects.toThrow(SafeNotTrustError.message));
@@ -44,11 +41,11 @@ describe('Safe', () => {
     it('should deploy a Safe successfully without xDai but having the required trusts', async () => {
       const poorNonce = generateSaltNonce();
 
-      safeAddress = await core.safe.predictAddress(additionalAccounts[0], {
+      safeAddress = await core.safe.predictAddress(newAccount, {
         nonce: poorNonce,
       });
 
-      expect(web3.utils.isAddress(safeAddress)).toBe(true);
+      expect(ethers.utils.isAddress(safeAddress)).toBe(true);
 
       // Let's make the trust connections needed to get the Safe deployed
       await Promise.all(
@@ -60,17 +57,17 @@ describe('Safe', () => {
         ),
       );
 
-      await core.safe.deploySafe(additionalAccounts[0], { nonce: poorNonce });
+      await core.safe.deploySafe(newAccount, { nonce: poorNonce });
 
       return core.safe
-        .isDeployed(additionalAccounts[0], { safeAddress })
+        .isDeployed(newAccount, { safeAddress })
         .then((isDeployed) => expect(isDeployed).toBe(true));
     });
 
     it('should deploy a Safe successfully with xDai', async () => {
       safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
 
-      expect(web3.utils.isAddress(safeAddress)).toBe(true);
+      expect(ethers.utils.isAddress(safeAddress)).toBe(true);
 
       await core.safe.deploySafe(accounts[0], { nonce });
 
@@ -153,11 +150,8 @@ describe('Safe', () => {
 
     beforeAll(async () => {
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
-      const CRCSafeContractInstance = await deployCRCVersionSafe(
-        web3,
-        CRCSafeOwner,
-      );
-      CRCSafeAddress = CRCSafeContractInstance.options.address;
+      const CRCSafeContractInstance = await deployCRCVersionSafe(CRCSafeOwner);
+      CRCSafeAddress = ethers.utils.getAddress(CRCSafeContractInstance.address);
       otherSafeAddress = predeployedSafes[0];
     });
 
@@ -176,14 +170,17 @@ describe('Safe', () => {
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
     it('I should be able to trust', () =>
-      core.safe
-        .sendTransaction(CRCSafeOwner, {
-          safeAddress: CRCSafeAddress,
-          transactionData: {
-            to: core.options.hubAddress,
-            data: core.contracts.hub.methods.signup().encodeABI(),
-          },
-        })
+      core.contracts.hub.populateTransaction
+        .signup()
+        .then(({ data }) =>
+          core.safe.sendTransaction(CRCSafeOwner, {
+            safeAddress: CRCSafeAddress,
+            transactionData: {
+              to: core.options.hubAddress,
+              data,
+            },
+          }),
+        )
         .then(() =>
           Promise.all([
             // The newly created Safe trusts the migrated Safe
@@ -204,7 +201,6 @@ describe('Safe', () => {
           core.utils.loop(
             () =>
               getTrustConnection(
-                core,
                 CRCSafeOwner,
                 CRCSafeAddress,
                 otherSafeAddress,
@@ -236,10 +232,10 @@ describe('Safe', () => {
       const transferTransactionHash = await core.token.transfer(CRCSafeOwner, {
         from: CRCSafeAddress,
         to: otherSafeAddress,
-        value: web3.utils.toBN(core.utils.toFreckles(sentCircles)),
+        value: ethers.BigNumber.from(core.utils.toFreckles(sentCircles)),
       });
 
-      expect(web3.utils.isHexStrict(transferTransactionHash)).toBe(true);
+      expect(ethers.utils.isHexString(transferTransactionHash)).toBe(true);
 
       const accountBalance = await core.utils.loop(
         () =>
