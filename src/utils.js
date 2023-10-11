@@ -1,4 +1,5 @@
 import fetch from 'isomorphic-fetch';
+import { ethers } from 'ethers';
 
 import CoreError, { ErrorCodes, RequestError } from '~/common/error';
 import checkOptions from '~/common/checkOptions';
@@ -363,7 +364,7 @@ function getTrustLimitsStatus(
  * @return {Object} - Utils module instance
  */
 export default function createUtilsModule({
-  web3,
+  ethProvider,
   contracts: { hub },
   options: {
     apiServiceEndpoint,
@@ -380,14 +381,14 @@ export default function createUtilsModule({
     const tokens = [];
 
     // Fetch token balance directly from Ethereum node to start with
-    const tokenAddress = await hub.methods.userToToken(safeAddress).call();
+    const tokenAddress = await hub.userToToken(safeAddress);
     if (tokenAddress !== ZERO_ADDRESS) {
-      const tokenContract = getTokenContract(web3, tokenAddress);
-      const amount = await tokenContract.methods.balanceOf(safeAddress).call();
+      const tokenContract = getTokenContract(ethProvider, tokenAddress);
+      const amount = await tokenContract.balanceOf(safeAddress);
 
       tokens.push({
-        amount: web3.utils.toBN(amount.toString()),
-        address: web3.utils.toChecksumAddress(tokenAddress),
+        amount: ethers.BigNumber.from(amount.toString()),
+        address: ethers.utils.getAddress(tokenAddress),
         ownerAddress: safeAddress,
       });
     }
@@ -415,17 +416,15 @@ export default function createUtilsModule({
       );
       if (tokensResponse && tokensResponse.safe) {
         tokensResponse.safe.balances.forEach((balance) => {
-          const tokenAddress = web3.utils.toChecksumAddress(balance.token.id);
-          const ownerAddress = web3.utils.toChecksumAddress(
-            balance.token.owner.id,
-          );
+          const tokenAddress = ethers.utils.getAddress(balance.token.id);
+          const ownerAddress = ethers.utils.getAddress(balance.token.owner.id);
 
           if (tokens.find(({ address }) => address === tokenAddress)) {
             return;
           }
 
           tokens.push({
-            amount: web3.utils.toBN(balance.amount),
+            amount: ethers.BigNumber.from(balance.amount),
             address: tokenAddress,
             ownerAddress,
           });
@@ -436,7 +435,9 @@ export default function createUtilsModule({
     }
 
     return tokens.sort(({ amount: amountA }, { amount: amountB }) => {
-      return web3.utils.toBN(amountA).cmp(web3.utils.toBN(amountB));
+      return ethers.utils
+        .parseEther(amountA)
+        .cmp(ethers.BigNumber.from(amountB));
     });
   }
 
@@ -502,25 +503,20 @@ export default function createUtilsModule({
   };
 
   /**
-   * Convert to fractional monetary unit of Circles
-   * named Freckles.
+   * Convert to fractional monetary unit of Circles named Freckles
    * @namespace core.utils.toFreckles
    * @param {string|number} value - value in Circles
    * @return {string} - value in Freckles
    */
-  const toFreckles = (value) => {
-    return web3.utils.toWei(`${value}`, 'ether');
-  };
+  const toFreckles = (value) => ethers.utils.parseUnits(`${value}`).toString();
 
   /**
-   * Convert from Freckles to Circles number.
+   * Convert from Freckles to Circles number
    * @namespace core.utils.fromFreckles
    * @param {string|number} value - value in Freckles
    * @return {number} - value in Circles
    */
-  const fromFreckles = (value) => {
-    return parseInt(web3.utils.fromWei(`${value}`, 'ether'), 10);
-  };
+  const fromFreckles = (value) => Number(ethers.utils.formatEther(`${value}`));
 
   /**
    * Send a transaction though the relayer to be funded
@@ -574,7 +570,7 @@ export default function createUtilsModule({
   const listAllTokens = (userOptions) => {
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 

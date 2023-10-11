@@ -1,25 +1,22 @@
+import { ethers } from 'ethers';
+
 import checkAccount from '~/common/checkAccount';
 import checkArrayEntries from '~/common/checkArrayEntries';
 import checkOptions from '~/common/checkOptions';
 
 /**
- * Username resolver submodule to register and find usernames.
- *
+ * Module to manage users
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} contracts - common contract instances
- * @param {Object} utils - utils module instance
- *
- * @return {Object} - user module instance
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - User module instance
  */
-export default function createUserModule({ web3, utils }) {
+export default function createUserModule({ utils }) {
   /**
    * Register a new username and email address and connect it to a Safe address.
    *
    * @namespace core.user.register
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.nonce - nonce which was used to predict address, use it only when Safe was not deployed yet
    * @param {string} userOptions.safeAddress - owned Safe address
@@ -29,7 +26,7 @@ export default function createUserModule({ web3, utils }) {
    * @return {boolean} - Returns true when successful
    */
   const register = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       nonce: {
@@ -37,7 +34,7 @@ export default function createUserModule({ web3, utils }) {
         default: 0,
       },
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       username: {
         type: 'string',
@@ -56,9 +53,8 @@ export default function createUserModule({ web3, utils }) {
     const { address } = account;
     const { nonce, avatarUrl, safeAddress, username, email } = options;
 
-    const { signature } = web3.eth.accounts.sign(
+    const signature = await account.signMessage(
       [address, nonce, safeAddress, username].join(''),
-      account.privateKey,
     );
 
     await utils.requestAPI({
@@ -85,7 +81,7 @@ export default function createUserModule({ web3, utils }) {
    *
    * @namespace core.user.update
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - owned Safe address
    * @param {string} userOptions.username - alphanumerical username
@@ -95,11 +91,11 @@ export default function createUserModule({ web3, utils }) {
    * @return {boolean} - Returns true when successful
    */
   const update = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       username: {
         type: 'string',
@@ -117,9 +113,8 @@ export default function createUserModule({ web3, utils }) {
 
     const { address } = account;
     const { safeAddress, username, email, avatarUrl } = options;
-    const { signature } = web3.eth.accounts.sign(
+    const signature = await account.signMessage(
       [address, safeAddress, username].join(''),
-      account.privateKey,
     );
 
     await utils.requestAPI({
@@ -145,20 +140,20 @@ export default function createUserModule({ web3, utils }) {
    *
    * @namespace core.user.resolve
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string[]} userOptions.addresses - Array of safe addresses
    * @param {string[]} userOptions.usernames - Array of usernames
    *
    * @return {Object[]} - List of users
    */
-  const resolve = async (account, userOptions) => {
-    checkAccount(web3, account);
+  const resolve = (account, userOptions) => {
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       addresses: {
         type: (arr) => {
-          return checkArrayEntries(arr, web3.utils.checkAddressChecksum);
+          return checkArrayEntries(arr, ethers.utils.isAddress);
         },
         default: [],
       },
@@ -172,7 +167,7 @@ export default function createUserModule({ web3, utils }) {
       },
     });
 
-    return await utils.requestAPI({
+    return utils.requestAPI({
       path: ['users'],
       data: {
         address: options.addresses,
@@ -186,14 +181,14 @@ export default function createUserModule({ web3, utils }) {
    *
    * @namespace core.user.search
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.query - Search query
    *
    * @return {Object[]} - List of users
    */
-  const search = async (account, userOptions) => {
-    checkAccount(web3, account);
+  const search = (account, userOptions) => {
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       query: {
@@ -201,7 +196,7 @@ export default function createUserModule({ web3, utils }) {
       },
     });
 
-    return await utils.requestAPI({
+    return utils.requestAPI({
       path: ['users'],
       data: {
         query: options.query,
@@ -214,7 +209,7 @@ export default function createUserModule({ web3, utils }) {
    *
    * @namespace core.user.getEmail
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - owned Safe address
    * @param {string} userOptions.username - alphanumerical username
@@ -222,19 +217,17 @@ export default function createUserModule({ web3, utils }) {
    * @return {email} - Email of the user
    */
   const getEmail = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
-    const options = checkOptions(userOptions, {
+    const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
     const { address } = account;
-    const { safeAddress } = options;
-    const { signature } = web3.eth.accounts.sign(
+    const signature = await account.signMessage(
       [address, safeAddress].join(''),
-      account.privateKey,
     );
 
     try {
@@ -242,7 +235,7 @@ export default function createUserModule({ web3, utils }) {
         path: ['users', safeAddress, 'email'],
         method: 'POST',
         data: {
-          address: account.address,
+          address,
           signature,
         },
       });
@@ -259,8 +252,10 @@ export default function createUserModule({ web3, utils }) {
         throw error;
       }
     }
+
     return null;
   };
+
   return {
     register,
     resolve,

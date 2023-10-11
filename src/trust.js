@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import {
@@ -14,7 +16,6 @@ import {
  * @return {Object} - Trust module instance
  */
 export default function createTrustModule({
-  web3,
   contracts: { hub },
   safe,
   utils,
@@ -23,7 +24,7 @@ export default function createTrustModule({
   /**
    * Send a trust transaction from a safe to the hub
    * @access private
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} config - options
    * @param {string} userOptions.canSendTo - Safe address that trusts
    * @param {string} userOptions.user - Safe address that is being trusted
@@ -31,18 +32,20 @@ export default function createTrustModule({
    * @return {RelayResponse} - gelato response
    */
   const _trust = (account, { canSendTo, user, limitPercentage }) =>
-    safe.sendTransaction(account, {
-      safeAddress: canSendTo,
-      transactionData: {
-        to: hubAddress,
-        data: hub.methods.trust(user, limitPercentage).encodeABI(),
-      },
-    });
+    hub.populateTransaction.trust(user, limitPercentage).then(({ data }) =>
+      safe.sendTransaction(account, {
+        safeAddress: canSendTo,
+        transactionData: {
+          to: hubAddress,
+          data,
+        },
+      }),
+    );
 
   /**
    * Trust a safe allowing that user's token to circulate to/through you
    * @namespace core.trust.addConnection
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.canSendTo - Safe address that trusts
    * @param {string} userOptions.user - Safe address that is being trusted
@@ -50,14 +53,14 @@ export default function createTrustModule({
    * @return {RelayResponse} - gelato response
    */
   const addConnection = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { user, canSendTo, limitPercentage } = checkOptions(userOptions, {
       user: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       canSendTo: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       limitPercentage: {
         type: 'number',
@@ -65,7 +68,7 @@ export default function createTrustModule({
       },
     });
 
-    const isOrgSignedup = await hub.methods.organizations(canSendTo).call();
+    const isOrgSignedup = await hub.organizations(canSendTo);
 
     return _trust(account, {
       user,
@@ -79,17 +82,17 @@ export default function createTrustModule({
   /**
    * Get a Safe trust network
    * @namespace core.trust.getNetwork
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address of user
    * @return {Object} Trust network state
    */
   const getNetwork = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -104,8 +107,7 @@ export default function createTrustModule({
           // Create first network iteration with all addresses we trust, so after, we can select mutual trusts with them
           const network = safe.incoming.reduce(
             (acc, { limitPercentage, userAddress }) => {
-              const checksumSafeAddress =
-                web3.utils.toChecksumAddress(userAddress);
+              const checksumSafeAddress = ethers.utils.getAddress(userAddress);
 
               return {
                 [checksumSafeAddress]: {
@@ -125,7 +127,7 @@ export default function createTrustModule({
           // Add to network safes that trust us
           safe.outgoing.forEach(({ limitPercentage, canSendToAddress }) => {
             const checksumSafeAddress =
-              web3.utils.toChecksumAddress(canSendToAddress);
+              ethers.utils.getAddress(canSendToAddress);
 
             // If it does not exist in the network yet, create it
             if (!network[checksumSafeAddress]) {
@@ -146,8 +148,7 @@ export default function createTrustModule({
 
           // Select mutual connections between safe trusts and trusts of safe trusts
           safe.incoming.forEach(({ userAddress, user }) => {
-            const checksumSafeAddress =
-              web3.utils.toChecksumAddress(userAddress);
+            const checksumSafeAddress = ethers.utils.getAddress(userAddress);
 
             if (user) {
               network[checksumSafeAddress].mutualConnections.push(
@@ -156,10 +157,10 @@ export default function createTrustModule({
                     ({ canSendToAddress }) =>
                       // It is not self and is someone we trust
                       canSendToAddress !== userAddress &&
-                      network[web3.utils.toChecksumAddress(canSendToAddress)],
+                      network[ethers.utils.getAddress(canSendToAddress)],
                   )
                   .map(({ canSendToAddress }) =>
-                    web3.utils.toChecksumAddress(canSendToAddress),
+                    ethers.utils.getAddress(canSendToAddress),
                   ),
               );
             }
@@ -175,18 +176,18 @@ export default function createTrustModule({
   /**
    * Find out if safe address has enough incoming trust connections
    * @namespace core.trust.isTrusted
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.limit - Incoming trust limit
    * @return {Object} Number of connections and if the safe is trusted by minimun the limit
    */
   const isTrusted = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       limit: {
         type: 'number',
@@ -205,21 +206,21 @@ export default function createTrustModule({
   /**
    * Remove trust not allowing user's token to circulate to/through you anymore
    * @namespace core.trust.removeConnection
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.canSendTo - Safe address that trusts
    * @param {string} userOptions.user - Safe address that is being trusted
    * @return {RelayResponse} - gelato response
    */
   const removeConnection = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { user, canSendTo } = checkOptions(userOptions, {
       user: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       canSendTo: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 

@@ -1,4 +1,6 @@
-import Safe, { SafeFactory, Web3Adapter } from '@safe-global/protocol-kit';
+import { ethers } from 'ethers';
+import { Logger } from 'ethers/lib/utils';
+import Safe, { SafeFactory, EthersAdapter } from '@safe-global/protocol-kit';
 
 import {
   DEFAULT_TRUST_LIMIT,
@@ -9,7 +11,6 @@ import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
-import safeContractAbis from '~/common/safeContractAbis';
 import { getSafeContract } from '~/common/getContracts';
 
 /**
@@ -19,7 +20,7 @@ import { getSafeContract } from '~/common/getContracts';
  * @return {Object} - Safe module instance
  */
 export default function createSafeModule({
-  web3,
+  ethProvider,
   contracts: { safeMaster, proxyFactory },
   utils,
   options: {
@@ -41,7 +42,6 @@ export default function createSafeModule({
     fallbackHandlerAddress: fallbackHandlerAddress,
     multiSendAddress,
     multiSendCallOnlyAddress,
-    ...safeContractAbis,
   };
 
   /**
@@ -49,30 +49,31 @@ export default function createSafeModule({
    * @access private
    * @return {ContractNetworksConfig} - contract networks data
    */
-  const _getContractNetworks = () =>
-    web3.eth.getChainId().then((chainId) => ({
+  const _getContractNetworks = async () => {
+    return ethProvider.getNetwork().then(({ chainId }) => ({
       [chainId]: _customContracts,
     }));
+  };
 
   /**
    * Create the ethAdapter for the safe-core-sdk
    * @access private
-   * @param {string} signerAddress - Address of the transactions signer
+   * @param {string} signer - Account used to sign
    * @return {Web3Adapter} - ethAdapter
    */
-  const _createEthAdapter = (signerAddress) =>
-    new Web3Adapter({ web3, signerAddress });
+  const _createEthAdapter = (signer) =>
+    new EthersAdapter({ ethers, signerOrProvider: signer || ethProvider });
 
   /**
    * Create a Safe factory
    * @access private
-   * @param {string} signerAddress - Address of the transactions signer
+   * @param {string} signer - Account used to sign
    * @return {SafeFactory} - Safe factory
    */
-  const _createSafeFactory = (signerAddress) =>
+  const _createSafeFactory = (signer) =>
     _getContractNetworks().then((contractNetworks) =>
       SafeFactory.create({
-        ethAdapter: _createEthAdapter(signerAddress),
+        ethAdapter: _createEthAdapter(signer),
         contractNetworks,
       }),
     );
@@ -81,14 +82,14 @@ export default function createSafeModule({
    * Instantiate a Safe
    * @access private
    * @param {Object} config - options
-   * @param {string} config.signerAddress - Address of a signer for transactions if needed
+   * @param {string} config.signer - Account used to sign
    * @param {SafeConfig} config.params - Params to overwrite the Safe.create method
    * @return {Safe} - Instance of a Safe
    */
-  const _getSafeSdk = ({ signerAddress, ...params }) =>
+  const _getSafeSdk = ({ signer, ...params }) =>
     _getContractNetworks().then((contractNetworks) =>
       Safe.create({
-        ethAdapter: _createEthAdapter(signerAddress),
+        ethAdapter: _createEthAdapter(signer),
         contractNetworks,
         ...params,
       }),
@@ -104,11 +105,11 @@ export default function createSafeModule({
    */
   const _prepareSafeTransaction = async ({ safeAddress, safeSdk, safeTx }) =>
     Promise.all([
-      getSafeContract(web3, safeAddress),
+      getSafeContract(ethProvider, safeAddress),
       safeSdk.signTransaction(safeTx),
-    ]).then(([safeContract, signedSafeTx]) =>
-      safeContract.methods
-        .execTransaction(
+    ])
+      .then(([safeContract, signedSafeTx]) =>
+        safeContract.populateTransaction.execTransaction(
           signedSafeTx.data.to,
           signedSafeTx.data.value,
           signedSafeTx.data.data,
@@ -119,27 +120,27 @@ export default function createSafeModule({
           signedSafeTx.data.gasToken,
           signedSafeTx.data.refundReceiver,
           signedSafeTx.encodedSignatures(),
-        )
-        .encodeABI(),
-    );
+        ),
+      )
+      .then(({ data }) => data);
 
   /**
    * Create the data needed to send a Safe transaction
    * @access private
    * @param {Object} options - options
    * @param {string} options.safeAddress - Safe address
-   * @param {string} options.signerAddress - Safe owner address
+   * @param {string} options.signer - Account used to sign
    * @param {string} options.data - Transaction data to be sent
    * @return {Object} - Relay response
    */
   const _createTransaction = async ({
     safeAddress,
-    signerAddress,
+    signer,
     ...transactionData
   }) => {
     const safeSdk = await _getSafeSdk({
       safeAddress,
-      signerAddress,
+      signer,
     });
 
     return safeSdk
@@ -160,19 +161,14 @@ export default function createSafeModule({
    * @access private
    * @param {Object} options - options
    * @param {string} options.safeAddress - Safe address
-   * @param {string} options.signerAddress - Safe owner address
+   * @param {string} options.signer - Account used to sign
    * @param {string} options.target - Target address to send the transaction through the Relayer
    * @param {string} options.transactionData - Transaction data to be sent through Safe
    * @return {Object} - Relay response
    */
-  const _sendTransaction = ({
-    safeAddress,
-    signerAddress,
-    target,
-    transactionData,
-  }) =>
+  const _sendTransaction = ({ safeAddress, signer, target, transactionData }) =>
     _createTransaction({
-      signerAddress,
+      signer,
       safeAddress,
       ...transactionData,
     }).then((data) =>
@@ -189,11 +185,11 @@ export default function createSafeModule({
    * @param {number} nonce - Safe saltNonce for deterministic address generation
    * @return {string} - predicted Safe address
    */
-  const _predictAddress = (ownerAddress, nonce) =>
-    _createSafeFactory(ownerAddress).then((safeFactory) =>
+  const _predictAddress = (owner, nonce) =>
+    _createSafeFactory(owner).then((safeFactory) =>
       safeFactory.predictSafeAddress(
         {
-          owners: [ownerAddress],
+          owners: [owner.address],
           threshold: 1,
         },
         nonce,
@@ -223,27 +219,27 @@ export default function createSafeModule({
   /**
    * Add an owner to a Safe
    * @namespace core.safe.addOwner
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.ownerAddress - owner address to be added
    * @return {RelayResponse} - transaction response
    */
   const addOwner = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress, ownerAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       ownerAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
     const safeSdk = await _getSafeSdk({
       safeAddress,
-      signerAddress: account.address,
+      signer: account,
     });
 
     return safeSdk
@@ -266,7 +262,7 @@ export default function createSafeModule({
   /**
    * Create the data needed to send a Safe transaction
    * @namespace core.safe.createTransaction
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.to - Target address to send the transaction
@@ -274,14 +270,14 @@ export default function createSafeModule({
    * @return {Object} - Relay response
    */
   const createTransaction = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress, to, data } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       data: {
         type: 'string',
@@ -289,7 +285,7 @@ export default function createSafeModule({
     });
 
     return _createTransaction({
-      signerAddress: account.address,
+      signer: account,
       safeAddress,
       to,
       data,
@@ -299,7 +295,7 @@ export default function createSafeModule({
   /**
    * Deploy a new Safe
    * @namespace core.safe.deploySafe
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.nonce - nonce to predict address
    * @throws {SafeAlreadyDeployedError} - Safe must not exist
@@ -307,7 +303,7 @@ export default function createSafeModule({
    * @return {string} - Safe address
    */
   const deploySafe = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { nonce } = checkOptions(userOptions, {
       nonce: {
@@ -315,7 +311,7 @@ export default function createSafeModule({
       },
     });
 
-    const safeAddress = await _predictAddress(account.address, nonce);
+    const safeAddress = await _predictAddress(account, nonce);
     const isSafeDeployed = await _isDeployed(safeAddress);
 
     if (isSafeDeployed) {
@@ -324,39 +320,39 @@ export default function createSafeModule({
       );
     }
 
-    const initializer = safeMaster.methods
-      .setup(
-        [account.address],
-        1,
-        ZERO_ADDRESS,
-        '0x',
-        fallbackHandlerAddress,
-        ZERO_ADDRESS,
-        0,
-        ZERO_ADDRESS,
-      )
-      .encodeABI();
-    const data = proxyFactory.methods
-      .createProxyWithNonce(safeMasterAddress, initializer, nonce)
-      .encodeABI();
+    const { data: initializer } = await safeMaster.populateTransaction.setup(
+      [account.address],
+      1,
+      ZERO_ADDRESS,
+      '0x',
+      fallbackHandlerAddress,
+      ZERO_ADDRESS,
+      0,
+      ZERO_ADDRESS,
+    );
+    const { data } =
+      await proxyFactory.populateTransaction.createProxyWithNonce(
+        safeMasterAddress,
+        initializer,
+        nonce,
+      );
 
-    await web3.eth
-      .getTransactionCount(account.address)
-      .then(() =>
-        web3.eth.signTransaction(
-          {
-            from: account.address,
-            to: proxyFactoryAddress,
-            value: 0,
-            data,
-          },
-          account.address,
-        ),
+    await account
+      .getTransactionCount()
+      .then((walletNonce) =>
+        account.sendTransaction({
+          from: account.address,
+          to: proxyFactoryAddress,
+          value: 0,
+          nonce: walletNonce,
+          data,
+        }),
       )
-      .then((signedTx) => web3.eth.sendSignedTransaction(signedTx.raw))
+      .then((tx) => tx.wait())
       .catch(async (error) => {
+        // console.log(error);
         // The account has not enough xDai to deploy the safe itself, so lets try to deploy it!
-        if (error.code === -32003) {
+        if (error.code === Logger.errors.INSUFFICIENT_FUNDS) {
           const isTrusted = await utils
             .requestIndexedDB('trust_network', safeAddress.toLowerCase())
             .then(
@@ -385,17 +381,17 @@ export default function createSafeModule({
   /**
    * List all Safe addresses of an owner
    * @namespace core.safe.getAddresses
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.ownerAddress - Safe owner address
    * @return {string[]} - List of Safe addresses
    */
   const getAddresses = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       ownerAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -404,7 +400,7 @@ export default function createSafeModule({
       .then((response) =>
         response && response.user
           ? response.user.safeAddresses.map((address) =>
-              web3.utils.toChecksumAddress(address),
+              ethers.utils.getAddress(address),
             )
           : [],
       );
@@ -413,17 +409,17 @@ export default function createSafeModule({
   /**
    * Get all Safe owners
    * @namespace core.safe.getOwners
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @return {string[]} - list of owner addresses
    */
   const getOwners = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -433,30 +429,30 @@ export default function createSafeModule({
   /**
    * Instantiate a Safe
    * @namespace core.safe.getSafeSdk
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {SafeConfig} userOptions - Params to overwrite the Safe.create method
    * @return {Safe} - Instance of a Safe
    */
   const getSafeSdk = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
-    return _getSafeSdk({ signerAddress: account.address, ...userOptions });
+    return _getSafeSdk({ signer: account, ...userOptions });
   };
 
   /**
    * Get Safe version
    * @namespace core.safe.getVersion
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @return {string} - Safe version
    */
   const getVersion = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -466,17 +462,17 @@ export default function createSafeModule({
   /**
    * Check if a Safe address is deployed
    * @namespace core.safe.isDeployed
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @return {boolean} - if Safe is deployed
    */
   const isDeployed = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -486,13 +482,13 @@ export default function createSafeModule({
   /**
    * Predict a Safe address
    * @namespace core.safe.predictAddress
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.nonce - nonce to predict address
    * @return {string} - predicted Safe address
    */
   const predictAddress = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { nonce } = checkOptions(userOptions, {
       nonce: {
@@ -500,33 +496,33 @@ export default function createSafeModule({
       },
     });
 
-    return _predictAddress(account.address, nonce);
+    return _predictAddress(account, nonce);
   };
 
   /**
    * Remove an owner from a Safe
    * @namespace core.safe.removeOwner
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.ownerAddress - owner address to be removed
    * @return {RelayResponse} - transaction response
    */
   const removeOwner = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress, ownerAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       ownerAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
     const safeSdk = await _getSafeSdk({
       safeAddress,
-      signerAddress: account.address,
+      signer: account,
     });
 
     return safeSdk
@@ -552,7 +548,7 @@ export default function createSafeModule({
   /**
    * Prepare and send a Safe transaction
    * @namespace core.safe.sendTransaction
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @param {string} userOptions.target - Target address to send the transaction through the Relayer
@@ -560,14 +556,14 @@ export default function createSafeModule({
    * @return {Object} - Relay response
    */
   const sendTransaction = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress, target, transactionData } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       target: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
         default: ZERO_ADDRESS,
       },
       transactionData: {
@@ -576,7 +572,7 @@ export default function createSafeModule({
     });
 
     return _sendTransaction({
-      signerAddress: account.address,
+      signer: account,
       safeAddress,
       transactionData,
       ...(target !== ZERO_ADDRESS && { target }),
@@ -587,17 +583,17 @@ export default function createSafeModule({
    * Update Safe version to the last version (v1.3.0) by
    * changing the Master Copy and setting the Fallback Handler
    * @namespace core.safe.updateToLastVersion
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address
    * @return {string} - Safe version
    */
   const updateToLastVersion = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
     let safeVersion = await _getVersion(safeAddress);
@@ -608,31 +604,35 @@ export default function createSafeModule({
       // https://github.com/safe-global/safe-react/blob/main/src/logic/safe/utils/upgradeSafe.ts
 
       // Get the Safe contract with version v1.1.1+Circles
-      const safeInstance = getSafeCRCVersionContract(web3, safeAddress);
+      const safeInstance = getSafeCRCVersionContract(ethProvider, safeAddress);
 
       // First we change the Master Copy to v1.3.0
       // @ts-expect-error this was removed in 1.3.0 but we need to support it for older safe versions
-      await _sendTransaction({
-        signerAddress: account.address,
-        safeAddress,
-        transactionData: {
-          to: safeAddress,
-          data: safeInstance.methods
-            .changeMasterCopy(safeMaster.options.address)
-            .encodeABI(),
-        },
-      });
+      await safeInstance.populateTransaction
+        .changeMasterCopy(safeMaster.address)
+        .then(({ data }) =>
+          _sendTransaction({
+            signer: account,
+            safeAddress,
+            transactionData: {
+              to: safeAddress,
+              data,
+            },
+          }),
+        );
 
-      await _sendTransaction({
-        signerAddress: account.address,
-        safeAddress,
-        transactionData: {
-          to: safeAddress,
-          data: safeInstance.methods
-            .setFallbackHandler(fallbackHandlerAddress)
-            .encodeABI(),
-        },
-      });
+      await safeInstance.populateTransaction
+        .setFallbackHandler(fallbackHandlerAddress)
+        .then(({ data }) =>
+          _sendTransaction({
+            signer: account,
+            safeAddress,
+            transactionData: {
+              to: safeAddress,
+              data,
+            },
+          }),
+        );
 
       // Wait to check that the version is updated
       safeVersion = await utils.loop(
@@ -654,18 +654,18 @@ export default function createSafeModule({
    *
    * @namespace core.safe.deployForOrganization
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.safeAddress - to-be-deployed Safe address
    *
    * @return {boolean} - returns true when successful
    */
   const deployForOrganization = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 

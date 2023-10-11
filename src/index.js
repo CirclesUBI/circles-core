@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import CoreError, {
   ErrorCodes,
   RequestError,
@@ -17,13 +18,12 @@ import createUserModule from '~/user';
 import createUtilsModule from '~/utils';
 
 /**
- * Base class of CirclesCore.
+ * Base class of CirclesCore
  */
 export default class CirclesCore {
   /**
-   * Create new CirclesCore instance to interact with Circles.
-   *
-   * @param {Web3} web3 - instance of Web3
+   * Create new CirclesCore instance to interact with Circles
+   * @param {BaseProvider} ethProvider - instance of Ethers BaseProvider
    * @param {Object} options - global core options
    * @param {string} options.apiServiceEndpoint - URL of the username resolver service
    * @param {string} options.pathfinderServiceEndpoint - URL of the pathfinder service
@@ -40,35 +40,35 @@ export default class CirclesCore {
    * @param {string} options.subgraphName - name of the subgraph used
    * @param {number} options.pathfinderMaxTransferSteps - max allowed steps for transitive pathfinding
    */
-  constructor(web3, options) {
-    // Check web3 instance
-    if (!web3 || !web3.version) {
-      throw new CoreError('Web3 instance missing');
+  constructor(ethProvider, options) {
+    // Check ethProvider instance
+    if (!ethProvider) {
+      throw new CoreError('Ethers BaseProvider instance missing');
     }
 
-    /** @type {Web3} - instance of Web3 */
-    this.web3 = web3;
+    /** @type {BaseProvider} - instance of Ethers BaseProvider */
+    this.ethProvider = ethProvider;
 
     // Check options
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       proxyFactoryAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       safeMasterAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       fallbackHandlerAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       multiSendAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       multiSendCallOnlyAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       graphNodeEndpoint: {
         type: 'string',
@@ -115,15 +115,13 @@ export default class CirclesCore {
 
     // Create contracts once
     /** @type {Object} - smart contract instances */
-    this.contracts = getContracts(web3, this.options);
+    this.contracts = getContracts(ethProvider, this.options);
 
     // Create modules
     /** @type {Object} - utils module */
     this.utils = createUtilsModule(this);
     /** @type {Object} - activity module */
     this.activity = createActivityModule(this);
-    /** @type {Object} - news module */
-    this.news = createNewsModule(this.utils);
     /** @type {Object} - safe module */
     this.safe = createSafeModule(this);
     /** @type {Object} - trust module */
@@ -134,5 +132,7 @@ export default class CirclesCore {
     this.user = createUserModule(this);
     /** @type {Object} - organization module */
     this.organization = createOrganizationModule(this);
+    /** @type {Object} - news module */
+    this.news = createNewsModule(this.utils);
   }
 }

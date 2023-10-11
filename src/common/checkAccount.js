@@ -1,19 +1,16 @@
+import { ethers } from 'ethers';
+
 import checkOptions from '~/common/checkOptions';
 
 /**
- * Convenience wrapper function around checkOptions to check
- * for a valid web3 account.
- *
+ * Convenience wrapper function around checkOptions to validate eth accounts
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} account - web3 account instance
- *
+ * @param {Object} account - Wallet account instance
  * @return {Object} - cleaned options
  */
-export default function checkAccount(web3, account) {
+export default function checkAccount(account) {
   return checkOptions(account, {
-    address: web3.utils.checkAddressChecksum,
-    privateKey: web3.utils.isHexStrict,
+    address: ethers.utils.isAddress,
+    privateKey: ethers.utils.isHexString,
   });
 }

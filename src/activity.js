@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import { ZERO_ADDRESS } from '~/common/constants';
 
 import checkAccount from '~/common/checkAccount';
@@ -13,16 +15,12 @@ const TYPE_TRANSFER = 'TRANSFER';
 const TYPE_TRUST = 'TRUST';
 
 /**
- * Activity submodule to get latest log events.
- *
+ * Module to manage activities
  * @access private
- *
- * @param {Web3} web3 - Web3 instance
- * @param {Object} utils - utils module instance
- *
- * @return {Object} - activity module instance
+ * @param {CirclesCore} context - CirclesCore instance
+ * @return {Object} - Activity module instance
  */
-export default function createActivityModule({ web3, utils }) {
+export default function createActivityModule({ utils }) {
   /**
    * Activity type constants.
    *
@@ -54,7 +52,7 @@ export default function createActivityModule({ web3, utils }) {
    *
    * @namespace core.activity.getLatest
    *
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Safe address of user
    * @param {number} userOptions.limit - pagination page size
@@ -65,11 +63,11 @@ export default function createActivityModule({ web3, utils }) {
    * @return {Object} List of latest activities
    */
   const getLatest = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       limit: {
         type: 'number',
@@ -92,7 +90,7 @@ export default function createActivityModule({ web3, utils }) {
         default: ActivityFilterTypes.DISABLED,
       },
       otherSafeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
         default: ZERO_ADDRESS,
       },
     });
@@ -202,24 +200,24 @@ export default function createActivityModule({ web3, utils }) {
             safeAddress: options.safeAddress,
           };
 
-          data.ownerAddress = web3.utils.toChecksumAddress(data.ownerAddress);
+          data.ownerAddress = ethers.utils.getAddress(data.ownerAddress);
         } else if (notification.type === TYPE_TRANSFER) {
           const { from, to, amount } = notification.transfer;
           type = ActivityTypes.TRANSFER;
 
           data = {
-            from: web3.utils.toChecksumAddress(from),
-            to: web3.utils.toChecksumAddress(to),
-            value: new web3.utils.BN(amount),
+            from: ethers.utils.getAddress(from),
+            to: ethers.utils.getAddress(to),
+            value: ethers.BigNumber.from(amount),
           };
         } else if (notification.type === TYPE_HUB_TRANSFER) {
           const { from, to, amount } = notification.hubTransfer;
           type = ActivityTypes.HUB_TRANSFER;
 
           data = {
-            from: web3.utils.toChecksumAddress(from),
-            to: web3.utils.toChecksumAddress(to),
-            value: new web3.utils.BN(amount),
+            from: ethers.utils.getAddress(from),
+            to: ethers.utils.getAddress(to),
+            value: ethers.BigNumber.from(amount),
           };
         } else if (notification.type === TYPE_TRUST) {
           const { user, canSendTo, limitPercentage } = notification.trust;
@@ -231,8 +229,8 @@ export default function createActivityModule({ web3, utils }) {
           }
 
           data = {
-            user: web3.utils.toChecksumAddress(user),
-            canSendTo: web3.utils.toChecksumAddress(canSendTo),
+            user: ethers.utils.getAddress(user),
+            canSendTo: ethers.utils.getAddress(canSendTo),
             limitPercentage: parseInt(limitPercentage, 10),
           };
         } else {
