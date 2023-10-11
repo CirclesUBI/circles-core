@@ -1,5 +1,6 @@
+import core from './core';
+
 export default async function getTrustConnection(
-  core,
   account,
   safeAddress,
   otherSafeAddress,

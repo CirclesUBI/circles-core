@@ -1,9 +1,6 @@
-import createCore from './helpers/core';
-import setupWeb3 from './helpers/setupWeb3';
+import core from './helpers/core';
 
 describe('Utils', () => {
-  const { web3 } = setupWeb3();
-  const core = createCore(web3);
   describe('matchAddress', () => {
     it('should find a valid ethereum address in a string', () => {
       expect(

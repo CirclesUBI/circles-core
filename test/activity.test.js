@@ -1,10 +1,11 @@
-import createCore from './helpers/core';
-import getAccounts from './helpers/getAccounts';
-import setupWeb3 from './helpers/setupWeb3';
+import { ethers } from 'ethers';
+
+import core from './helpers/core';
+import accounts from './helpers/accounts';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import onboardAccountManually from './helpers/onboardAccountManually';
 
-const findOwnerActivity = (core, safeAddress, accountAddress, items) => {
+const findOwnerActivity = (safeAddress, accountAddress, items) => {
   return items.find(({ type, data }) => {
     return (
       type === core.activity.ActivityTypes.ADD_OWNER &&
@@ -15,10 +16,6 @@ const findOwnerActivity = (core, safeAddress, accountAddress, items) => {
 };
 
 describe('Activity', () => {
-  const { web3, provider } = setupWeb3();
-  const core = createCore(web3);
-  const accounts = getAccounts(web3).slice(0, 4);
-  // Create two accounts
   const account = accounts[0];
   const otherAccount = accounts[1];
   const secondOwnerAccount = accounts[2];
@@ -29,16 +26,15 @@ describe('Activity', () => {
   let otherActivities;
   let mutualActivities;
 
-  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
-    safeAddress = await onboardAccountManually(
-      { account, nonce: generateSaltNonce() },
-      core,
-    ).then(({ safeAddress }) => safeAddress);
-    otherSafeAddress = await onboardAccountManually(
-      { account: otherAccount, nonce: generateSaltNonce() },
-      core,
-    ).then(({ safeAddress }) => safeAddress);
+    safeAddress = await onboardAccountManually({
+      account,
+      nonce: generateSaltNonce(),
+    }).then(({ safeAddress }) => safeAddress);
+    otherSafeAddress = await onboardAccountManually({
+      account: otherAccount,
+      nonce: generateSaltNonce(),
+    }).then(({ safeAddress }) => safeAddress);
 
     // .. and do some activity!
     await core.trust
@@ -50,7 +46,7 @@ describe('Activity', () => {
         core.token.transfer(account, {
           from: safeAddress,
           to: otherSafeAddress,
-          value: web3.utils.toBN(core.utils.toFreckles(3)),
+          value: ethers.BigNumber.from(core.utils.toFreckles(3)),
         }),
       )
       .then(() =>
@@ -74,7 +70,6 @@ describe('Activity', () => {
       },
       (result) => {
         return findOwnerActivity(
-          core,
           safeAddress,
           account.address,
           result.activities,
@@ -148,7 +143,6 @@ describe('Activity', () => {
 
     // Expect latest activity
     activity = findOwnerActivity(
-      core,
       safeAddress,
       thirdOwnerAccount.address,
       latest.activities,
@@ -157,7 +151,6 @@ describe('Activity', () => {
 
     // .. but not the older ones
     activity = findOwnerActivity(
-      core,
       safeAddress,
       secondOwnerAccount.address,
       latest.activities,
@@ -165,7 +158,6 @@ describe('Activity', () => {
     expect(activity).toBeDefined();
 
     activity = findOwnerActivity(
-      core,
       safeAddress,
       account.address,
       latest.activities,
@@ -225,7 +217,7 @@ describe('Activity', () => {
     expect(otherActivities.find(query)).toBeDefined();
 
     expect(activity.data.value).toMatchObject(
-      new web3.utils.BN(core.utils.toFreckles(3)),
+      ethers.BigNumber.from(core.utils.toFreckles(3)),
     );
   });
 });

@@ -1,9 +1,9 @@
+import { ethers } from 'ethers';
 import { execSync } from 'child_process';
 
-import createCore from './helpers/core';
-import setupWeb3 from './helpers/setupWeb3';
-import getAccounts from './helpers/getAccounts';
+import core from './helpers/core';
 import deployTestNetwork from './helpers/deployTestNetwork';
+import accounts from './helpers/accounts';
 
 const TRUST_NETWORK = {
   0: [[1, 25]],
@@ -34,9 +34,6 @@ async function wait(ms) {
 }
 
 describe('Token', () => {
-  const { web3, provider } = setupWeb3();
-  const core = createCore(web3);
-  const accounts = getAccounts(web3).slice(0, 6);
   const isPathfinderServer = core.options.pathfinderType === 'server';
   const testPathfinderName = isPathfinderServer ? 'server' : 'binary';
   const tokenOwnerAddressProperty = isPathfinderServer
@@ -47,16 +44,15 @@ describe('Token', () => {
   let safeAddresses;
   let tokenAddresses;
 
-  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     // Retrieve the value of the initial UBI payout (called signupBonus) from the deployed Hub contract
-    signupBonus = await core.contracts.hub.methods.signupBonus().call();
+    signupBonus = await core.contracts.hub.signupBonus();
 
     // Prepare all Safes and generate the network of trust
-    const result = await deployTestNetwork(
-      { accounts, connections: TRUST_NETWORK },
-      core,
-    );
+    const result = await deployTestNetwork({
+      accounts: accounts.slice(0, 6),
+      connections: TRUST_NETWORK,
+    });
 
     safeAddresses = result.safeAddresses;
     tokenAddresses = result.tokenAddresses;
@@ -71,7 +67,7 @@ describe('Token', () => {
       txHash = await core.token.transfer(accounts[1], {
         from: safeAddresses[1],
         to: safeAddresses[0],
-        value: new web3.utils.BN(core.utils.toFreckles(3)),
+        value: ethers.BigNumber.from(core.utils.toFreckles(3)),
         paymentNote,
       });
     });
@@ -95,7 +91,7 @@ describe('Token', () => {
 
   describe('Find transitive transfer steps', () => {
     it(`should return max flow and possible path when using ${testPathfinderName} pathfinder.`, async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const value = ethers.BigNumber.from(core.utils.toFreckles(1));
       const result = await core.token.findTransitiveTransfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
@@ -122,7 +118,7 @@ describe('Token', () => {
     });
 
     it(`should return max flow and possible path when using ${transferStepsProperty} parameter in ${testPathfinderName} pathfinder`, async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const value = ethers.BigNumber.from(core.utils.toFreckles(1));
       const result = await core.token.findTransitiveTransfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
@@ -150,7 +146,7 @@ describe('Token', () => {
     });
 
     it(`should return 0 max flow and no path when using too low ${transferStepsProperty} parameter in ${testPathfinderName} pathfinder`, async () => {
-      const value = new web3.utils.BN(core.utils.toFreckles(1));
+      const value = ethers.BigNumber.from(core.utils.toFreckles(1));
       const result = await core.token.findTransitiveTransfer(accounts[0], {
         from: safeAddresses[0],
         to: safeAddresses[4],
@@ -169,7 +165,7 @@ describe('Token', () => {
   describe('Transitive Transactions', () => {
     it('should send Circles to someone directly', async () => {
       const sentCircles = 5;
-      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
+      const value = ethers.BigNumber.from(core.utils.toFreckles(sentCircles));
       const indexFrom = 1;
       const indexTo = 2;
       const previousBalance = await core.token.getBalance(accounts[indexFrom], {
@@ -183,7 +179,7 @@ describe('Token', () => {
         value,
       });
 
-      expect(web3.utils.isHexStrict(response)).toBe(true);
+      expect(ethers.utils.isHexString(response)).toBe(true);
 
       const accountBalance = await core.utils.loop(
         () =>
@@ -215,7 +211,7 @@ describe('Token', () => {
 
     it('should send Circles to someone transitively', async () => {
       const sentCircles = 5;
-      const value = web3.utils.toBN(core.utils.toFreckles(sentCircles));
+      const value = ethers.BigNumber.from(core.utils.toFreckles(sentCircles));
       const indexFrom = 0;
       const indexTo = 4;
       const previousBalance = await core.token.getBalance(accounts[indexFrom], {
@@ -228,7 +224,7 @@ describe('Token', () => {
         value,
       });
 
-      expect(web3.utils.isHexStrict(response)).toBe(true);
+      expect(ethers.utils.isHexString(response)).toBe(true);
 
       const accountBalance = await core.utils.loop(
         () =>
@@ -263,7 +259,7 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles('100')),
+          value: ethers.BigNumber.from(core.utils.toFreckles('100')),
         }),
       ).rejects.toThrow();
     });
@@ -274,7 +270,7 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[5],
-          value: web3.utils.toBN('1'),
+          value: ethers.BigNumber.from('1'),
         }),
       ).rejects.toThrow();
     });
@@ -284,7 +280,7 @@ describe('Token', () => {
         core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles(5)),
+          value: ethers.BigNumber.from(core.utils.toFreckles(5)),
           [transferStepsProperty]: 1,
         }),
       ).rejects.toThrow();
@@ -310,14 +306,14 @@ describe('Token', () => {
           core.token.transfer(accounts[0], {
             from: safeAddresses[0],
             to: safeAddresses[4],
-            value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+            value: ethers.BigNumber.from(core.utils.toFreckles(valueToSend)),
           }),
         ).rejects.toThrow();
 
         const updateResult = await core.token.updateTransferSteps(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+          value: ethers.BigNumber.from(core.utils.toFreckles(valueToSend)),
         });
         await wait(3000);
         expect(updateResult.updated).toBe(true);
@@ -326,9 +322,9 @@ describe('Token', () => {
         const response = await core.token.transfer(accounts[0], {
           from: safeAddresses[0],
           to: safeAddresses[4],
-          value: web3.utils.toBN(core.utils.toFreckles(valueToSend)),
+          value: ethers.BigNumber.from(core.utils.toFreckles(valueToSend)),
         });
-        expect(web3.utils.isHexStrict(response)).toBe(true);
+        expect(ethers.utils.isHexString(response)).toBe(true);
       });
     }
   });
@@ -340,6 +336,7 @@ describe('Token', () => {
     beforeAll(async () => {
       previousBalance = await core.token.getBalance(accounts[5], {
         safeAddress: safeAddresses[5],
+        tokenAddress: tokenAddresses[5],
       });
       payout = await core.token.checkUBIPayout(accounts[5], {
         safeAddress: safeAddresses[5],
@@ -347,10 +344,7 @@ describe('Token', () => {
     });
 
     it('should add the next payout to our balance', async () => {
-      const expectedBalance = web3.utils
-        .toBN(previousBalance)
-        .add(payout)
-        .toString();
+      const expectedBalance = previousBalance.add(payout);
 
       await core.token.requestUBIPayout(accounts[5], {
         safeAddress: safeAddresses[5],
@@ -364,7 +358,7 @@ describe('Token', () => {
           }),
         (balance) => balance.gt(expectedBalance),
         {
-          label: 'Wait for balance to be lower after user transferred Circles',
+          label: 'Wait for account to receive UBI payout.',
         },
       );
 

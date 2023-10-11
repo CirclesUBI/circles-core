@@ -1,30 +1,25 @@
 import { DEFAULT_USER_LIMIT_PERCENTAGE } from '~/common/constants';
 
-import createCore from './helpers/core';
+import core from './helpers/core';
 import getTrustConnection from './helpers/getTrustConnection';
-import setupWeb3 from './helpers/setupWeb3';
-import getAccounts from './helpers/getAccounts';
+import accounts from './helpers/accounts';
 import onboardAccountManually from './helpers/onboardAccountManually';
 import generateSaltNonce from './helpers/generateSaltNonce';
 
 describe('Trust', () => {
-  const { web3, provider } = setupWeb3();
-  const core = createCore(web3);
-  const [account, otherAccount] = getAccounts(web3);
+  const [account, otherAccount] = accounts;
   let safeAddress;
   let otherSafeAddress;
 
-  afterAll(() => provider.engine.stop());
   beforeAll(async () => {
     [safeAddress, otherSafeAddress] = await Promise.all([
-      onboardAccountManually(
-        { account, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
-      onboardAccountManually(
-        { account: otherAccount, nonce: generateSaltNonce() },
-        core,
-      ).then(({ safeAddress }) => safeAddress),
+      onboardAccountManually({ account, nonce: generateSaltNonce() }).then(
+        ({ safeAddress }) => safeAddress,
+      ),
+      onboardAccountManually({
+        account: otherAccount,
+        nonce: generateSaltNonce(),
+      }).then(({ safeAddress }) => safeAddress),
     ]);
   });
 
@@ -37,8 +32,7 @@ describe('Trust', () => {
         })
         .then(() =>
           core.utils.loop(
-            () =>
-              getTrustConnection(core, account, safeAddress, otherSafeAddress),
+            () => getTrustConnection(account, safeAddress, otherSafeAddress),
             (isReady) => isReady,
             {
               label: 'Wait for the graph to index newly added trust connection',
@@ -58,13 +52,7 @@ describe('Trust', () => {
     it('the other safeAddress should be trusted', () =>
       core.utils
         .loop(
-          () =>
-            getTrustConnection(
-              core,
-              otherAccount,
-              otherSafeAddress,
-              safeAddress,
-            ),
+          () => getTrustConnection(otherAccount, otherSafeAddress, safeAddress),
           (isReady) => isReady,
           { label: 'Wait for trust connection to be indexed by the graph' },
         )
@@ -88,12 +76,7 @@ describe('Trust', () => {
         .then(() =>
           core.utils.loop(
             () =>
-              getTrustConnection(
-                core,
-                otherAccount,
-                otherSafeAddress,
-                safeAddress,
-              ),
+              getTrustConnection(otherAccount, otherSafeAddress, safeAddress),
             ({ isIncoming, isOutgoing }) => isIncoming && isOutgoing,
             { label: 'Wait for trust connection to be indexed by the Graph' },
           ),
