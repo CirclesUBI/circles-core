@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import { ZERO_ADDRESS } from '~/common/constants';
 import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
@@ -11,7 +13,7 @@ import { getTokenContract } from '~/common/getContracts';
  * @return {Object} - Token module instance
  */
 export default function createTokenModule({
-  web3,
+  ethProvider,
   contracts: { hub },
   safe,
   utils,
@@ -25,8 +27,7 @@ export default function createTokenModule({
    * @param {string} safeAddress - Owner Safe address
    * @return {string} - Token address or zero address when none is deployed
    */
-  const _getAddress = (safeAddress) =>
-    hub.methods.userToToken(safeAddress).call();
+  const _getAddress = (safeAddress) => hub.userToToken(safeAddress);
 
   /**
    * Find maximumFlow and transfer steps through a trust graph from someone to
@@ -118,10 +119,9 @@ export default function createTokenModule({
    * @return {BN} - limit available
    */
   const _checkSendLimit = ({ from, to, token }) =>
-    hub.methods
+    hub
       .checkSendLimit(token, from, to)
-      .call()
-      .then((sendLimit) => web3.utils.toBN(sendLimit));
+      .then((sendLimit) => ethers.BigNumber.from(sendLimit));
 
   /**
    * Check if the target value can be transfer from one Safe to another with a specific Token
@@ -141,7 +141,7 @@ export default function createTokenModule({
   /**
    * Return the limit available to send from one Safe to another of a specific Token
    * @namespace core.token.checkSendLimit
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - user arguments
    * @param {string} userOptions.from - send token from this address
    * @param {string} userOptions.to - to this address
@@ -149,17 +149,17 @@ export default function createTokenModule({
    * @return {BN} - limit available
    */
   const checkSendLimit = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { from, to, token } = checkOptions(userOptions, {
       from: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       token: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
         default: ZERO_ADDRESS,
       },
     });
@@ -175,18 +175,18 @@ export default function createTokenModule({
   /**
    * Return the pending UBI payout value in the current moment
    * @namespace core.token.checkUBIPayout
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - user options
    * @param {string} userOptions.safeAddress - Owner Safe address
    * @throws {CoreError} - Token does not exist
    * @return {BN} - payout value
    */
   const checkUBIPayout = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -199,36 +199,38 @@ export default function createTokenModule({
       );
     }
 
-    const token = await getTokenContract(web3, tokenAddress);
-    const payout = await token.methods.look().call();
+    const token = await getTokenContract(ethProvider, tokenAddress);
+    const payout = await token.look();
 
-    return web3.utils.toBN(payout);
+    return ethers.BigNumber.from(payout);
   };
 
   /**
    * Deploy the Token for a Safe signing the Safe in the Hub
    * @namespace core.token.deploy
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Owner Safe address
    * @return {RelayResponse} - gelato response
    */
-  const deploy = async (account, userOptions) => {
-    checkAccount(web3, account);
+  const deploy = (account, userOptions) => {
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
-    return safe.sendTransaction(account, {
-      safeAddress,
-      transactionData: {
-        to: hubAddress,
-        data: hub.methods.signup().encodeABI(),
-      },
-    });
+    return hub.populateTransaction.signup().then(({ data }) =>
+      safe.sendTransaction(account, {
+        safeAddress,
+        transactionData: {
+          to: hubAddress,
+          data,
+        },
+      }),
+    );
   };
 
   /**
@@ -239,11 +241,11 @@ export default function createTokenModule({
    * @return {string} - Token address or zero address when none is deployed
    */
   const getAddress = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -253,7 +255,7 @@ export default function createTokenModule({
   /**
    * Get summarized balance of all or one Token owned by a Safe
    * @namespace core.token.getBalance
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Owner Safe address
    * @param {string=} userOptions.tokenAddress - Token address for filtering the balance
@@ -261,14 +263,14 @@ export default function createTokenModule({
    * @return {BN} - Safe balance
    */
   const getBalance = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       tokenAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
         default: ZERO_ADDRESS,
       },
     });
@@ -284,21 +286,22 @@ export default function createTokenModule({
       );
     }
 
-    let balance = web3.utils.toBN('0');
+    let balance = ethers.BigNumber.from('0');
 
     // Return only the balance of a particular token
     if (tokenAddress !== ZERO_ADDRESS) {
+      const lowerCaseAddress = tokenAddress.toLowerCase();
       const tokenBalance = response.safe.balances.find(
-        (item) => item.token.id === tokenAddress,
+        (item) => item.token.id === lowerCaseAddress,
       );
 
       if (tokenBalance) {
-        balance = web3.utils.toBN(tokenBalance.amount);
+        balance = ethers.BigNumber.from(tokenBalance.amount);
       }
     } else {
       // Summarize all given token amounts
       balance = response.safe.balances.reduce(
-        (acc, { amount }) => acc.iadd(web3.utils.toBN(amount)),
+        (acc, { amount }) => acc.add(ethers.BigNumber.from(amount)),
         balance,
       );
     }
@@ -309,14 +312,14 @@ export default function createTokenModule({
   /**
    * Return the Payment Note of a transaction
    * @namespace core.token.getPaymentNote
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - user options
    * @param {string} userOptions.transactionHash - transfer transaction hash
    * @throws {CoreError} - Unknown error
    * @return {string|null} - Payment note or null if none exists or Safe has no access
    */
   const getPaymentNote = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       transactionHash: {
@@ -327,9 +330,8 @@ export default function createTokenModule({
     });
 
     // Sign this request as we have to claim our wallet address
-    const { signature } = web3.eth.accounts.sign(
-      [options.transactionHash].join(''),
-      account.privateKey,
+    const signature = await account.signMessage(
+      ethers.utils.arrayify(options.transactionHash),
     );
 
     try {
@@ -366,7 +368,7 @@ export default function createTokenModule({
    * graph for a value (when possible).
    * This method does not execute any real transactions
    * @namespace core.token.findTransitiveTransfer
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - search arguments
    * @param {string} userOptions.from - sender Safe address
    * @param {string} userOptions.to - receiver Safe address
@@ -376,17 +378,17 @@ export default function createTokenModule({
    * @return {Object} - maximum possible Circles value and transactions path
    */
   const findTransitiveTransfer = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     let fieldObject = {
       from: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       value: {
-        type: web3.utils.isBN,
+        type: ethers.BigNumber.isBigNumber,
       },
     };
 
@@ -410,13 +412,13 @@ export default function createTokenModule({
   /**
    * List all available tokens of a Safe
    * @namespace core.token.listAllTokens
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Owner Safe address
    * @return {Object[]} - list of tokens formed by ownerAddress, address and amount
    */
   const listAllTokens = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     return utils.listAllTokens(userOptions);
   };
@@ -424,18 +426,18 @@ export default function createTokenModule({
   /**
    * Request the UBI payout
    * @namespace core.token.requestUBIPayout
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - Owner Safe address
    * @throws {CoreError} - Token does not exist
    * @return {RelayResponse} - gelato response
    */
   const requestUBIPayout = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -450,21 +452,23 @@ export default function createTokenModule({
     }
 
     // Get Token contract
-    const token = await getTokenContract(web3, tokenAddress);
+    const token = await getTokenContract(ethProvider, tokenAddress);
 
-    return safe.sendTransaction(account, {
-      safeAddress,
-      transactionData: {
-        to: tokenAddress,
-        data: token.methods.update().encodeABI(),
-      },
-    });
+    return token.populateTransaction.update().then(({ data }) =>
+      safe.sendTransaction(account, {
+        safeAddress,
+        transactionData: {
+          to: tokenAddress,
+          data,
+        },
+      }),
+    );
   };
 
   /**
    * Transfer CRC from one Safe to another
    * @namespace core.token.transfer
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.from - sender address
    * @param {string} userOptions.to - receiver address
@@ -479,17 +483,17 @@ export default function createTokenModule({
    * @return {string} - transaction hash
    */
   const transfer = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     let fieldObject = {
       from: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       value: {
-        type: web3.utils.isBN,
+        type: ethers.BigNumber.isBigNumber,
       },
       paymentNote: {
         type: 'string',
@@ -537,7 +541,7 @@ export default function createTokenModule({
       try {
         response = await _findTransitiveTransfer(options);
 
-        if (web3.utils.toBN(response.maxFlowValue).lt(value)) {
+        if (ethers.BigNumber.from(response.maxFlowValue).lt(value)) {
           throw new TransferError(
             'No possible transfer found',
             ErrorCodes.TRANSFER_NOT_FOUND,
@@ -581,25 +585,23 @@ export default function createTokenModule({
       }
     }
 
-    const { receipt: { transactionHash } = {} } = await safe.sendTransaction(
-      account,
-      {
-        safeAddress: from,
-        transactionData: {
-          to: hubAddress,
-          data: hub.methods
-            .transferThrough(tokenOwners, sources, destinations, values)
-            .encodeABI(),
-        },
-      },
-    );
+    const { receipt: { transactionHash } = {} } = await hub.populateTransaction
+      .transferThrough(tokenOwners, sources, destinations, values)
+      .then(({ data }) =>
+        safe.sendTransaction(account, {
+          safeAddress: from,
+          transactionData: {
+            to: hubAddress,
+            data,
+          },
+        }),
+      );
 
     // Store the transfer in the API if there is a paymentNote
     if (transactionHash && paymentNote.length > 0) {
       // If everything went well so far we can store the paymentNote in the API
-      const { signature } = web3.eth.accounts.sign(
+      const signature = await account.signMessage(
         [from, to, transactionHash].join(''),
-        account.privateKey,
       );
 
       await utils.requestAPI({
@@ -625,7 +627,7 @@ export default function createTokenModule({
    * Update the transitive transfer steps from someone to someone for an amount of Circles.
    * This method does not execute any real transactions
    * @namespace core.token.updateTransferSteps
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - search arguments
    * @param {string} userOptions.from - sender Safe address
    * @param {string} userOptions.to - receiver Safe address
@@ -635,17 +637,17 @@ export default function createTokenModule({
    * @return {boolean} - if steps are updated or not
    */
   const updateTransferSteps = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       from: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       value: {
-        type: web3.utils.isBN,
+        type: ethers.BigNumber.isBigNumber,
       },
       hops: {
         type: 'number',

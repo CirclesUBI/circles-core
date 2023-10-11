@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import GnosisSafeContract from '@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafeL2.sol/GnosisSafeL2.json';
 import GnosisSafeCRCVersionContract from '@circles/safe-contracts/build/contracts/GnosisSafe.json';
 import HubContract from '@circles/circles-contracts/build/contracts/Hub.json';
@@ -9,14 +10,14 @@ import TokenContract from '@circles/circles-contracts/build/contracts/Token.json
  *
  * @access private
  *
- * @param {Web3} web3 - Web3 instance
+ * @param {BaseProvider} ethProvider - Ethers BaseProvider instance
  * @param {Object} abi - contract abi
  * @param {Object} address - contract address
  *
  * @return {Object} - contract instance
  */
-function getContract(web3, abi, address) {
-  return new web3.eth.Contract(abi, address);
+function getContract(ethProvider, abi, address) {
+  return new ethers.Contract(address, abi, ethProvider);
 }
 
 /**
@@ -24,13 +25,13 @@ function getContract(web3, abi, address) {
  *
  * @access private
  *
- * @param {Web3} web3 - Web3 instance
+ * @param {BaseProvider} ethProvider - Ethers BaseProvider instance
  * @param {Object} address - contract address
  *
  * @return {Object} - contract instance
  */
-export function getSafeContract(web3, address) {
-  return getContract(web3, GnosisSafeContract.abi, address);
+export function getSafeContract(ethProvider, address) {
+  return getContract(ethProvider, GnosisSafeContract.abi, address);
 }
 
 /**
@@ -38,13 +39,13 @@ export function getSafeContract(web3, address) {
  *
  * @access private
  *
- * @param {Web3} web3 - Web3 instance
+ * @param {BaseProvider} ethProvider - Ethers BaseProvider instance
  * @param {Object} address - contract address
  *
  * @return {Object} - contract instance
  */
-export function getSafeCRCVersionContract(web3, address) {
-  return getContract(web3, GnosisSafeCRCVersionContract.abi, address);
+export function getSafeCRCVersionContract(ethProvider, address) {
+  return getContract(ethProvider, GnosisSafeCRCVersionContract.abi, address);
 }
 
 /**
@@ -52,13 +53,13 @@ export function getSafeCRCVersionContract(web3, address) {
  *
  * @access private
  *
- * @param {Web3} web3 - Web3 instance
+ * @param {BaseProvider} ethProvider - Ethers BaseProvider instance
  * @param {Object} address - contract address
  *
  * @return {Object} - contract instance
  */
-export function getTokenContract(web3, address) {
-  return getContract(web3, TokenContract.abi, address);
+export function getTokenContract(ethProvider, address) {
+  return getContract(ethProvider, TokenContract.abi, address);
 }
 
 /**
@@ -66,26 +67,26 @@ export function getTokenContract(web3, address) {
  *
  * @access private
  *
- * @param {Web3} web3 - Web3 instance
+ * @param {BaseProvider} ethProvider - Ethers BaseProvider instance
  * @param {Object} options - contract addresses
  *
  * @return {Object} - contract instances
  */
-export default function getContracts(web3, options) {
+export default function getContracts(ethProvider, options) {
   const { safeMasterAddress, proxyFactoryAddress, hubAddress } = options;
 
   // Gnosis master Safe copy
-  const safeMaster = getSafeContract(web3, safeMasterAddress);
+  const safeMaster = getSafeContract(ethProvider, safeMasterAddress);
 
   // Gnosis ProxyFactory
   const proxyFactory = getContract(
-    web3,
+    ethProvider,
     ProxyFactoryContract.abi,
     proxyFactoryAddress,
   );
 
   // Circles Hub
-  const hub = getContract(web3, HubContract.abi, hubAddress);
+  const hub = getContract(ethProvider, HubContract.abi, hubAddress);
 
   return {
     hub,

@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import CoreError, { ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
@@ -11,7 +13,7 @@ import { getTokenContract } from '~/common/getContracts';
  * @return {Object} - Organization module instance
  */
 export default function createOrganizationModule({
-  web3,
+  ethProvider,
   contracts: { hub },
   safe,
   trust,
@@ -21,47 +23,49 @@ export default function createOrganizationModule({
   /**
    * Create a new organization account (shared wallet)
    * @namespace core.organization.deploy
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - safe address of the organization
    * @return {RelayResponse} - gelato response
    */
   const deploy = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
-    return safe.sendTransaction(account, {
-      safeAddress: options.safeAddress,
-      transactionData: {
-        to: hubAddress,
-        data: hub.methods.organizationSignup().encodeABI(),
-      },
-    });
+    return hub.populateTransaction.organizationSignup().then(({ data }) =>
+      safe.sendTransaction(account, {
+        safeAddress: options.safeAddress,
+        transactionData: {
+          to: hubAddress,
+          data,
+        },
+      }),
+    );
   };
 
   /**
    * Find out if address is an organization
    * @namespace core.organization.isOrganization
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {string} userOptions.safeAddress - address
    * @return {boolean} - True if organization
    */
   const isOrganization = (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
-    return hub.methods.organizations(options.safeAddress).call();
+    return hub.organizations(options.safeAddress);
   };
 
   /**
@@ -74,7 +78,7 @@ export default function createOrganizationModule({
    * This method only works if the user and the organization owner are the
    * same as transactions are signed with the same private key
    * @namespace core.organization.prefund
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - user arguments
    * @param {string} userOptions.from - safe address of user who funds
    * @param {string} userOptions.to - safe address of organization
@@ -83,29 +87,29 @@ export default function createOrganizationModule({
    * @return {RelayResponse} - transaction response
    */
   const prefund = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       from: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       to: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
       value: {
-        type: web3.utils.isBN,
+        type: ethers.BigNumber.isBigNumber,
       },
     });
 
     // Check if organization exists
-    const isOrganization = await hub.methods.organizations(options.to).call();
+    const isOrganization = await hub.organizations(options.to);
     if (!isOrganization) {
       throw new CoreError('Given address is not an organization');
     }
 
     // Check if the users token exists and has sufficient funds to transfer
     // the amount to the organization
-    const tokenAddress = await hub.methods.userToToken(options.from).call();
+    const tokenAddress = await hub.userToToken(options.from);
     if (tokenAddress === ZERO_ADDRESS) {
       throw new CoreError(
         'No token given to pay transaction',
@@ -113,11 +117,11 @@ export default function createOrganizationModule({
       );
     }
 
-    const tokenContract = getTokenContract(web3, tokenAddress);
-    const balance = await tokenContract.methods.balanceOf(options.from).call();
+    const tokenContract = getTokenContract(ethProvider, tokenAddress);
+    const balance = await tokenContract.balanceOf(options.from);
     const value = options.value.toString();
 
-    if (!web3.utils.toBN(balance).gte(web3.utils.toBN(value))) {
+    if (!ethers.BigNumber.from(balance).gte(value)) {
       throw new CoreError(
         'No sufficient funds to pay transaction',
         ErrorCodes.INSUFFICIENT_FUNDS,
@@ -133,12 +137,9 @@ export default function createOrganizationModule({
 
     // Wait for the trust connection to be effective
     await utils.loop(
-      () => {
-        return hub.methods.limits(options.to, options.from).call();
-      },
-      (trustLimit) => {
-        return trustLimit === '100';
-      },
+      () => hub.limits(options.to, options.from),
+      (trustLimit) => trustLimit.toString() === '100',
+      { label: 'Wait for trust connection.' },
     );
 
     // Prepare the transfer for the `transferThrough` Hub method, we don't go
@@ -151,35 +152,33 @@ export default function createOrganizationModule({
       values: [value],
     };
 
-    const txData = hub.methods
-      .transferThrough(
-        transfer.tokenOwners,
-        transfer.sources,
-        transfer.destinations,
-        transfer.values,
-      )
-      .encodeABI();
+    const { data } = await hub.populateTransaction.transferThrough(
+      transfer.tokenOwners,
+      transfer.sources,
+      transfer.destinations,
+      transfer.values,
+    );
 
     return safe.sendTransaction(account, {
       safeAddress: options.from,
-      transactionData: { to: hubAddress, data: txData },
+      transactionData: { to: hubAddress, data },
     });
   };
 
   /**
    * Returns a list of organization members
    * @namespace core.organization.getMembers
-   * @param {Object} account - web3 account instance
+   * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - user arguments
    * @param {string} userOptions.safeAddress - address of the organization
    * @return {Array} - list of members with connected safes and owner address
    */
   const getMembers = async (account, userOptions) => {
-    checkAccount(web3, account);
+    checkAccount(account);
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: ethers.utils.isAddress,
       },
     });
 
@@ -199,11 +198,11 @@ export default function createOrganizationModule({
       }
 
       acc.push({
-        ownerAddress: web3.utils.toChecksumAddress(result.user.id),
+        ownerAddress: ethers.utils.getAddress(result.user.id),
         safeAddresses: result.user.safes.reduce((acc, safe) => {
           // Only add safes which are not organizations
           if (!safe.organization) {
-            acc.push(web3.utils.toChecksumAddress(safe.id));
+            acc.push(ethers.utils.getAddress(safe.id));
           }
           return acc;
         }, []),
