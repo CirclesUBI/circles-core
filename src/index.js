@@ -8,6 +8,7 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
+import createAvatarModule from '~/avatar';
 import createNewsModule from '~/news';
 import createOrganizationModule from '~/organization';
 import createSafeModule from '~/safe';
@@ -141,5 +142,7 @@ export default class CirclesCore {
     this.trust = createTrustModule(web3, this.contracts, this.utils);
     /** @type {Object} - user module */
     this.user = createUserModule(web3, this.contracts, this.utils);
+    /** @type {Object} - avatar module */
+    this.avatar = createAvatarModule(web3, this.utils);
   }
 }
