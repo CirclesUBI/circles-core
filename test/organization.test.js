@@ -2,8 +2,8 @@ import { ethers } from 'ethers';
 
 import core from './helpers/core';
 import generateSaltNonce from './helpers/generateSaltNonce';
-import onboardAccountManually from './helpers/onboardAccountManually';
-import deploySafeManually from './helpers/deploySafeManually';
+import onboardAccount from './helpers/onboardAccount';
+import deploySafe from './helpers/deploySafe';
 import getTrustConnection from './helpers/getTrustConnection';
 import accounts from './helpers/accounts';
 
@@ -16,17 +16,17 @@ describe('Organization', () => {
   beforeAll(async () => {
     // Predeploy manually accounts (safes and token)
     [userSafeAddress, otherUserSafeAddress] = await Promise.all([
-      onboardAccountManually({ account, nonce: generateSaltNonce() }).then(
+      onboardAccount({ account, nonce: generateSaltNonce() }).then(
         ({ safeAddress }) => safeAddress,
       ),
-      onboardAccountManually({
+      onboardAccount({
         account: otherAccount,
         nonce: generateSaltNonce(),
       }).then(({ safeAddress }) => safeAddress),
     ]);
 
     // Prepare address to deploy safe manually for organisation
-    safeAddress = await deploySafeManually({
+    safeAddress = await deploySafe({
       account: account,
       nonce: generateSaltNonce(),
     });

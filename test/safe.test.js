@@ -4,9 +4,9 @@ import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
 import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
 
 import core from './helpers/core';
-import deployCRCVersionSafe from './helpers/transactions';
+import deployCRCSafe from './helpers/deployCRCSafe';
 import generateSaltNonce from './helpers/generateSaltNonce';
-import onboardAccountManually from './helpers/onboardAccountManually';
+import onboardAccount from './helpers/onboardAccount';
 import getTrustConnection from './helpers/getTrustConnection';
 import ethProvider from './helpers/ethProvider';
 import accounts from './helpers/accounts';
@@ -18,7 +18,7 @@ describe('Safe', () => {
     // Predeploy manually 3 accounts because of the minimun trusting requirement
     predeployedSafes = await Promise.all(
       Array.from(Array(3).keys()).map((index) =>
-        onboardAccountManually({
+        onboardAccount({
           account: accounts[index + 1],
           nonce: generateSaltNonce(),
         }).then(({ safeAddress }) => safeAddress),
@@ -150,7 +150,7 @@ describe('Safe', () => {
 
     beforeAll(async () => {
       // Deploy a Safe with the CRC version (v1.1.1+Circles)
-      const CRCSafeContractInstance = await deployCRCVersionSafe(CRCSafeOwner);
+      const CRCSafeContractInstance = await deployCRCSafe(CRCSafeOwner);
       CRCSafeAddress = ethers.utils.getAddress(CRCSafeContractInstance.address);
       otherSafeAddress = predeployedSafes[0];
     });

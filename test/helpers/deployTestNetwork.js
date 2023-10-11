@@ -1,13 +1,13 @@
 import core from './core';
 import generateSaltNonce from './generateSaltNonce';
 import getTrustConnection from './getTrustConnection';
-import onboardAccountManually from './onboardAccountManually';
+import onboardAccount from './onboardAccount';
 
 export default async function deployTestNetwork({ accounts, connections }) {
   // Deploy Safes and sign them up in Hub
   const addresses = await Promise.all(
     accounts.map((account) =>
-      onboardAccountManually({ account, nonce: generateSaltNonce() }),
+      onboardAccount({ account, nonce: generateSaltNonce() }),
     ),
   );
   const [safeAddresses, tokenAddresses] = addresses.reduce(

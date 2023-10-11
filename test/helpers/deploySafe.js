@@ -2,7 +2,7 @@ import { ZERO_ADDRESS } from '~/common/constants';
 import core from './core';
 
 // Set up manually a Safe for being fully usable in Circles
-export default async function deploySafeManually({ account, nonce }) {
+export default async function deploySafe({ account, nonce }) {
   const {
     contracts: { safeMaster, proxyFactory },
     options: { fallbackHandlerAddress, proxyFactoryAddress, safeMasterAddress },

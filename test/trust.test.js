@@ -3,7 +3,7 @@ import { DEFAULT_USER_LIMIT_PERCENTAGE } from '~/common/constants';
 import core from './helpers/core';
 import getTrustConnection from './helpers/getTrustConnection';
 import accounts from './helpers/accounts';
-import onboardAccountManually from './helpers/onboardAccountManually';
+import onboardAccount from './helpers/onboardAccount';
 import generateSaltNonce from './helpers/generateSaltNonce';
 
 describe('Trust', () => {
@@ -13,10 +13,10 @@ describe('Trust', () => {
 
   beforeAll(async () => {
     [safeAddress, otherSafeAddress] = await Promise.all([
-      onboardAccountManually({ account, nonce: generateSaltNonce() }).then(
+      onboardAccount({ account, nonce: generateSaltNonce() }).then(
         ({ safeAddress }) => safeAddress,
       ),
-      onboardAccountManually({
+      onboardAccount({
         account: otherAccount,
         nonce: generateSaltNonce(),
       }).then(({ safeAddress }) => safeAddress),
