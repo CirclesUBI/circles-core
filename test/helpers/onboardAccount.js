@@ -1,10 +1,10 @@
 import core from './core';
-import deploySafeManually from './deploySafeManually';
+import deploySafe from './deploySafe';
 
 // Set up manually a Safe for being fully usable in Circles
-export default async function onboardAccountManually(config) {
+export default async function onboardAccount(config) {
   const { account } = config;
-  const safeAddress = await deploySafeManually(config);
+  const safeAddress = await deploySafe(config);
 
   return (
     core.token

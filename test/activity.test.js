@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import core from './helpers/core';
 import accounts from './helpers/accounts';
 import generateSaltNonce from './helpers/generateSaltNonce';
-import onboardAccountManually from './helpers/onboardAccountManually';
+import onboardAccount from './helpers/onboardAccount';
 
 const findOwnerActivity = (safeAddress, accountAddress, items) => {
   return items.find(({ type, data }) => {
@@ -27,11 +27,11 @@ describe('Activity', () => {
   let mutualActivities;
 
   beforeAll(async () => {
-    safeAddress = await onboardAccountManually({
+    safeAddress = await onboardAccount({
       account,
       nonce: generateSaltNonce(),
     }).then(({ safeAddress }) => safeAddress);
-    otherSafeAddress = await onboardAccountManually({
+    otherSafeAddress = await onboardAccount({
       account: otherAccount,
       nonce: generateSaltNonce(),
     }).then(({ safeAddress }) => safeAddress);

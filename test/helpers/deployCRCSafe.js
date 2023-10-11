@@ -42,7 +42,7 @@ const createSafeWithProxy = async (proxy, safe, owner) => {
   );
 };
 
-export default function deployCRCVersionSafe(owner) {
+export default function deployCRCSafe(owner) {
   // Get the CRC version contracts contract
   const safeContract = new ethers.Contract(
     process.env.SAFE_CONTRACT_ADDRESS_CRC,

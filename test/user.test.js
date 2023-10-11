@@ -1,6 +1,6 @@
 import core from './helpers/core';
 import accounts from './helpers/accounts';
-import onboardAccountManually from './helpers/onboardAccountManually';
+import onboardAccount from './helpers/onboardAccount';
 import generateSaltNonce from './helpers/generateSaltNonce';
 
 describe('User', () => {
@@ -51,7 +51,7 @@ describe('User', () => {
 
   describe('when a user is updated', () => {
     beforeAll(() =>
-      onboardAccountManually({
+      onboardAccount({
         account,
         nonce,
       }),
