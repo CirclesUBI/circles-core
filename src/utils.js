@@ -435,9 +435,15 @@ export default function createUtilsModule({
     }
 
     return tokens.sort(({ amount: amountA }, { amount: amountB }) => {
-      return ethers.utils
-        .parseEther(amountA)
-        .cmp(ethers.BigNumber.from(amountB));
+      let result = 0;
+
+      if (amountA.lt(amountB)) {
+        result = -1;
+      } else if (amountA.gt(amountB)) {
+        result = 1;
+      }
+
+      return result;
     });
   }
 
