@@ -49,11 +49,10 @@ export default function createSafeModule({
    * @access private
    * @return {ContractNetworksConfig} - contract networks data
    */
-  const _getContractNetworks = async () => {
-    return ethProvider.getNetwork().then(({ chainId }) => ({
+  const _getContractNetworks = () =>
+    ethProvider.getNetwork().then(({ chainId }) => ({
       [chainId]: _customContracts,
     }));
-  };
 
   /**
    * Create the ethAdapter for the safe-core-sdk
