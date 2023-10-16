@@ -24,7 +24,7 @@ export default function createAvatarModule(web3, utils) {
      *
      * @return {object} - Returns url, file name and file type of the uploaded image
      */
-    uploadAvatarImage: async (account, userOptions) => {
+    upload: async (account, userOptions) => {
       checkAccount(web3, account);
 
       const options = checkOptions(userOptions, {
@@ -38,9 +38,7 @@ export default function createAvatarModule(web3, utils) {
       return await utils.requestAPI({
         path: ['uploads', 'avatar'],
         method: 'POST',
-        data: {
-          data,
-        },
+        data,
       });
     },
 
