@@ -1,8 +1,7 @@
-import { ethers } from 'ethers';
-
 import checkAccount from '~/common/checkAccount';
 import checkArrayEntries from '~/common/checkArrayEntries';
 import checkOptions from '~/common/checkOptions';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Module to manage users
@@ -34,7 +33,7 @@ export default function createUserModule({ utils }) {
         default: 0,
       },
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       username: {
         type: 'string',
@@ -95,7 +94,7 @@ export default function createUserModule({ utils }) {
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       username: {
         type: 'string',
@@ -153,7 +152,7 @@ export default function createUserModule({ utils }) {
     const options = checkOptions(userOptions, {
       addresses: {
         type: (arr) => {
-          return checkArrayEntries(arr, ethers.utils.isAddress);
+          return checkArrayEntries(arr, checkAddressChecksum);
         },
         default: [],
       },
@@ -221,7 +220,7 @@ export default function createUserModule({ utils }) {
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 

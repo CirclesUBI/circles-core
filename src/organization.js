@@ -5,6 +5,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { ZERO_ADDRESS } from '~/common/constants';
 import { getTokenContract } from '~/common/getContracts';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Organization module to manage organizations
@@ -33,7 +34,7 @@ export default function createOrganizationModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -61,7 +62,7 @@ export default function createOrganizationModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -91,10 +92,10 @@ export default function createOrganizationModule({
 
     const options = checkOptions(userOptions, {
       from: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       value: {
         type: ethers.BigNumber.isBigNumber,
@@ -178,7 +179,7 @@ export default function createOrganizationModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 

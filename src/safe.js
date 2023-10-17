@@ -12,6 +12,7 @@ import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
 import { getSafeContract } from '~/common/getContracts';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Module to manage safes
@@ -229,10 +230,10 @@ export default function createSafeModule({
 
     const { safeAddress, ownerAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       ownerAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -273,10 +274,10 @@ export default function createSafeModule({
 
     const { safeAddress, to, data } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       data: {
         type: 'string',
@@ -390,7 +391,7 @@ export default function createSafeModule({
 
     const options = checkOptions(userOptions, {
       ownerAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -418,7 +419,7 @@ export default function createSafeModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -451,7 +452,7 @@ export default function createSafeModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -471,7 +472,7 @@ export default function createSafeModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -512,10 +513,10 @@ export default function createSafeModule({
 
     const { safeAddress, ownerAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       ownerAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -559,10 +560,10 @@ export default function createSafeModule({
 
     const { safeAddress, target, transactionData } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       target: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
         default: ZERO_ADDRESS,
       },
       transactionData: {
@@ -592,7 +593,7 @@ export default function createSafeModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
     let safeVersion = await _getVersion(safeAddress);
@@ -664,7 +665,7 @@ export default function createSafeModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 

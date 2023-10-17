@@ -6,6 +6,7 @@ import checkOptions from '~/common/checkOptions';
 import parameterize from '~/common/parameterize';
 import { NO_LIMIT_PERCENTAGE, ZERO_ADDRESS } from '~/common/constants';
 import { getTokenContract } from '~/common/getContracts';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 async function request(endpoint, userOptions) {
   const options = checkOptions(userOptions, {
@@ -576,7 +577,7 @@ export default function createUtilsModule({
   const listAllTokens = (userOptions) => {
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
