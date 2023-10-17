@@ -226,7 +226,7 @@ async function execTransaction(
       refundReceiver,
       signatures,
     )
-    .send({ from, gas: '10000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
+    .send({ from, gas: '100000000' }); // @TODO: '1266349' ?  Need to change gas, safeTxGase, baseGas
 }
 
 export async function deployCRCVersionToken(web3, account, safe, hub) {
