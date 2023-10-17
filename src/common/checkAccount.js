@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 import checkOptions from '~/common/checkOptions';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Convenience wrapper function around checkOptions to validate eth accounts
@@ -10,7 +11,7 @@ import checkOptions from '~/common/checkOptions';
  */
 export default function checkAccount(account) {
   return checkOptions(account, {
-    address: ethers.utils.isAddress,
+    address: checkAddressChecksum,
     privateKey: ethers.utils.isHexString,
   });
 }

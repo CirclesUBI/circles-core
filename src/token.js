@@ -5,6 +5,7 @@ import CoreError, { TransferError, ErrorCodes } from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getTokenContract } from '~/common/getContracts';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Module to manage Circles tokens
@@ -153,13 +154,13 @@ export default function createTokenModule({
 
     const { from, to, token } = checkOptions(userOptions, {
       from: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       token: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
         default: ZERO_ADDRESS,
       },
     });
@@ -186,7 +187,7 @@ export default function createTokenModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -218,7 +219,7 @@ export default function createTokenModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -245,7 +246,7 @@ export default function createTokenModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -267,10 +268,10 @@ export default function createTokenModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       tokenAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
         default: ZERO_ADDRESS,
       },
     });
@@ -382,10 +383,10 @@ export default function createTokenModule({
 
     let fieldObject = {
       from: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       value: {
         type: ethers.BigNumber.isBigNumber,
@@ -437,7 +438,7 @@ export default function createTokenModule({
 
     const { safeAddress } = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -487,10 +488,10 @@ export default function createTokenModule({
 
     let fieldObject = {
       from: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       value: {
         type: ethers.BigNumber.isBigNumber,
@@ -641,10 +642,10 @@ export default function createTokenModule({
 
     const options = checkOptions(userOptions, {
       from: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       to: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       value: {
         type: ethers.BigNumber.isBigNumber,

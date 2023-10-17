@@ -5,6 +5,7 @@ import { ZERO_ADDRESS } from '~/common/constants';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import createSymbolObject from '~/common/createSymbolObject';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_TIMESTAMP = 0;
@@ -67,7 +68,7 @@ export default function createActivityModule({ utils }) {
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       limit: {
         type: 'number',
@@ -90,7 +91,7 @@ export default function createActivityModule({ utils }) {
         default: ActivityFilterTypes.DISABLED,
       },
       otherSafeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
         default: ZERO_ADDRESS,
       },
     });

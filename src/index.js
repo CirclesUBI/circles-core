@@ -1,4 +1,3 @@
-import { ethers } from 'ethers';
 import CoreError, {
   ErrorCodes,
   RequestError,
@@ -7,6 +6,7 @@ import CoreError, {
 
 import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 import createActivityModule from '~/activity';
 import createNewsModule from '~/news';
@@ -53,22 +53,22 @@ export default class CirclesCore {
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       proxyFactoryAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       safeMasterAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       fallbackHandlerAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       multiSendAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       multiSendCallOnlyAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       graphNodeEndpoint: {
         type: 'string',

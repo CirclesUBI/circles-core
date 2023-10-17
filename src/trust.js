@@ -8,6 +8,7 @@ import {
   DEFAULT_USER_LIMIT_PERCENTAGE,
   NO_LIMIT_PERCENTAGE,
 } from './common/constants';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 /**
  * Module to manage trusts
@@ -57,10 +58,10 @@ export default function createTrustModule({
 
     const { user, canSendTo, limitPercentage } = checkOptions(userOptions, {
       user: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       canSendTo: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       limitPercentage: {
         type: 'number',
@@ -92,7 +93,7 @@ export default function createTrustModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 
@@ -187,7 +188,7 @@ export default function createTrustModule({
 
     const options = checkOptions(userOptions, {
       safeAddress: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       limit: {
         type: 'number',
@@ -217,10 +218,10 @@ export default function createTrustModule({
 
     const { user, canSendTo } = checkOptions(userOptions, {
       user: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
       canSendTo: {
-        type: ethers.utils.isAddress,
+        type: checkAddressChecksum,
       },
     });
 

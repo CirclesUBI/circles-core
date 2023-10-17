@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 
 import { SAFE_LAST_VERSION, SAFE_CRC_VERSION } from '~/common/constants';
 import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 import core from './helpers/core';
 import deployCRCSafe from './helpers/deployCRCSafe';
@@ -45,7 +46,7 @@ describe('Safe', () => {
         nonce: poorNonce,
       });
 
-      expect(ethers.utils.isAddress(safeAddress)).toBe(true);
+      expect(checkAddressChecksum(safeAddress)).toBe(true);
 
       // Let's make the trust connections needed to get the Safe deployed
       await Promise.all(
@@ -67,7 +68,7 @@ describe('Safe', () => {
     it('should deploy a Safe successfully with xDai', async () => {
       safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
 
-      expect(ethers.utils.isAddress(safeAddress)).toBe(true);
+      expect(checkAddressChecksum(safeAddress)).toBe(true);
 
       await core.safe.deploySafe(accounts[0], { nonce });
 
