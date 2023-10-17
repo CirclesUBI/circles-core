@@ -5,6 +5,7 @@ import checkOptions from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 import parameterize from '~/common/parameterize';
 import { ZERO_ADDRESS } from '~/common/constants';
+import checkAddressChecksum from '~/common/checkAddressChecksum';
 
 describe('Common', () => {
   describe('parameterize', () => {
@@ -132,5 +133,20 @@ describe('Common', () => {
       contracts.hub.populateTransaction
         .signup()
         .then(({ data }) => expect(data).toContain('0x')));
+  });
+
+  describe('checkAddressChecksum', () => {
+    it('should pass with a correct checksum address', () =>
+      expect(
+        checkAddressChecksum('0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d'),
+      ).toBe(true));
+
+    it('should not pass with lowercase address', () =>
+      expect(
+        checkAddressChecksum('0x8ba1f109551bd432803012645ac136ddd64dba72'),
+      ).toBe(false));
+
+    it('should not pass with random string', () =>
+      expect(checkAddressChecksum('hello world!')).toBe(false));
   });
 });
