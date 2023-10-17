@@ -25,10 +25,11 @@ describe('Avatar - upload and delete', () => {
       expect(result.data.url).toEqual(expect.stringContaining('https://'));
 
       mockApiAvatarDelete(result.data.url);
-      const result2 = await core.avatar.delete(account, {
-        url: result.data.url,
-      });
-      expect(result2).toBe(true);
+      expect(
+        await core.avatar.delete(account, {
+          url: result.data.url,
+        }),
+      ).toBe(true);
     });
   });
 });
