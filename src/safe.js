@@ -621,43 +621,9 @@ export default function createSafeModule({
     return safeVersion;
   };
 
-  // TODO: this method is missing to be implemented because it will be moved and replaced into organization.js.
-  // Makes more sense to have it there.
-  /**
-   * Requests the relayer to deploy a Safe for an organization. The relayer
-   * funds the deployment of this Safe when the account is already known and
-   * verified / already has a deployed Safe from before.
-   *
-   * @namespace core.safe.deployForOrganization
-   *
-   * @param {Object} account - Wallet account instance
-   * @param {Object} userOptions - options
-   * @param {number} userOptions.safeAddress - to-be-deployed Safe address
-   *
-   * @return {boolean} - returns true when successful
-   */
-  const deployForOrganization = async (account, userOptions) => {
-    checkAccount(account);
-
-    const options = checkOptions(userOptions, {
-      safeAddress: {
-        type: checkAddressChecksum,
-      },
-    });
-
-    await utils.requestRelayer({
-      path: ['safes', options.safeAddress, 'organization'],
-      version: 2,
-      method: 'PUT',
-    });
-
-    return true;
-  };
-
   return {
     addOwner,
     createTransaction,
-    deployForOrganization,
     deploySafe,
     getAddresses,
     getOwners,
