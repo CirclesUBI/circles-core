@@ -63,7 +63,7 @@ This library provides common methods for JavaScript clients and wallets to inter
 
 ## Features
 
-- Interact with [`circles-contracts`] and off-chain services like [`safe-relay-service`], [`graph`] and [`circles-api`]
+- Interact with [`circles-contracts`] and off-chain services like [`circles-payment-api`], [`graph`] and [`circles-api`]
 - Register and maintain user accounts and organizations
 - Create and search off-chain data like transfer descriptions, usernames and profile pictures
 - Trust other users in the network and retreive trust network
@@ -72,21 +72,34 @@ This library provides common methods for JavaScript clients and wallets to inter
 - Calculate transitive transfer steps to send Circles
 - Update the Version of the Safe contract to `v1.3.0`
 
-[`safe-relay-service`]: https://github.com/CirclesUBI/safe-relay-service
+[`circles-payment-api`]: https://github.com/CirclesUBI/circles-payment-api
 [`graph`]: https://thegraph.com/explorer/subgraph/circlesubi/circles
 [`circles-api`]: https://github.com/CirclesUBI/circles-api
 
-## Example
+## Installation
+
+```bash
+npm i @circles/core
+```
+
+Make sure you have all peer dependencies [`isomorphic-fetch`] and [`ethers:5.7.2`] installed as well. Check out the [`circles-docker`] repository for running your code locally against Circles services during development.
+
+[`isomorphic-fetch`]: https://www.npmjs.com/package/isomorphic-fetch
+[`ethers`]: https://www.npmjs.com/package/ethers
+
+## Example usage
 
 ```js
+import { ethers } from 'ethers';
 import CirclesCore from '@circles/core';
-import Web3 from 'web3';
 
-// Initialize web3
-const web3 = new Web3();
+// Prepare ethers provider
+const ethProvider = new ethers.providers.JsonRpcProvider(
+  'https://rpc.gnosischain.com',
+);
 
 // Initialize core with default configs when running against local `circles-docker` setup
-const core = new CirclesCore(web3, {
+const core = new CirclesCore(ethProvider, {
   hubAddress: '0xCfEB869F69431e42cdB54A4F4f105C19C080A601',
   proxyFactoryAddress: '0x9b1f7F645351AF3631a656421eD2e40f2802E6c0',
   safeMasterAddress: '0x59d3631c86BbE35EF041872d502F218A39FBa150',
@@ -98,36 +111,35 @@ const core = new CirclesCore(web3, {
   relayServiceEndpoint: 'http://relay.circles.local',
   subgraphName: 'circlesubi/circles-subgraph',
   fallbackHandlerAddress: '0x67B5656d60a809915323Bf2C40A8bEF15A152e3e',
+  multiSendAddress: '0xe982E462b094850F12AF94d21D470e21bE9D0E9C',
+  multiSendCallOnlyAddress: '0x0290FB167208Af455bB137780163b7B7a9a10C16',
 });
 
 // Create existing account from private key which owns a Safe
-const account = web3.eth.accounts.privateKeyToAccount('0x...');
+const account = new ethers.Wallet('0x...').connect(ethProvider);
 
-// Find out the address of the owned Safe
-const [safeAddress] = await core.safe.getAddresses(account, {
-  ownerAddress: account.address,
-});
+// Example usage
+(async () => {
+  // Find out the address of the owned Safe
+  const [safeAddress] = await core.safe.getAddresses(account, {
+    ownerAddress: account.address,
+  });
 
-// Request Circles UBI payout
-await core.token.requestUBIPayout(account, {
-  safeAddress,
-});
+  // Request Circles UBI payout
+  await core.token.requestUBIPayout(account, {
+    safeAddress,
+  });
+})();
 ```
-
-## Installation
-
-```bash
-npm i @circles/core
-```
-
-Make sure you have all peer dependencies [`isomorphic-fetch`] and [`web3`] installed as well. Check out the [`circles-docker`] repository for running your code locally against Circles services during development.
-
-[`isomorphic-fetch`]: https://www.npmjs.com/package/isomorphic-fetch
-[`web3`]: https://www.npmjs.com/package/web3
 
 ## Development
 
-`circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Rollup`]. Most of the tests are designed to test end-to-end against all external services and require a running [`circles-docker`] environment to work in your development setup.
+`circles-core` is a JavaScript module, tested with [`Jest`], transpiled with [`Babel`] and bundled with [`Parcel`]. Most of the tests are designed to test end-to-end against all external services and require a running [`circles-docker`] environment to work in your development setup.
+
+[`jest`]: https://jestjs.io
+[`babel`]: https://babeljs.io
+[`parcel`]: https://parceljs.org
+[`circles-docker`]: https://github.com/CirclesUBI/circles-docker
 
 ```bash
 # Install NodeJS dependencies
@@ -150,11 +162,6 @@ npm run lint
 # Build it!
 npm run build
 ```
-
-[`jest`]: https://jestjs.io
-[`babel`]: https://babeljs.io
-[`rollup`]: https://rollupjs.org
-[`circles-docker`]: https://github.com/CirclesUBI/circles-docker
 
 ## License
 
