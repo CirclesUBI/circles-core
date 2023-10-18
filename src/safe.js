@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-import { Logger } from 'ethers/lib/utils';
 import Safe, { SafeFactory, EthersAdapter } from '@safe-global/protocol-kit';
 
 import {
@@ -337,43 +336,20 @@ export default function createSafeModule({
         nonce,
       );
 
-    await account
-      .getTransactionCount()
-      .then((walletNonce) =>
-        account.sendTransaction({
-          from: account.address,
-          to: proxyFactoryAddress,
-          value: 0,
-          nonce: walletNonce,
-          data,
-        }),
-      )
-      .then((tx) => tx.wait())
-      .catch(async (error) => {
-        // console.log(error);
-        // The account has not enough xDai to deploy the safe itself, so lets try to deploy it!
-        if (error.code === Logger.errors.INSUFFICIENT_FUNDS) {
-          const isTrusted = await utils
-            .requestIndexedDB('trust_network', safeAddress.toLowerCase())
-            .then(
-              ({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT,
-            );
+    const isTrusted = await utils
+      .requestIndexedDB('trust_network', safeAddress.toLowerCase())
+      .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
 
-          if (!isTrusted) {
-            throw new SafeNotTrustError(
-              `The Safe has no minimun required trusts to be fund.`,
-            );
-          }
+    if (!isTrusted) {
+      throw new SafeNotTrustError(
+        `The Safe has no minimun required trusts to be fund.`,
+      );
+    }
 
-          await utils.sendTransaction({
-            target: proxyFactoryAddress,
-            data,
-          });
-        } else {
-          // Throw unknown errors
-          throw error;
-        }
-      });
+    await utils.sendTransaction({
+      target: proxyFactoryAddress,
+      data,
+    });
 
     return safeAddress;
   };

@@ -9,10 +9,10 @@ import deployCRCSafe from './helpers/deployCRCSafe';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import onboardAccount from './helpers/onboardAccount';
 import getTrustConnection from './helpers/getTrustConnection';
-import ethProvider from './helpers/ethProvider';
 import accounts from './helpers/accounts';
 
 describe('Safe', () => {
+  const account = accounts[0];
   let predeployedSafes;
 
   beforeAll(async () => {
@@ -29,21 +29,16 @@ describe('Safe', () => {
 
   describe('when deploying Safes', () => {
     const nonce = generateSaltNonce();
-    const newAccount = ethers.Wallet.createRandom().connect(ethProvider);
     let safeAddress;
 
-    it('should throw error when trying to deploy without xDai and no required trusts', () =>
-      expect(() =>
-        core.safe.deploySafe(newAccount, {
-          nonce: generateSaltNonce(),
-        }),
-      ).rejects.toThrow(SafeNotTrustError.message));
+    it('should throw error when trying to deploy with no required trusts', () =>
+      expect(() => core.safe.deploySafe(account, { nonce })).rejects.toThrow(
+        SafeNotTrustError.message,
+      ));
 
-    it('should deploy a Safe successfully without xDai but having the required trusts', async () => {
-      const poorNonce = generateSaltNonce();
-
-      safeAddress = await core.safe.predictAddress(newAccount, {
-        nonce: poorNonce,
+    it('should deploy a Safe successfully having the required trusts', async () => {
+      safeAddress = await core.safe.predictAddress(account, {
+        nonce,
       });
 
       expect(checkAddressChecksum(safeAddress)).toBe(true);
@@ -58,34 +53,22 @@ describe('Safe', () => {
         ),
       );
 
-      await core.safe.deploySafe(newAccount, { nonce: poorNonce });
+      await core.safe.deploySafe(account, { nonce });
 
       return core.safe
-        .isDeployed(newAccount, { safeAddress })
-        .then((isDeployed) => expect(isDeployed).toBe(true));
-    });
-
-    it('should deploy a Safe successfully with xDai', async () => {
-      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
-
-      expect(checkAddressChecksum(safeAddress)).toBe(true);
-
-      await core.safe.deploySafe(accounts[0], { nonce });
-
-      return core.safe
-        .isDeployed(accounts[0], { safeAddress })
+        .isDeployed(account, { safeAddress })
         .then((isDeployed) => expect(isDeployed).toBe(true));
     });
 
     it('should get the last version of Safe Contract by default', () =>
       core.safe
-        .getVersion(accounts[0], { safeAddress })
+        .getVersion(account, { safeAddress })
         .then((version) => expect(version).toBe(SAFE_LAST_VERSION)));
 
     it('should throw error when trying to deploy twice with same nonce', () =>
-      expect(() =>
-        core.safe.deploySafe(accounts[0], { nonce }),
-      ).rejects.toThrow(SafeAlreadyDeployedError.message));
+      expect(() => core.safe.deploySafe(account, { nonce })).rejects.toThrow(
+        SafeAlreadyDeployedError.message,
+      ));
   });
 
   describe('when managing owners of a Safe', () => {
@@ -94,30 +77,40 @@ describe('Safe', () => {
     beforeAll(async () => {
       const nonce = generateSaltNonce();
 
-      safeAddress = await core.safe.predictAddress(accounts[0], { nonce });
+      safeAddress = await core.safe.predictAddress(account, { nonce });
 
-      await core.safe.deploySafe(accounts[0], {
+      // Let's make the trust connections needed to get the Safe deployed
+      await Promise.all(
+        predeployedSafes.map((predeployedAddress, index) =>
+          core.trust.addConnection(accounts[index + 1], {
+            canSendTo: predeployedAddress,
+            user: safeAddress,
+          }),
+        ),
+      );
+
+      await core.safe.deploySafe(account, {
         nonce,
       });
     });
 
     it('should return the current owners list', () =>
       core.safe
-        .getOwners(accounts[0], { safeAddress })
-        .then((owners) => expect(owners).toEqual([accounts[0].address])));
+        .getOwners(account, { safeAddress })
+        .then((owners) => expect(owners).toEqual([account.address])));
 
     it('should add owner to the Safe', () =>
       core.safe
-        .addOwner(accounts[0], {
+        .addOwner(account, {
           safeAddress,
           ownerAddress: accounts[1].address,
         })
-        .then(() => core.safe.getOwners(accounts[0], { safeAddress }))
+        .then(() => core.safe.getOwners(account, { safeAddress }))
         .then((owners) => {
           expect(owners).toContain(accounts[1].address);
           expect(owners).toHaveLength(2);
 
-          return core.safe.getAddresses(accounts[0], {
+          return core.safe.getAddresses(account, {
             ownerAddress: accounts[1].address,
           });
         })
@@ -125,16 +118,16 @@ describe('Safe', () => {
 
     it('should remove owner from the Safe', () =>
       core.safe
-        .removeOwner(accounts[0], {
+        .removeOwner(account, {
           safeAddress,
           ownerAddress: accounts[1].address,
         })
-        .then(() => core.safe.getOwners(accounts[0], { safeAddress }))
+        .then(() => core.safe.getOwners(account, { safeAddress }))
         .then((owners) => {
           expect(owners).not.toContain(accounts[1].address);
           expect(owners).toHaveLength(1);
 
-          return core.safe.getAddresses(accounts[0], {
+          return core.safe.getAddresses(account, {
             ownerAddress: accounts[1].address,
           });
         })
