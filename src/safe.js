@@ -6,7 +6,11 @@ import {
   SAFE_LAST_VERSION,
   ZERO_ADDRESS,
 } from '~/common/constants';
-import { SafeAlreadyDeployedError, SafeNotTrustError } from '~/common/error';
+import {
+  SafeAlreadyDeployedError,
+  SafeNotSignedError,
+  SafeNotTrustError,
+} from '~/common/error';
 import checkAccount from '~/common/checkAccount';
 import checkOptions from '~/common/checkOptions';
 import { getSafeCRCVersionContract } from '~/common/getContracts';
@@ -21,7 +25,7 @@ import checkAddressChecksum from '~/common/checkAddressChecksum';
  */
 export default function createSafeModule({
   ethProvider,
-  contracts: { safeMaster, proxyFactory },
+  contracts: { hub, safeMaster, proxyFactory },
   utils,
   options: {
     proxyFactoryAddress,
@@ -297,6 +301,7 @@ export default function createSafeModule({
    * @param {Object} account - Wallet account instance
    * @param {Object} userOptions - options
    * @param {number} userOptions.nonce - nonce to predict address
+   * @param {string} userOptions.ownerAddress - Safe owner address for organizations
    * @throws {SafeAlreadyDeployedError} - Safe must not exist
    * @throws {SafeNotTrustError} - Safe must be trusted
    * @return {string} - Safe address
@@ -304,9 +309,13 @@ export default function createSafeModule({
   const deploySafe = async (account, userOptions) => {
     checkAccount(account);
 
-    const { nonce } = checkOptions(userOptions, {
+    const { nonce, ownerAddress } = checkOptions(userOptions, {
       nonce: {
         type: 'number',
+      },
+      ownerAddress: {
+        type: checkAddressChecksum,
+        default: ZERO_ADDRESS,
       },
     });
 
@@ -317,6 +326,26 @@ export default function createSafeModule({
       throw new SafeAlreadyDeployedError(
         `Safe with nonce ${nonce} is already deployed.`,
       );
+    }
+
+    if (ownerAddress === ZERO_ADDRESS) {
+      const isTrusted = await utils
+        .requestIndexedDB('trust_network', safeAddress.toLowerCase())
+        .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
+
+      if (!isTrusted) {
+        throw new SafeNotTrustError(
+          `The Safe has no minimun required trusts to be fund.`,
+        );
+      }
+    } else {
+      const ownerTokenAddress = await hub.userToToken(ownerAddress);
+
+      if (ownerTokenAddress === ZERO_ADDRESS) {
+        throw new SafeNotSignedError(
+          `Owner address ${ownerAddress} is not signed in the Hub.`,
+        );
+      }
     }
 
     const { data: initializer } = await safeMaster.populateTransaction.setup(
@@ -335,16 +364,6 @@ export default function createSafeModule({
         initializer,
         nonce,
       );
-
-    const isTrusted = await utils
-      .requestIndexedDB('trust_network', safeAddress.toLowerCase())
-      .then(({ trusts = [] } = {}) => trusts.length >= DEFAULT_TRUST_LIMIT);
-
-    if (!isTrusted) {
-      throw new SafeNotTrustError(
-        `The Safe has no minimun required trusts to be fund.`,
-      );
-    }
 
     await utils.sendTransaction({
       target: proxyFactoryAddress,

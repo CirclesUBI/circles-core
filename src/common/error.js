@@ -1,5 +1,4 @@
 import createSymbolObject from '~/common/createSymbolObject';
-import createErrorType from '~/common/createErrorType';
 
 export const ErrorCodes = createSymbolObject([
   'FAILED_REQUEST',
@@ -7,6 +6,7 @@ export const ErrorCodes = createSymbolObject([
   'INVALID_OPTIONS',
   'INVALID_TRANSFER',
   'SAFE_NOT_FOUND',
+  'SAFE_NOT_SIGNED',
   'SAFE_NOT_TRUST',
   'SAFE_ALREADY_DEPLOYED',
   'TOKEN_NOT_FOUND',
@@ -61,12 +61,29 @@ export class TransferError extends CoreError {
   }
 }
 
-export const SafeAlreadyDeployedError = createErrorType(
-  'SafeAlreadyDeployedError',
-  ErrorCodes.SAFE_ALREADY_DEPLOYED,
-);
+export class SafeAlreadyDeployedError extends Error {
+  constructor(message = 'Safe is already deployed') {
+    super(message);
 
-export const SafeNotTrustError = createErrorType(
-  'SafeNotTrustError',
-  ErrorCodes.SAFE_NOT_TRUST,
-);
+    this.name = 'SafeAlreadyDeployedError';
+    this.code = ErrorCodes.SAFE_ALREADY_DEPLOYED;
+  }
+}
+
+export class SafeNotTrustError extends Error {
+  constructor(message = 'Safe is not trust') {
+    super(message);
+
+    this.name = 'SafeNotTrustError';
+    this.code = ErrorCodes.SAFE_NOT_TRUST;
+  }
+}
+
+export class SafeNotSignedError extends Error {
+  constructor(message = 'Safe not signed in Hub') {
+    super(message);
+
+    this.name = 'SafeNotSignedError';
+    this.code = ErrorCodes.SAFE_NOT_SIGNED;
+  }
+}

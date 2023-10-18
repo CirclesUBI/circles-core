@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 
+import { SafeNotSignedError } from '~/common/error';
+
 import core from './helpers/core';
 import generateSaltNonce from './helpers/generateSaltNonce';
 import onboardAccount from './helpers/onboardAccount';
-import deploySafe from './helpers/deploySafe';
 import getTrustConnection from './helpers/getTrustConnection';
 import accounts from './helpers/accounts';
 
@@ -24,15 +25,26 @@ describe('Organization', () => {
         nonce: generateSaltNonce(),
       }).then(({ safeAddress }) => safeAddress),
     ]);
-
-    // Prepare address to deploy safe manually for organisation
-    safeAddress = await deploySafe({
-      account: account,
-      nonce: generateSaltNonce(),
-    });
   });
 
-  it('should create an organization and return true if it exists', async () => {
+  it('should throw error when creating an organization with a nonexisting owner', async () => {
+    const nonce = generateSaltNonce();
+    const falseOwnerAddress = await core.safe.predictAddress(account, {
+      nonce,
+    });
+
+    expect(() =>
+      core.safe.deploySafe(account, { nonce, ownerAddress: falseOwnerAddress }),
+    ).rejects.toThrow(SafeNotSignedError);
+  });
+
+  it('should create an organization successfully', async () => {
+    // Deploy the safe for the organization
+    safeAddress = await core.safe.deploySafe(account, {
+      nonce: generateSaltNonce(),
+      ownerAddress: userSafeAddress,
+    });
+
     // isOrganization should be false in the beginning
     let isOrganization = await core.organization.isOrganization(account, {
       safeAddress,
@@ -57,7 +69,7 @@ describe('Organization', () => {
     expect(isOrganization).toBe(true);
   });
 
-  it('should prefund the organization so it can pay for its transactions', async () => {
+  it('should prefund the organization so it has tokens available', async () => {
     const value = ethers.BigNumber.from(core.utils.toFreckles(3));
 
     await core.organization.prefund(account, {
@@ -78,7 +90,7 @@ describe('Organization', () => {
     expect(result[0].amount.eq(value)).toBe(true);
   });
 
-  it('should use the funds to execute a transaction on its own', () =>
+  it('should be able to execute a transaction', () =>
     core.safe
       .addOwner(account, {
         safeAddress,

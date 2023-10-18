@@ -33,7 +33,7 @@ describe('Safe', () => {
 
     it('should throw error when trying to deploy with no required trusts', () =>
       expect(() => core.safe.deploySafe(account, { nonce })).rejects.toThrow(
-        SafeNotTrustError.message,
+        SafeNotTrustError,
       ));
 
     it('should deploy a Safe successfully having the required trusts', async () => {
@@ -67,7 +67,7 @@ describe('Safe', () => {
 
     it('should throw error when trying to deploy twice with same nonce', () =>
       expect(() => core.safe.deploySafe(account, { nonce })).rejects.toThrow(
-        SafeAlreadyDeployedError.message,
+        SafeAlreadyDeployedError,
       ));
   });
 
