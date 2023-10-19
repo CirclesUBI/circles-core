@@ -65,7 +65,10 @@ export default function createSafeModule({
    * @return {Web3Adapter} - ethAdapter
    */
   const _createEthAdapter = (signer) =>
-    new EthersAdapter({ ethers, signerOrProvider: signer || ethProvider });
+    new EthersAdapter({
+      ethers,
+      signerOrProvider: ethers.Signer.isSigner(signer) ? signer : ethProvider,
+    });
 
   /**
    * Create a Safe factory
