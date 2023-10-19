@@ -1,6 +1,6 @@
 {
   "name": "@circles/core",
-  "version": "5.2.1-beta-not-use",
+  "version": "4.7.1",
   "description": "Common methods to interact with the Circles ecosystem",
   "source": "src/index.js",
   "main": "dist/main.js",
