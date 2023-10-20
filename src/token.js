@@ -586,7 +586,7 @@ export default function createTokenModule({
       }
     }
 
-    const { receipt: { transactionHash } = {} } = await hub.populateTransaction
+    const { transactionHash } = await hub.populateTransaction
       .transferThrough(tokenOwners, sources, destinations, values)
       .then(({ data }) =>
         safe.sendTransaction(account, {
