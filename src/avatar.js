@@ -19,21 +19,12 @@ export default function createAvatarModule(web3, utils) {
      * @namespace core.avatar.upload
      *
      * @param {Object} account - web3 account instance
-     * @param {Object} userOptions - options
-     * @param {object} userOptions.data - avatar image file
+     * @param {Object} data - avatar image file
      *
      * @return {object} - Returns url, file name and file type of the uploaded image
      */
-    upload: (account, userOptions) => {
+    upload: (account, data) => {
       checkAccount(web3, account);
-
-      const options = checkOptions(userOptions, {
-        data: {
-          type: 'object',
-        },
-      });
-
-      const { data } = options;
 
       return utils.requestAPI({
         path: ['uploads', 'avatar'],
