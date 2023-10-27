@@ -21,7 +21,7 @@ describe('Avatar - upload and delete', () => {
     it('should return a success response', async () => {
       const data = {};
       mockApiAvatarUpload(data);
-      const result = await core.avatar.upload(account, { data });
+      const result = await core.avatar.upload(account, data);
       expect(result.data.url).toEqual(expect.stringContaining('https://'));
 
       mockApiAvatarDelete(result.data.url);
