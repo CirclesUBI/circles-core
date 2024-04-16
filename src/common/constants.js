@@ -24,7 +24,7 @@ export const CIRCLES_INCEPTION_TIMESTAMP = new Date('2020-10-15T00:00:00.000Z');
 export const NO_LIMIT_PERCENTAGE = 0;
 
 // Minimun trusts required
-export const DEFAULT_TRUST_LIMIT = 3;
+export const DEFAULT_TRUST_LIMIT = 1;
 
 // Default trust percentage for users
 export const DEFAULT_USER_LIMIT_PERCENTAGE = 100;
