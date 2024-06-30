@@ -158,3 +158,44 @@ describe('User - delete', () => {
     });
   });
 });
+
+describe('User - update profile migration consent', () => {
+  beforeAll(async () => {
+    account = getAccount(3);
+
+    // The Safe must be deployed and signedup to the Hub before trying to change the consent
+    deployedSafe = await deploySafeAndToken(core, account);
+    safeAddress = deployedSafe.safeAddress;
+    username = `catty${new Date().getTime()}`;
+    email = 'catt@yyy.com';
+
+    // This update acts as a register
+    await core.user.update(account, {
+      email,
+      safeAddress,
+      username,
+    });
+  });
+
+  describe('when a new user registers its Safe address', () => {
+    it('should return profile migration consent', async () => {
+      expect(
+        await core.user.getProfileMigrationConsent(account, {
+          safeAddress,
+        }),
+      ).toBe(false);
+    });
+
+    it('should return correct value of profile migration consent after updatins', async () => {
+      await core.user.updateProfileMigrationConsent(account, {
+        safeAddress,
+        profileMigrationConsent: true,
+      }),
+        expect(
+          await core.user.getProfileMigrationConsent(account, {
+            safeAddress,
+          }),
+        ).toBe(true);
+    });
+  });
+});

@@ -346,5 +346,108 @@ export default function createUserModule(web3, contracts, utils) {
       }
       return null;
     },
+
+    /**
+     * Update the profile migration consent of a user, connected (or not) to a deployed Safe address.
+     *
+     * @namespace core.user.updateProfileMigrationConsent
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     * @param {boolean} userOptions.profileMigrationConsent - consent (true or false)
+     *
+     * @return {boolean} - Returns true when successful
+     */
+    updateProfileMigrationConsent: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+        profileMigrationConsent: {
+          type: 'boolean',
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress, profileMigrationConsent } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress, profileMigrationConsent].join(''),
+        account.privateKey,
+      );
+
+      await utils.requestAPI({
+        path: ['users', safeAddress, 'update-profile-migration-consent'],
+        method: 'POST',
+        data: {
+          address: account.address,
+          signature,
+          data: {
+            safeAddress,
+            profileMigrationConsent,
+          },
+        },
+      });
+
+      return true;
+    },
+
+    /**
+     * Get the profile migration consent value of a user.
+     *
+     * @namespace core.user.getProfileMigrationConsent
+     *
+     * @param {Object} account - web3 account instance
+     * @param {Object} userOptions - options
+     * @param {string} userOptions.safeAddress - owned Safe address
+     *
+     * @return {profileMigrationConsent} - Whether or not the user has given their consent
+     */
+    getProfileMigrationConsent: async (account, userOptions) => {
+      checkAccount(web3, account);
+
+      const options = checkOptions(userOptions, {
+        safeAddress: {
+          type: web3.utils.checkAddressChecksum,
+        },
+      });
+
+      const { address } = account;
+      const { safeAddress } = options;
+      const { signature } = web3.eth.accounts.sign(
+        [address, safeAddress].join(''),
+        account.privateKey,
+      );
+
+      try {
+        const response = await utils.requestAPI({
+          path: ['users', safeAddress, 'get-profile-migration-consent'],
+          method: 'POST',
+          data: {
+            address: account.address,
+            signature,
+          },
+        });
+
+        if (
+          response &&
+          response.data &&
+          response.data.profileMigrationConsent
+        ) {
+          return response.data.profileMigrationConsent;
+        }
+      } catch (error) {
+        // Do nothing when not found or denied access ...
+        if (
+          !error.request ||
+          (error.request.status !== 404 && error.request.status !== 403)
+        ) {
+          throw error;
+        }
+      }
+      return null;
+    },
   };
 }
