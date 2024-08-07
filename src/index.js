@@ -4,7 +4,7 @@ import CoreError, {
   TransferError,
 } from '~/common/error';
 
-import checkOptions from '~/common/checkOptions';
+import checkOptions, { addressValidator } from '~/common/checkOptions';
 import getContracts from '~/common/getContracts';
 
 import createActivityModule from '~/activity';
@@ -50,16 +50,16 @@ export default class CirclesCore {
     /** @type {Object} - global core options */
     this.options = checkOptions(options, {
       hubAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: addressValidator,
       },
       proxyFactoryAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: addressValidator,
       },
       safeMasterAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: addressValidator,
       },
       fallbackHandlerAddress: {
-        type: web3.utils.checkAddressChecksum,
+        type: addressValidator,
       },
       graphNodeEndpoint: {
         type: 'string',

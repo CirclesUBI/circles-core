@@ -1,4 +1,5 @@
 import CoreError, { ErrorCodes } from '~/common/error';
+import web3 from 'web3';
 
 const DEFAULT_TYPE = 'string';
 
@@ -32,6 +33,19 @@ function safelyValidate(validatorFn, value) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Validate a given Ethereum address by checking its format and checksum.
+ *
+ * @access public
+ *
+ * @param {String} address - The Ethereum address to validate.
+ */
+export function addressValidator(address) {
+  return (
+    web3.utils.isAddress(address) && web3.utils.checkAddressChecksum(address)
+  );
 }
 
 /**
