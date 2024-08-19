@@ -653,6 +653,7 @@ export default function createTokenModule(
         safeAddress: options.from,
         to: hub.options.address,
         txData,
+        transferData: transfer,
       });
 
       // Do not store the transfer in the API when there is no paymentNote

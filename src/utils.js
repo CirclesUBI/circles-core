@@ -739,6 +739,7 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {string} userOptions.safeAddress - address of Safe
      * @param {string} userOptions.to - forwarded address
      * @param {Object} userOptions.txData - encoded transaction data
+     * @param {Object} userOptions.transferData - optional raw data for transfers, use to avoid collision in the use of the tokens
      * @param {boolean} userOptions.isCRCVersion - is the Safe v1.1.1+Cirlces, false by default
      *
      * @return {string} - transaction hash
@@ -756,13 +757,49 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         txData: {
           type: web3.utils.isHexStrict,
         },
+        transferData: {
+          type: 'object',
+          default: {
+            tokenOwners: [],
+            sources: [],
+            destinations: [],
+            values: [],
+          },
+          required: ['tokenOwners', 'sources', 'destinations', 'values'],
+          properties: {
+            tokenOwners: {
+              type: 'array',
+              items: {
+                type: web3.utils.checkAddressChecksum,
+              },
+            },
+            sources: {
+              type: 'array',
+              items: {
+                type: web3.utils.checkAddressChecksum,
+              },
+            },
+            destinations: {
+              type: 'array',
+              items: {
+                type: web3.utils.checkAddressChecksum,
+              },
+            },
+            values: {
+              type: 'array',
+              items: {
+                type: web3.utils.isBN,
+              },
+            },
+          },
+        },
         isCRCVersion: {
           type: 'boolean',
           default: false,
         },
       });
 
-      const { txData, safeAddress, to, isCRCVersion } = options;
+      const { txData, safeAddress, to, isCRCVersion, transferData } = options;
       const operation = CALL_OP;
       const refundReceiver = ZERO_ADDRESS;
       const value = 0;
@@ -797,9 +834,36 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
         );
       }
 
-      const foundToken = tokens.find(({ amount }) => {
-        return web3.utils.toBN(amount).gte(totalGasEstimate);
+      let foundToken;
+
+      // First try to select a token that is not used in the transitive transfer
+      foundToken = tokens.find(({ amount, ownerAddress }) => {
+        return (
+          !transferData.tokenOwners.includes(ownerAddress) &&
+          web3.utils.toBN(amount).gte(totalGasEstimate)
+        );
       });
+      if (!foundToken) {
+        // Find the tokens held by the safeAddress and that are used in a transitive transfer,
+        // and update the amount substracting the value used in the transfer
+        for (let i = 0; i < transferData.tokenOwners.length; i++) {
+          // Consider only the transfer steps whose origin is the safeAddress
+          if (transferData.sources[i] === safeAddress) {
+            const tokenInTransfer = tokens.find(({ ownerAddress }) => {
+              ownerAddress === transferData.tokenOwners[i];
+            });
+            if (tokenInTransfer) {
+              tokenInTransfer.amount = tokenInTransfer.amount.sub(
+                transferData.values[i],
+              );
+            }
+          }
+        }
+
+        foundToken = tokens.find(({ amount }) => {
+          return web3.utils.toBN(amount).gte(totalGasEstimate);
+        });
+      }
 
       if (!foundToken) {
         throw new CoreError(
