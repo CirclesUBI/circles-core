@@ -186,7 +186,7 @@ describe('User - update profile migration consent', () => {
       ).toBe(false);
     });
 
-    it('should return correct value of profile migration consent after updatins', async () => {
+    it('should return correct value of profile migration consent after updating', async () => {
       await core.user.updateProfileMigrationConsent(account, {
         safeAddress,
         profileMigrationConsent: true,
