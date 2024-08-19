@@ -433,8 +433,8 @@ export default function createUserModule(web3, contracts, utils) {
 
         if (
           response &&
-          response.data &&
-          response.data.profileMigrationConsent
+          'data' in response &&
+          'profileMigrationConsent' in response.data
         ) {
           return response.data.profileMigrationConsent;
         }
