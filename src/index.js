@@ -91,7 +91,7 @@ export default class CirclesCore {
          * gas estimate and the block gas limit.
          * For more information, see the Circles handbook.
          */
-        default: 30,
+        default: 17,
       },
     });
 
