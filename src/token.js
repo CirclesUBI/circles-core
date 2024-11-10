@@ -552,13 +552,11 @@ export default function createTokenModule(
       };
 
       // Try first to send the transaction directly, this saves us the
-      // roundtrip through the api
-      // Try first with the token of the 'to' address,
-      // then try with the token of the 'from' address.
+      // roundtrip through the pathfinder
+      // Try first with the token of the 'to' address, if it's not an org
       const sendLimitTo = await hub.methods
         .checkSendLimit(options.to, options.from, options.to)
         .call();
-
       if (web3.utils.toBN(sendLimitTo).gte(options.value)) {
         // Direct transfer is possible, fill in the required transaction data
         transfer.tokenOwners.push(options.to);
@@ -566,80 +564,68 @@ export default function createTokenModule(
         transfer.destinations.push(options.to);
         transfer.values.push(options.value.toString());
       } else {
-        const sendLimitFrom = await hub.methods
-          .checkSendLimit(options.from, options.from, options.to)
-          .call();
-        if (web3.utils.toBN(sendLimitFrom).gte(options.value)) {
-          // Direct transfer is possible, fill in the required transaction data
-          transfer.tokenOwners.push(options.from);
-          transfer.sources.push(options.from);
-          transfer.destinations.push(options.to);
-          transfer.values.push(options.value.toString());
-        } else {
-          // This seems to be a little bit more complicated ..., request API to
-          // find transitive transfer path
-          let response;
-          try {
-            response = await findTransitiveTransfer(
-              web3,
-              utils,
-              options,
-              pathfinderType,
-              pathfinderMaxTransferSteps,
+        // This seems to be a little bit more complicated ...,
+        // request pathfinder to find transitive transfer path
+        let response;
+        try {
+          response = await findTransitiveTransfer(
+            web3,
+            utils,
+            options,
+            pathfinderType,
+            pathfinderMaxTransferSteps,
+          );
+          if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
+            throw new TransferError(
+              'No possible transfer found',
+              ErrorCodes.TRANSFER_NOT_FOUND,
+              {
+                ...options,
+                response,
+              },
             );
-            if (web3.utils.toBN(response.maxFlowValue).lt(options.value)) {
-              throw new TransferError(
-                'No possible transfer found',
-                ErrorCodes.TRANSFER_NOT_FOUND,
-                {
-                  ...options,
-                  response,
-                },
-              );
-            }
-            if (response.transferSteps.length > pathfinderMaxTransferSteps) {
-              throw new TransferError(
-                'Too many transfer steps',
-                ErrorCodes.TOO_COMPLEX_TRANSFER,
-                {
-                  ...options,
-                  response,
-                },
-              );
-            }
-            // Convert connections to contract argument format depending on the pathfinder used
-            if (pathfinderType == 'cli') {
-              response.transferSteps.forEach((transaction) => {
-                transfer.tokenOwners.push(transaction.tokenOwnerAddress);
-                transfer.sources.push(transaction.from);
-                transfer.destinations.push(transaction.to);
-                transfer.values.push(transaction.value);
-              });
-            } else if (pathfinderType == 'server') {
-              response.transferSteps.forEach((transaction) => {
-                transfer.tokenOwners.push(transaction.token_owner);
-                transfer.sources.push(transaction.from);
-                transfer.destinations.push(transaction.to);
-                transfer.values.push(transaction.value);
-              });
-            }
-          } catch (error) {
-            if (!error.code) {
-              throw new TransferError(
-                error.message,
-                ErrorCodes.INVALID_TRANSFER,
-                {
-                  ...options,
-                  response,
-                },
-              );
-            } else {
-              throw error;
-            }
+          }
+          if (response.transferSteps.length > pathfinderMaxTransferSteps) {
+            throw new TransferError(
+              'Too many transfer steps',
+              ErrorCodes.TOO_COMPLEX_TRANSFER,
+              {
+                ...options,
+                response,
+              },
+            );
+          }
+          // Convert connections to contract argument format depending on the pathfinder used
+          if (pathfinderType == 'cli') {
+            response.transferSteps.forEach((transaction) => {
+              transfer.tokenOwners.push(transaction.tokenOwnerAddress);
+              transfer.sources.push(transaction.from);
+              transfer.destinations.push(transaction.to);
+              transfer.values.push(transaction.value);
+            });
+          } else if (pathfinderType == 'server') {
+            response.transferSteps.forEach((transaction) => {
+              transfer.tokenOwners.push(transaction.token_owner);
+              transfer.sources.push(transaction.from);
+              transfer.destinations.push(transaction.to);
+              transfer.values.push(transaction.value);
+            });
+          }
+        } catch (error) {
+          if (!error.code) {
+            throw new TransferError(
+              error.message,
+              ErrorCodes.INVALID_TRANSFER,
+              {
+                ...options,
+                response,
+              },
+            );
+          } else {
+            throw error;
           }
         }
       }
-
       const txData = await hub.methods
         .transferThrough(
           transfer.tokenOwners,
