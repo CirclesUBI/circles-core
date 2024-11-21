@@ -138,7 +138,7 @@ async function requestGraph(endpoint, subgraphName, userOptions) {
     isTrailingSlash: false,
   });
 
-  return response.data;
+  return response.data || response.errors;
 }
 
 async function requestIndexedDB(
@@ -685,6 +685,8 @@ export default function createUtilsModule(web3, contracts, globalOptions) {
      * @param {Object} userOptions - query options
      * @param {string} userOptions.query - GraphQL query
      * @param {Object} userOptions.variables - GraphQL variables
+     *
+     * @return {Oject} - Object containing a list of objects or a lis of error messages
      */
     requestGraph: async (userOptions) => {
       return requestGraph(graphNodeEndpoint, subgraphName, userOptions);
